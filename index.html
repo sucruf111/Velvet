@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velvet Berlin - Premium Escort Directory</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              luxury: {
+                black: '#050505',
+                gold: '#d4af37',
+                goldHover: '#b5952f',
+                white: '#ffffff',
+                gray: '#d9d9d9',
+                darkgray: '#121212',
+              }
+            },
+            backgroundImage: {
+              'luxury-gold-gradient': 'linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 75%, #aa771c 100%)',
+              'luxury-gold-gradient-hover': 'linear-gradient(135deg, #d4af37 0%, #ffeb80 25%, #d4af37 50%, #ffeb80 75%, #d4af37 100%)',
+            },
+            fontFamily: {
+              serif: ['"Marcellus"', 'serif'],
+              sans: ['"Inter"', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.8s ease-out forwards',
+              'shimmer': 'shimmer 3s infinite linear',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              shimmer: {
+                '0%': { backgroundPosition: '200% 0' },
+                '100%': { backgroundPosition: '-200% 0' }
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .text-gold-gradient {
+          @apply bg-clip-text text-transparent bg-luxury-gold-gradient bg-[length:200%_auto];
+        }
+        .shadow-gold-glow {
+          box-shadow: 0 0 20px rgba(191, 149, 63, 0.3);
+        }
+        .glass-panel {
+          @apply bg-neutral-900/40 backdrop-blur-md border border-white/10;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3"
+  }
+}
+</script>
+</head>
+  <body class="bg-luxury-black text-luxury-gray antialiased selection:bg-luxury-gold selection:text-black">
+    <div id="root"></div>
+  </body>
+</html>
