@@ -1,0 +1,294 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "escorts": "Escorts",
+    "advertise": "Werben",
+    "login": "Login",
+    "search_placeholder": "Suchen...",
+    "logout": "Abmelden"
+  },
+  "home": {
+    "subtitle": "Berlins unabhängiges Erotik-Verzeichnis",
+    "title_prefix": "Entdecken.",
+    "title_highlight": "Verbinden.",
+    "title_suffix": "Genießen.",
+    "filter_all": "Alle entdecken",
+    "filter_outcall": "Outcall",
+    "filter_incall": "Incall",
+    "filter_massage": "Erotik Massage",
+    "premium_title": "Empfohlene Anzeigen",
+    "new_title": "Neu & Verifiziert",
+    "agencies_title": "Partner Agenturen",
+    "view_all": "Verzeichnis durchsuchen"
+  },
+  "card": {
+    "call_now": "Anrufen",
+    "available": "Verfügbar",
+    "unavailable": "Nicht Verfügbar",
+    "hourly": "Stündlich"
+  },
+  "profile": {
+    "verified_content": "Verifizierter Inhalt",
+    "about": "Über Mich",
+    "services": "Services",
+    "schedule": "Verfügbarkeit",
+    "languages": "Sprachen",
+    "represented_by": "Vertreten durch",
+    "show_phone": "Nummer anzeigen",
+    "mention": "Bitte erwähnen Sie",
+    "when_contacting": "wenn Sie kontaktieren",
+    "on_request": "Auf Anfrage",
+    "off": "Frei",
+    "back_home": "Start",
+    "back_escorts": "Escorts"
+  },
+  "attr": {
+    "age": "Alter",
+    "height": "Größe",
+    "dress": "Konfektion",
+    "bra": "BH",
+    "shoe": "Schuh",
+    "hourly_rate": "Stundensatz"
+  },
+  "search": {
+    "filters": "Filter",
+    "reset": "Zurücksetzen",
+    "max_price": "Max. Preis",
+    "district": "Bezirk",
+    "service": "Service",
+    "keyword": "Name oder Stichwort",
+    "no_results": "Keine Profile gefunden.",
+    "clear": "Filter löschen",
+    "showing": "Zeige",
+    "profiles": "verifizierte Profile",
+    "all_districts": "Alle Bezirke",
+    "any_service": "Jeder Service"
+  },
+  "footer": {
+    "directory": "Verzeichnis",
+    "info": "Informationen",
+    "contact": "Kontakt",
+    "terms": "AGB",
+    "privacy": "Datenschutz",
+    "desc": "Velvet Berlin ist ein unabhängiges Verzeichnis für Escorts, Massage-Künstlerinnen und Agenturen in Berlin. Wir zeigen nur Anzeigen — alle Vereinbarungen treffen Sie direkt mit Ihrer gewählten Begleitung.",
+    "disclaimer": "Unabhängiges Verzeichnis. Wir beschäftigen oder vertreten keine gelisteten Personen.",
+    "about": "Über uns"
+  },
+  "badge": {
+    "premium": "PREMIUM",
+    "new": "NEU",
+    "verified": "VERIFIZIERT",
+    "top": "TOP MODEL",
+    "choice": "VELVET'S WAHL"
+  },
+  "login": {
+    "welcome": "Willkommen zurück",
+    "subtitle": "Geben Sie Ihre Zugangsdaten ein",
+    "email": "E-Mail",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "button": "Zum Dashboard",
+    "new": "Neu bei Velvet Berlin?",
+    "new_customer": "Entdecken Sie Premium-Begleitung in Berlin. Speichern Sie Favoriten und mehr.",
+    "new_model": "Erstellen Sie ein Profil und beginnen Sie noch heute mit der Verbindung zu Kunden. Kostenlose Registrierung.",
+    "new_agency": "Registrieren Sie Ihre Agentur und verwalten Sie mehrere Profile an einem Ort.",
+    "create_account": "Kostenloses Konto erstellen",
+    "no_card": "Keine Kreditkarte erforderlich",
+    "quick": "Dauert 2 Minuten"
+  },
+  "register": {
+    "join": "Bei Velvet Berlin anmelden",
+    "select_type": "Wählen Sie Ihren Kontotyp, um das exklusive Erlebnis zu beginnen.",
+    "creating": "Registrierung als",
+    "guest": "Gast",
+    "model": "Model",
+    "agency": "Agentur"
+  },
+  "common": {
+    "or": "Oder",
+    "customer": "Kunde",
+    "required": "Pflichtfeld",
+    "optional": "Optional"
+  },
+  "visit": {
+    "title": "Service-Ort",
+    "incall": "Incall",
+    "incall_desc": "Kunden besuchen mich",
+    "outcall": "Outcall",
+    "outcall_desc": "Ich besuche Kunden",
+    "both": "Beides",
+    "both_desc": "Incall & Outcall"
+  },
+  "dashboard": {
+    "overview": "Übersicht",
+    "photos": "Fotos",
+    "services": "Services",
+    "settings": "Profil-Einstellungen",
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "billing": "Pakete & Abrechnung",
+    "welcome": "Willkommen zurück",
+    "performance": "Hier ist deine Profilleistung im Überblick",
+    "availability": "Deine Verfügbarkeit",
+    "availability_desc": "Setze dich als verfügbar für Buchungen",
+    "available": "Verfügbar",
+    "not_available": "Nicht Verfügbar",
+    "availability_hint": "Dein Profil zeigt \"Verfügbar\" wenn du eingeloggt bist",
+    "premium_package": "Premium Paket",
+    "standard_package": "Standard Paket",
+    "expires_in": "Läuft ab in",
+    "days": "Tagen",
+    "upgrade_visibility": "Upgrade für mehr Sichtbarkeit",
+    "extend_package": "Paket verlängern",
+    "upgrade_now": "Jetzt upgraden",
+    "profile_live": "Willkommen! Dein Profil ist online",
+    "profile_live_desc": "Alles bereit! Die Statistiken werden angezeigt, sobald Benutzer dein Profil ansehen.",
+    "metrics_title": "Leistungskennzahlen (Letzte 30 Tage)",
+    "profile_views": "Profilaufrufe",
+    "contact_clicks": "Kontaktklicks",
+    "search_appearances": "Suchanzeigen",
+    "favorited_by": "Favorisiert von",
+    "quick_actions": "Schnellaktionen",
+    "edit_profile": "Profil bearbeiten",
+    "add_photos": "Fotos hinzufügen",
+    "update_services": "Services aktualisieren",
+    "view_packages": "Pakete ansehen",
+    "profile_completion": "Profil-Vollständigkeit",
+    "completion_desc": "Vervollständige dein Profil für mehr Aufrufe",
+    "my_favorites": "Meine Favoriten",
+    "no_favorites": "Noch keine Favoriten",
+    "no_favorites_desc": "Durchsuche unser exklusives Verzeichnis um dein perfektes Match zu finden.",
+    "browse_escorts": "Escorts durchsuchen",
+    "model_dashboard": "Model Dashboard",
+    "agency_management": "Agentur-Verwaltung",
+    "cancel": "Abbrechen"
+  },
+  "about": {
+    "title": "Über Velvet Berlin",
+    "subtitle": "Ihre erstklassige unabhängige Werbeplattform für High-Class Escort-Services in Berlin.",
+    "what_we_are": "Wer wir sind",
+    "description_1": "Velvet Berlin ist eine Online-Plattform, auf der Sie Premium-Escort-Kontakte in Berlin entdecken können. Wir sind ein reines Informationsportal — hier finden Sie schöne Fotos, detaillierte Informationen und direkte Kontaktdaten.",
+    "description_2": "Wenn Sie auf der Suche nach entspannter Erwachsenenunterhaltung nach Ihrem Geschmack sind, war die Entscheidung goldrichtig, unsere elegant gestaltete Plattform zu besuchen.",
+    "disclaimer": "Wir weisen ausdrücklich darauf hin, dass alle auf Velvet Berlin befindlichen Damen, Clubs und Agenturen Anzeigenkunden sind und NICHT für oder im Auftrag von Velvet Berlin tätig sind.",
+    "what_we_offer": "Was wir bieten",
+    "offer_intro": "Unsere Plattform bietet eine umfangreiche und vielfältige Auswahl, bleibt dabei aber übersichtlich und leicht zu navigieren.",
+    "feature_profiles": "Verifizierte Profile",
+    "feature_profiles_desc": "Alle Profile werden vor der Veröffentlichung geprüft — keine Fake-Profile.",
+    "feature_variety": "Große Auswahl",
+    "feature_variety_desc": "Von Privatmodellen bis zu High-Class Escorts — finden Sie die perfekte Begleitung.",
+    "feature_current": "Immer aktuell",
+    "feature_current_desc": "Aktuelle Anzeigen mit neuester Verfügbarkeit und Neuankömmlingen.",
+    "feature_contact": "Direkter Kontakt",
+    "feature_contact_desc": "Erhalten Sie Fotos, Informationen und Kontaktdaten — kommunizieren Sie direkt.",
+    "security_title": "Sicherheit & Datenschutz",
+    "security_verification": "Profil-Verifizierung",
+    "security_verification_desc": "Alle Profile werden vor der Veröffentlichung überprüft.",
+    "security_privacy": "Datenschutz",
+    "security_privacy_desc": "Persönliche Daten werden geschützt.",
+    "security_report": "Meldesystem",
+    "security_report_desc": "Melden und blockieren Sie unerwünschte Kontakte.",
+    "for_escorts": "Für Escorts & Begleitungen",
+    "escorts_intro": "Velvet Berlin ist eine Plattform für die Veröffentlichung von Escort-Profilen in Berlin.",
+    "escorts_benefit_1": "Einfache Plattform zur Kundenkommunikation",
+    "escorts_benefit_2": "Garantierte Zielgruppe für Premium-Begleitservices",
+    "escorts_benefit_3": "Flexible Arbeitsbedingungen und volle Kontrolle",
+    "escorts_benefit_4": "Professionelle Präsentation mit hochwertigen Profilseiten",
+    "how_it_works": "So funktioniert es",
+    "step_1_title": "Registrieren",
+    "step_1_desc": "Erstellen Sie Ihr Konto und bauen Sie Ihr Profil auf.",
+    "step_2_title": "Fotos hochladen",
+    "step_2_desc": "Fügen Sie Ihre besten Fotos hinzu.",
+    "step_3_title": "Buchungen erhalten",
+    "step_3_desc": "Nach der Freigabe erhalten Sie Anfragen direkt.",
+    "cta_title": "Ihre exklusive Plattform in Berlin",
+    "cta_desc": "Velvet Berlin — Ihre sichere und exklusive Plattform für Premium-Escort-Dienstleistungen in Berlin.",
+    "cta_browse": "Escorts durchsuchen",
+    "cta_register": "Jetzt registrieren"
+  },
+  "metadata": {
+    "title": "Velvet Berlin - Premium Escort Verzeichnis Berlin",
+    "description": "Velvet Berlin - Berlins Premium unabhängiges Escort-Verzeichnis. Finden Sie verifizierte Escorts, Begleitungen und Erwachsenen-Services in Berlin.",
+    "keywords": "escort berlin, escorts berlin, begleitservice berlin, escort service berlin, high class escort berlin"
+  },
+  "age_gate": {
+    "title": "Altersverifizierung",
+    "warning": "Dieser Inhalt ist nur für Erwachsene",
+    "description": "Diese Website enthält sexuell explizites Material nur für Erwachsene. Mit dem Betreten bestätigen Sie, dass Sie mindestens 18 Jahre alt sind.",
+    "enter": "Ich bin 18+ - Eintreten",
+    "exit": "Seite verlassen"
+  },
+  "ageVerify": {
+    "title": "Altersbestätigung erforderlich",
+    "description": "Diese Website enthält Inhalte für Erwachsene. Bitte bestätigen Sie, dass Sie mindestens 18 Jahre alt sind, um fortzufahren.",
+    "confirm": "Ich bin 18 Jahre oder älter",
+    "decline": "Nein, ich bin unter 18",
+    "verifying": "Wird überprüft...",
+    "disclaimer": "Mit Ihrer Bestätigung akzeptieren Sie unsere Nutzungsbedingungen und erklären, dass Sie das gesetzliche Mindestalter erreicht haben.",
+    "legal": "© 2024 Velvet Berlin. Alle Rechte vorbehalten."
+  },
+  "packages": {
+    "hero": {
+      "trust_badge": "Über 500 zufriedene Kunden",
+      "title": "Werde sichtbar. Werde gebucht.",
+      "subtitle": "Wähle das perfekte Paket für maximale Reichweite und Buchungen. Keine versteckten Kosten."
+    },
+    "stats": {
+      "active_profiles": "Aktive Profile",
+      "monthly_visitors": "Besucher/Monat",
+      "satisfaction": "Zufriedenheit"
+    },
+    "tabs": {
+      "for_models": "Für Models",
+      "for_agencies": "Für Agenturen"
+    },
+    "days": "Tage",
+    "off": "Rabatt",
+    "price_per_day": "nur {price}€ pro Tag",
+    "per_extra_model": "pro zusätzliches Model",
+    "highlights": "Das Wichtigste",
+    "badge": {
+      "popular": "Beliebteste Wahl",
+      "best_value": "Bestes Preis-Leistung"
+    },
+    "cta": {
+      "get_started": "Jetzt starten"
+    },
+    "guarantee": "14 Tage Geld-zurück-Garantie",
+    "why": {
+      "title": "Warum Velvet Berlin?",
+      "visibility": {
+        "title": "Maximale Sichtbarkeit",
+        "desc": "Dein Profil wird von tausenden zahlungskräftigen Besuchern gesehen. Premium-Platzierung in der Suche."
+      },
+      "clientele": {
+        "title": "Hochwertige Kundschaft",
+        "desc": "Wir fokussieren uns auf anspruchsvolle Herren mit Budget für Premium-Begleitung."
+      },
+      "privacy": {
+        "title": "100% Diskret & Sicher",
+        "desc": "Server in der Schweiz. Keine Datenweitergabe. Deine Privatsphäre ist uns heilig."
+      }
+    },
+    "testimonial": {
+      "quote": "Seit ich bei Velvet bin, hat sich meine Buchungsrate verdreifacht. Die Premium-Kunden hier wissen, was sie wollen.",
+      "author": "Sophia",
+      "role": "Premium Model seit 2023"
+    },
+    "faq": {
+      "title": "Häufige Fragen",
+      "q1": "Wie schnell wird mein Profil freigeschaltet?",
+      "a1": "Nach Verifizierung deiner Fotos ist dein Profil innerhalb von 24 Stunden online. Bei Premium-Paketen oft schon in wenigen Stunden.",
+      "q2": "Kann ich mein Paket später upgraden?",
+      "a2": "Ja, jederzeit! Du zahlst nur die Differenz zum höheren Paket. Der Restbetrag wird anteilig verrechnet.",
+      "q3": "Was passiert nach Ablauf meines Pakets?",
+      "a3": "Dein Profil bleibt sichtbar, wird aber nicht mehr hervorgehoben. Du erhältst rechtzeitig eine Erinnerung zur Verlängerung."
+    },
+    "final_cta": {
+      "title": "Bereit durchzustarten?",
+      "desc": "Schließe dich über 500 erfolgreichen Models und Agenturen an. Beginne noch heute mit Velvet Berlin.",
+      "button": "Jetzt Paket wählen",
+      "register": "Erst kostenlos registrieren",
+      "urgency": "Angebot gilt nur noch diese Woche"
+    }
+  }
+}

@@ -1,0 +1,294 @@
+{
+  "nav": {
+    "home": "Home",
+    "escorts": "Escorts",
+    "advertise": "Advertise",
+    "login": "Login",
+    "search_placeholder": "Search...",
+    "logout": "Logout"
+  },
+  "home": {
+    "subtitle": "Berlin's Independent Adult Directory",
+    "title_prefix": "Explore.",
+    "title_highlight": "Connect.",
+    "title_suffix": "Enjoy.",
+    "filter_all": "Explore All",
+    "filter_outcall": "Outcall",
+    "filter_incall": "Incall",
+    "filter_massage": "Sensual Massage",
+    "premium_title": "Featured Listings",
+    "new_title": "New & Verified",
+    "agencies_title": "Partner Agencies",
+    "view_all": "Browse Directory"
+  },
+  "card": {
+    "call_now": "Call Now",
+    "available": "Available Now",
+    "unavailable": "Unavailable",
+    "hourly": "Hourly"
+  },
+  "profile": {
+    "verified_content": "Verified Content",
+    "about": "About Me",
+    "services": "Services",
+    "schedule": "Weekly Schedule",
+    "languages": "Languages",
+    "represented_by": "Represented by",
+    "show_phone": "Show Phone Number",
+    "mention": "Please mention",
+    "when_contacting": "when contacting",
+    "on_request": "On Request",
+    "off": "Off",
+    "back_home": "Home",
+    "back_escorts": "Escorts"
+  },
+  "attr": {
+    "age": "Age",
+    "height": "Height",
+    "dress": "Dress",
+    "bra": "Bra",
+    "shoe": "Shoe",
+    "hourly_rate": "Hourly Rate"
+  },
+  "search": {
+    "filters": "Filters",
+    "reset": "Reset Filters",
+    "max_price": "Max Price",
+    "district": "District",
+    "service": "Service",
+    "keyword": "Name or keyword",
+    "no_results": "No profiles found matching your criteria.",
+    "clear": "Clear Filters",
+    "showing": "Showing",
+    "profiles": "verified profiles",
+    "all_districts": "All Districts",
+    "any_service": "Any Service"
+  },
+  "footer": {
+    "directory": "Directory",
+    "info": "Information",
+    "contact": "Contact",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "desc": "Velvet Berlin is an independent directory showcasing escorts, massage artists, and agencies across Berlin. We display advertisements only — all arrangements are made directly between you and your chosen companion.",
+    "disclaimer": "Independent directory. We do not employ or represent any listed individuals.",
+    "about": "About Us"
+  },
+  "badge": {
+    "premium": "PREMIUM",
+    "new": "NEW",
+    "verified": "VERIFIED",
+    "top": "TOP MODEL",
+    "choice": "VELVET'S CHOICE"
+  },
+  "login": {
+    "welcome": "Welcome Back",
+    "subtitle": "Enter your credentials to access your account",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "button": "Login to Dashboard",
+    "new": "New to Velvet Berlin?",
+    "new_customer": "Join thousands discovering premium companionship in Berlin. Save favorites and more.",
+    "new_model": "Create a profile and start connecting with clients today. Free registration with premium features.",
+    "new_agency": "Register your agency and manage multiple profiles in one place. Professional tools included.",
+    "create_account": "Create Free Account",
+    "no_card": "No credit card required",
+    "quick": "Takes 2 minutes"
+  },
+  "register": {
+    "join": "Join Velvet Berlin",
+    "select_type": "Select your account type to begin the exclusive experience.",
+    "creating": "Registering as",
+    "guest": "Guest",
+    "model": "Model",
+    "agency": "Agency"
+  },
+  "common": {
+    "or": "Or",
+    "customer": "Customer",
+    "required": "indicates required field",
+    "optional": "Optional"
+  },
+  "visit": {
+    "title": "Service Location",
+    "incall": "Incall",
+    "incall_desc": "Clients visit me",
+    "outcall": "Outcall",
+    "outcall_desc": "I visit clients",
+    "both": "Both",
+    "both_desc": "Incall & Outcall"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "photos": "Photos",
+    "services": "Services",
+    "settings": "Profile Settings",
+    "save": "Save Changes",
+    "saved": "Changes Saved",
+    "billing": "Packages & Billing",
+    "welcome": "Welcome back",
+    "performance": "Here's your profile performance overview",
+    "availability": "Your Availability",
+    "availability_desc": "Set yourself as available for bookings",
+    "available": "Available",
+    "not_available": "Not Available",
+    "availability_hint": "Your profile will show \"Available Now\" when you're logged in",
+    "premium_package": "Premium Package",
+    "standard_package": "Standard Package",
+    "expires_in": "Expires in",
+    "days": "days",
+    "upgrade_visibility": "Upgrade for more visibility",
+    "extend_package": "Extend Package",
+    "upgrade_now": "Upgrade Now",
+    "profile_live": "Welcome! Your Profile is Live",
+    "profile_live_desc": "You're all set! Metrics will start showing once users begin viewing your profile.",
+    "metrics_title": "Performance Metrics (Last 30 Days)",
+    "profile_views": "Profile Views",
+    "contact_clicks": "Contact Clicks",
+    "search_appearances": "Search Appearances",
+    "favorited_by": "Favorited By",
+    "quick_actions": "Quick Actions",
+    "edit_profile": "Edit Profile",
+    "add_photos": "Add Photos",
+    "update_services": "Update Services",
+    "view_packages": "View Packages",
+    "profile_completion": "Profile Completion",
+    "completion_desc": "Complete your profile to get more views",
+    "my_favorites": "My Favorites",
+    "no_favorites": "No Favorites Yet",
+    "no_favorites_desc": "Browse our exclusive directory to find your perfect match.",
+    "browse_escorts": "Browse Escorts",
+    "model_dashboard": "Model Dashboard",
+    "agency_management": "Agency Management",
+    "cancel": "Cancel"
+  },
+  "about": {
+    "title": "About Velvet Berlin",
+    "subtitle": "Your premier independent advertising platform for high-class escort services in Berlin.",
+    "what_we_are": "What We Are",
+    "description_1": "Velvet Berlin is an online platform where you can discover premium escort contacts in Berlin. We are a pure information portal — here you will find beautiful photos, detailed information, and direct contact details.",
+    "description_2": "If you are looking for relaxed adult entertainment tailored to your taste, you have made the right choice visiting our elegantly designed platform.",
+    "disclaimer": "We expressly point out that all ladies, clubs, and agencies listed on Velvet Berlin are advertising clients and are NOT employed by or acting on behalf of Velvet Berlin.",
+    "what_we_offer": "What We Offer",
+    "offer_intro": "Our platform offers an extensive and diverse selection, yet remains clear and easy to navigate.",
+    "feature_profiles": "Verified Profiles",
+    "feature_profiles_desc": "All profiles are reviewed before publication — no fake profiles.",
+    "feature_variety": "Wide Selection",
+    "feature_variety_desc": "From private models to high-class escorts, find the perfect match for your preferences.",
+    "feature_current": "Always Current",
+    "feature_current_desc": "Up-to-date listings with the latest availability and new arrivals.",
+    "feature_contact": "Direct Contact",
+    "feature_contact_desc": "Get photos, information, and contact details — communicate directly.",
+    "security_title": "Security & Privacy",
+    "security_verification": "Profile Verification",
+    "security_verification_desc": "All profiles are reviewed before publication.",
+    "security_privacy": "Data Protection",
+    "security_privacy_desc": "Personal data is protected.",
+    "security_report": "Reporting System",
+    "security_report_desc": "Report and block unwanted contacts.",
+    "for_escorts": "For Escorts & Companions",
+    "escorts_intro": "Velvet Berlin is a platform for publishing escort profiles in Berlin.",
+    "escorts_benefit_1": "Simple platform for client communication",
+    "escorts_benefit_2": "Guaranteed target audience for premium companion services",
+    "escorts_benefit_3": "Flexible working conditions and full control",
+    "escorts_benefit_4": "Professional presentation with high-quality profile pages",
+    "how_it_works": "How It Works",
+    "step_1_title": "Register",
+    "step_1_desc": "Create your account and build your profile.",
+    "step_2_title": "Upload Photos",
+    "step_2_desc": "Add your best photos.",
+    "step_3_title": "Get Bookings",
+    "step_3_desc": "After approval, receive inquiries directly.",
+    "cta_title": "Your Exclusive Platform in Berlin",
+    "cta_desc": "Velvet Berlin — your secure and exclusive platform for premium escort services in Berlin.",
+    "cta_browse": "Browse Escorts",
+    "cta_register": "Register Now"
+  },
+  "metadata": {
+    "title": "Velvet Berlin - Premium Escort Directory Berlin",
+    "description": "Velvet Berlin - Berlin's premium independent escort directory. Find verified escorts, companions and adult services in Berlin.",
+    "keywords": "escort berlin, escorts berlin, escort service berlin, high class escort berlin"
+  },
+  "age_gate": {
+    "title": "Age Verification",
+    "warning": "Adult Content Warning",
+    "description": "This website contains sexually explicit material intended for adults only. By entering, you confirm that you are at least 18 years of age.",
+    "enter": "I am 18+ - Enter",
+    "exit": "Exit Site"
+  },
+  "ageVerify": {
+    "title": "Age Verification Required",
+    "description": "This website contains adult content. Please confirm that you are at least 18 years old to continue.",
+    "confirm": "I am 18 years or older",
+    "decline": "No, I am under 18",
+    "verifying": "Verifying...",
+    "disclaimer": "By confirming, you accept our terms of service and declare that you have reached the legal minimum age.",
+    "legal": "© 2024 Velvet Berlin. All rights reserved."
+  },
+  "packages": {
+    "hero": {
+      "trust_badge": "Over 500 satisfied customers",
+      "title": "Get Visible. Get Booked.",
+      "subtitle": "Choose the perfect package for maximum reach and bookings. No hidden fees."
+    },
+    "stats": {
+      "active_profiles": "Active Profiles",
+      "monthly_visitors": "Visitors/Month",
+      "satisfaction": "Satisfaction Rate"
+    },
+    "tabs": {
+      "for_models": "For Models",
+      "for_agencies": "For Agencies"
+    },
+    "days": "days",
+    "off": "off",
+    "price_per_day": "only {price}€ per day",
+    "per_extra_model": "per additional model",
+    "highlights": "Key Benefits",
+    "badge": {
+      "popular": "Most Popular",
+      "best_value": "Best Value"
+    },
+    "cta": {
+      "get_started": "Get Started"
+    },
+    "guarantee": "14-day money-back guarantee",
+    "why": {
+      "title": "Why Velvet Berlin?",
+      "visibility": {
+        "title": "Maximum Visibility",
+        "desc": "Your profile is seen by thousands of high-spending visitors. Premium placement in search results."
+      },
+      "clientele": {
+        "title": "High-End Clientele",
+        "desc": "We focus on discerning gentlemen with the budget for premium companionship."
+      },
+      "privacy": {
+        "title": "100% Discrete & Secure",
+        "desc": "Servers in Switzerland. No data sharing. Your privacy is our priority."
+      }
+    },
+    "testimonial": {
+      "quote": "Since joining Velvet, my booking rate has tripled. The premium clients here know exactly what they want.",
+      "author": "Sophia",
+      "role": "Premium Model since 2023"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "How quickly will my profile go live?",
+      "a1": "After photo verification, your profile goes live within 24 hours. Premium packages often go live within a few hours.",
+      "q2": "Can I upgrade my package later?",
+      "a2": "Yes, anytime! You only pay the difference. The remaining balance is credited proportionally.",
+      "q3": "What happens when my package expires?",
+      "a3": "Your profile remains visible but won't be featured. You'll receive a timely reminder to renew."
+    },
+    "final_cta": {
+      "title": "Ready to Get Started?",
+      "desc": "Join over 500 successful models and agencies. Start with Velvet Berlin today.",
+      "button": "Choose Your Package",
+      "register": "Register Free First",
+      "urgency": "Offer valid this week only"
+    }
+  }
+}
