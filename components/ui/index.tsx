@@ -38,12 +38,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input: React.FC<InputProps> = ({ className = '', error, ...props }) => (
   <input
-    className={`w-full bg-neutral-950 border text-white p-3 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/50 transition-all placeholder-neutral-500 rounded-sm autofill:bg-neutral-950 autofill:text-white ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : 'border-neutral-700 hover:border-neutral-600'} ${className}`}
-    style={{
-      WebkitBoxShadow: '0 0 0 1000px #0a0a0a inset',
-      WebkitTextFillColor: '#ffffff',
-      caretColor: '#ffffff'
-    }}
+    className={`w-full bg-neutral-950 border text-white p-3 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/50 transition-all placeholder:text-neutral-500 rounded-sm autofill:bg-neutral-950 autofill:text-white [&:not(:placeholder-shown)]:text-white ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : 'border-neutral-700 hover:border-neutral-600'} ${className}`}
     {...props}
   />
 );
@@ -72,12 +67,7 @@ export const Select: React.FC<SelectProps> = ({ className = '', error, children,
 
 export const Textarea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement> & { error?: boolean }> = ({ className = '', error, ...props }) => (
   <textarea
-    className={`w-full bg-neutral-950 border text-white p-3 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/50 transition-all placeholder-neutral-500 rounded-sm resize-none ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : 'border-neutral-700 hover:border-neutral-600'} ${className}`}
-    style={{
-      WebkitBoxShadow: '0 0 0 1000px #0a0a0a inset',
-      WebkitTextFillColor: '#ffffff',
-      caretColor: '#ffffff'
-    }}
+    className={`w-full bg-neutral-950 border text-white p-3 focus:outline-none focus:border-luxury-gold focus:ring-1 focus:ring-luxury-gold/50 transition-all placeholder:text-neutral-500 rounded-sm resize-none ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : 'border-neutral-700 hover:border-neutral-600'} ${className}`}
     {...props}
   />
 );

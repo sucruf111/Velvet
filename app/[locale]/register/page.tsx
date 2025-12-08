@@ -718,7 +718,7 @@ export default function RegisterPage() {
                   <select
                     value={formData.district}
                     onChange={(e) => updateForm('district', e.target.value)}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded-sm px-4 py-2.5 text-white focus:border-luxury-gold focus:outline-none"
+                    className="w-full bg-neutral-950 border border-neutral-700 rounded-sm px-4 py-2.5 text-white focus:border-luxury-gold focus:outline-none"
                   >
                     {DISTRICTS.map(d => (
                       <option key={d} value={d}>{d}</option>
@@ -884,7 +884,7 @@ export default function RegisterPage() {
                   onChange={(e) => updateForm('description', e.target.value)}
                   placeholder={t('register.description_placeholder')}
                   rows={4}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-sm px-4 py-2.5 text-white placeholder-neutral-600 focus:border-luxury-gold focus:outline-none resize-none"
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-sm px-4 py-2.5 text-white placeholder:text-neutral-500 focus:border-luxury-gold focus:outline-none resize-none"
                 />
               </div>
             </>
@@ -1020,7 +1020,7 @@ export default function RegisterPage() {
                 <select
                   value={formData.district}
                   onChange={(e) => updateForm('district', e.target.value)}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-sm px-4 py-2.5 text-white focus:border-luxury-gold focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-sm px-4 py-2.5 text-white focus:border-luxury-gold focus:outline-none"
                 >
                   {DISTRICTS.map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -1065,7 +1065,7 @@ export default function RegisterPage() {
                   onChange={(e) => updateForm('description', e.target.value)}
                   placeholder={t('register.agency_desc_placeholder')}
                   rows={4}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-sm px-4 py-2.5 text-white placeholder-neutral-600 focus:border-luxury-gold focus:outline-none resize-none"
+                  className="w-full bg-neutral-950 border border-neutral-700 rounded-sm px-4 py-2.5 text-white placeholder:text-neutral-500 focus:border-luxury-gold focus:outline-none resize-none"
                 />
               </div>
             </>

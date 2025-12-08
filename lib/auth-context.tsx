@@ -324,16 +324,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // After signup, we need to sign in to establish the session for RLS
       // This is needed because signUp doesn't always create an active session
+      let signInError;
       if (data.phone) {
-        await supabase.auth.signInWithPassword({
+        const result = await supabase.auth.signInWithPassword({
           phone: data.phone,
           password: data.password
         });
+        signInError = result.error;
       } else if (data.email) {
-        await supabase.auth.signInWithPassword({
+        const result = await supabase.auth.signInWithPassword({
           email: data.email,
           password: data.password
         });
+        signInError = result.error;
+      }
+
+      // If sign-in fails (e.g., email confirmation required), still complete registration
+      // The user will need to confirm their email and then log in
+      if (signInError) {
+        console.warn('Sign-in after signup failed:', signInError.message);
+        // User is created but needs email confirmation
+        // Set the user without a session - they'll need to log in after confirming
+        setUser(transformSupabaseUser(authData.user));
+        return; // Exit early - profile will be created on first login
       }
 
       // Now create the profile/agency after user is authenticated
