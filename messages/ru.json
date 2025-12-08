@@ -332,7 +332,16 @@
     "verification_rejected_desc": "К сожалению, ваша верификация была отклонена. Вы можете попробовать снова с новыми документами.",
     "reason": "Причина",
     "change": "Изменить",
-    "remove": "Удалить"
+    "remove": "Удалить",
+    "verification_benefits_short": "Пройдите верификацию для большего доверия и видимости",
+    "verification_photo": "Фото для верификации",
+    "verification_photo_desc": "Загрузите селфи с рукописной запиской",
+    "upload_verification_photo": "Загрузить фото",
+    "verification_instructions_title": "Как пройти верификацию",
+    "verification_step_1": "Напишите имя вашего профиля и сегодняшнюю дату на листе бумаги",
+    "verification_step_2": "Сделайте селфи, держа записку рядом с лицом (должны быть видны \"{name}\" и \"{date}\")",
+    "verification_step_3": "Загрузите фото ниже",
+    "verification_note_example": "Ваша записка должна содержать:"
   },
   "about": {
     "title": "О Velvet Berlin",

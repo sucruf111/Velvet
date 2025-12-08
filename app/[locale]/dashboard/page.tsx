@@ -397,7 +397,14 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
               <p className="text-amber-400 text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
                 <AlertCircle size={12} /> {t('profile_not_verified')}
               </p>
-              <p className="text-neutral-400 text-sm">{t('verification_pending')}</p>
+              <p className="text-neutral-400 text-sm mb-3">{t('verification_benefits_short')}</p>
+              <Button
+                variant="primary"
+                className="w-full !py-2 !text-xs"
+                onClick={() => setActiveTab('verify')}
+              >
+                <ShieldCheck size={14} className="mr-1" /> {t('get_verified')}
+              </Button>
             </>
           )}
         </div>
@@ -1025,7 +1032,7 @@ function AccountTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
   );
 }
 
-// Verification Tab
+// Verification Tab - Simplified: just selfie with handwritten note (profile name + date)
 function VerificationTab({
   profile,
   application,
@@ -1038,17 +1045,18 @@ function VerificationTab({
   const t = useTranslations('dashboard');
   const { user } = useAuth();
   const supabase = createClient();
-  const idPhotoRef = useRef<HTMLInputElement>(null);
   const selfieRef = useRef<HTMLInputElement>(null);
 
-  const [idPhotoUrl, setIdPhotoUrl] = useState(application?.idPhotoUrl || '');
-  const [selfieWithIdUrl, setSelfieWithIdUrl] = useState(application?.selfieWithIdUrl || '');
+  const [selfieUrl, setSelfieUrl] = useState(application?.selfieWithIdUrl || '');
   const [notes, setNotes] = useState(application?.notes || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
+  // Get today's date formatted
+  const todayDate = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -1058,6 +1066,7 @@ function VerificationTab({
     try {
       const formData = new FormData();
       formData.append('images', file);
+      formData.append('folder', 'verifications'); // Store in separate folder
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -1066,11 +1075,7 @@ function VerificationTab({
 
       const result = await response.json();
       if (result.success && result.urls?.[0]) {
-        if (type === 'id') {
-          setIdPhotoUrl(result.urls[0]);
-        } else {
-          setSelfieWithIdUrl(result.urls[0]);
-        }
+        setSelfieUrl(result.urls[0]);
       } else {
         setUploadError(result.error || 'Upload failed');
       }
@@ -1083,7 +1088,7 @@ function VerificationTab({
   };
 
   const handleSubmit = async () => {
-    if (!idPhotoUrl || !selfieWithIdUrl || !user) return;
+    if (!selfieUrl || !user) return;
 
     setIsSubmitting(true);
     try {
@@ -1092,8 +1097,8 @@ function VerificationTab({
         await supabase
           .from('verification_applications')
           .update({
-            idPhotoUrl,
-            selfieWithIdUrl,
+            selfieWithIdUrl: selfieUrl,
+            idPhotoUrl: selfieUrl, // Use same URL for both fields (simplified)
             notes,
             status: 'pending',
             updatedAt: new Date().toISOString()
@@ -1106,8 +1111,8 @@ function VerificationTab({
           .insert({
             profileId: profile.id,
             userId: user.id,
-            idPhotoUrl,
-            selfieWithIdUrl,
+            selfieWithIdUrl: selfieUrl,
+            idPhotoUrl: selfieUrl, // Use same URL for both fields (simplified)
             notes,
             status: 'pending',
             createdAt: new Date().toISOString(),
@@ -1122,7 +1127,7 @@ function VerificationTab({
     }
   };
 
-  // Already has a pending or approved application
+  // Already has a pending application
   if (application?.status === 'pending') {
     return (
       <div className="space-y-6">
@@ -1133,18 +1138,10 @@ function VerificationTab({
           <p className="text-amber-400 text-sm">{t('verification_submitted_on')} {new Date(application.createdAt).toLocaleDateString()}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
-            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{t('id_photo')}</p>
-            <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden">
-              <img src={application.idPhotoUrl} alt="ID" className="w-full h-full object-cover blur-sm" />
-            </div>
-          </div>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
-            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{t('selfie_with_id')}</p>
-            <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden">
-              <img src={application.selfieWithIdUrl} alt="Selfie" className="w-full h-full object-cover blur-sm" />
-            </div>
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
+          <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{t('verification_photo')}</p>
+          <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden max-w-md mx-auto">
+            <img src={application.selfieWithIdUrl} alt="Verification" className="w-full h-full object-cover blur-sm" />
           </div>
         </div>
       </div>
@@ -1169,20 +1166,19 @@ function VerificationTab({
         </div>
 
         {/* Show resubmission form */}
-        <VerificationForm
-          idPhotoUrl={idPhotoUrl}
-          selfieWithIdUrl={selfieWithIdUrl}
+        <VerificationFormSimple
+          profile={profile}
+          selfieUrl={selfieUrl}
+          setSelfieUrl={setSelfieUrl}
           notes={notes}
-          setIdPhotoUrl={setIdPhotoUrl}
-          setSelfieWithIdUrl={setSelfieWithIdUrl}
           setNotes={setNotes}
           handleImageUpload={handleImageUpload}
           handleSubmit={handleSubmit}
           isUploading={isUploading}
           isSubmitting={isSubmitting}
           uploadError={uploadError}
-          idPhotoRef={idPhotoRef}
           selfieRef={selfieRef}
+          todayDate={todayDate}
           t={t}
         />
       </div>
@@ -1211,55 +1207,53 @@ function VerificationTab({
         </div>
       </div>
 
-      <VerificationForm
-        idPhotoUrl={idPhotoUrl}
-        selfieWithIdUrl={selfieWithIdUrl}
+      <VerificationFormSimple
+        profile={profile}
+        selfieUrl={selfieUrl}
+        setSelfieUrl={setSelfieUrl}
         notes={notes}
-        setIdPhotoUrl={setIdPhotoUrl}
-        setSelfieWithIdUrl={setSelfieWithIdUrl}
         setNotes={setNotes}
         handleImageUpload={handleImageUpload}
         handleSubmit={handleSubmit}
         isUploading={isUploading}
         isSubmitting={isSubmitting}
         uploadError={uploadError}
-        idPhotoRef={idPhotoRef}
         selfieRef={selfieRef}
+        todayDate={todayDate}
         t={t}
       />
     </div>
   );
 }
 
-function VerificationForm({
-  idPhotoUrl,
-  selfieWithIdUrl,
+// Simplified verification form - just one photo with handwritten note
+function VerificationFormSimple({
+  profile,
+  selfieUrl,
+  setSelfieUrl,
   notes,
-  setIdPhotoUrl,
-  setSelfieWithIdUrl,
   setNotes,
   handleImageUpload,
   handleSubmit,
   isUploading,
   isSubmitting,
   uploadError,
-  idPhotoRef,
   selfieRef,
+  todayDate,
   t
 }: {
-  idPhotoUrl: string;
-  selfieWithIdUrl: string;
+  profile: Profile;
+  selfieUrl: string;
+  setSelfieUrl: (url: string) => void;
   notes: string;
-  setIdPhotoUrl: (url: string) => void;
-  setSelfieWithIdUrl: (url: string) => void;
   setNotes: (notes: string) => void;
-  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => void;
+  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSubmit: () => void;
   isUploading: boolean;
   isSubmitting: boolean;
   uploadError: string;
-  idPhotoRef: React.RefObject<HTMLInputElement>;
   selfieRef: React.RefObject<HTMLInputElement>;
+  todayDate: string;
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
@@ -1270,96 +1264,65 @@ function VerificationForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* ID Photo */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
-          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-            <Camera size={18} className="text-luxury-gold" /> {t('id_photo')}
-          </h4>
-          <p className="text-neutral-500 text-sm mb-4">{t('id_photo_desc')}</p>
-
-          <input
-            ref={idPhotoRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => handleImageUpload(e, 'id')}
-          />
-
-          {idPhotoUrl ? (
-            <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden group">
-              <img src={idPhotoUrl} alt="ID" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                <button
-                  onClick={() => idPhotoRef.current?.click()}
-                  className="bg-luxury-gold text-black px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {t('change')}
-                </button>
-                <button
-                  onClick={() => setIdPhotoUrl('')}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {t('remove')}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => idPhotoRef.current?.click()}
-              disabled={isUploading}
-              className="w-full aspect-video border-2 border-dashed border-neutral-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-luxury-gold transition-colors"
-            >
-              <Upload size={24} className="text-neutral-500" />
-              <span className="text-neutral-400 text-sm">{isUploading ? 'Uploading...' : t('upload_id')}</span>
-            </button>
-          )}
+      {/* Instructions */}
+      <div className="bg-blue-900/10 border border-blue-800/50 rounded-lg p-6">
+        <h4 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+          <Camera size={18} /> {t('verification_instructions_title')}
+        </h4>
+        <ol className="text-neutral-300 text-sm space-y-2 list-decimal list-inside">
+          <li>{t('verification_step_1')}</li>
+          <li>{t('verification_step_2', { name: profile.name, date: todayDate })}</li>
+          <li>{t('verification_step_3')}</li>
+        </ol>
+        <div className="mt-4 p-3 bg-neutral-900/50 rounded-md border border-neutral-800">
+          <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1">{t('verification_note_example')}</p>
+          <p className="text-luxury-gold font-medium">&quot;{profile.name}&quot; - {todayDate}</p>
         </div>
+      </div>
 
-        {/* Selfie with ID */}
-        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
-          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
-            <Camera size={18} className="text-luxury-gold" /> {t('selfie_with_id')}
-          </h4>
-          <p className="text-neutral-500 text-sm mb-4">{t('selfie_desc')}</p>
+      {/* Selfie Upload */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+        <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+          <Camera size={18} className="text-luxury-gold" /> {t('verification_photo')}
+        </h4>
+        <p className="text-neutral-500 text-sm mb-4">{t('verification_photo_desc')}</p>
 
-          <input
-            ref={selfieRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={e => handleImageUpload(e, 'selfie')}
-          />
+        <input
+          ref={selfieRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
 
-          {selfieWithIdUrl ? (
-            <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden group">
-              <img src={selfieWithIdUrl} alt="Selfie" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                <button
-                  onClick={() => selfieRef.current?.click()}
-                  className="bg-luxury-gold text-black px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {t('change')}
-                </button>
-                <button
-                  onClick={() => setSelfieWithIdUrl('')}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  {t('remove')}
-                </button>
-              </div>
+        {selfieUrl ? (
+          <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden group max-w-md mx-auto">
+            <img src={selfieUrl} alt="Verification" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button
+                onClick={() => selfieRef.current?.click()}
+                className="bg-luxury-gold text-black px-4 py-2 rounded-md text-sm font-medium"
+              >
+                {t('change')}
+              </button>
+              <button
+                onClick={() => setSelfieUrl('')}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                {t('remove')}
+              </button>
             </div>
-          ) : (
-            <button
-              onClick={() => selfieRef.current?.click()}
-              disabled={isUploading}
-              className="w-full aspect-video border-2 border-dashed border-neutral-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-luxury-gold transition-colors"
-            >
-              <Upload size={24} className="text-neutral-500" />
-              <span className="text-neutral-400 text-sm">{isUploading ? 'Uploading...' : t('upload_selfie')}</span>
-            </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => selfieRef.current?.click()}
+            disabled={isUploading}
+            className="w-full max-w-md mx-auto aspect-video border-2 border-dashed border-neutral-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-luxury-gold transition-colors"
+          >
+            <Upload size={32} className="text-neutral-500" />
+            <span className="text-neutral-400 text-sm">{isUploading ? 'Uploading...' : t('upload_verification_photo')}</span>
+          </button>
+        )}
       </div>
 
       {/* Notes */}
@@ -1378,7 +1341,7 @@ function VerificationForm({
       <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
-          disabled={!idPhotoUrl || !selfieWithIdUrl || isSubmitting}
+          disabled={!selfieUrl || isSubmitting}
           className="flex items-center gap-2 px-8"
         >
           <ShieldCheck size={16} />

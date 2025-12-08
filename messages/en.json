@@ -332,7 +332,16 @@
     "verification_rejected_desc": "Unfortunately your verification was rejected. You can try again with new documents.",
     "reason": "Reason",
     "change": "Change",
-    "remove": "Remove"
+    "remove": "Remove",
+    "verification_benefits_short": "Get verified for more trust and visibility",
+    "verification_photo": "Verification Photo",
+    "verification_photo_desc": "Upload your selfie with the handwritten note visible",
+    "upload_verification_photo": "Upload Photo",
+    "verification_instructions_title": "How to Verify",
+    "verification_step_1": "Write your profile name and today's date on a piece of paper",
+    "verification_step_2": "Take a selfie holding the note next to your face (must show \"{name}\" and \"{date}\")",
+    "verification_step_3": "Upload the photo below",
+    "verification_note_example": "Your note should say:"
   },
   "about": {
     "title": "About Velvet Berlin",

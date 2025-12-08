@@ -332,7 +332,16 @@
     "verification_rejected_desc": "Deine Verifizierung wurde leider abgelehnt. Du kannst es erneut mit neuen Dokumenten versuchen.",
     "reason": "Grund",
     "change": "Ändern",
-    "remove": "Entfernen"
+    "remove": "Entfernen",
+    "verification_benefits_short": "Verifiziere dich für mehr Vertrauen und Sichtbarkeit",
+    "verification_photo": "Verifizierungs-Foto",
+    "verification_photo_desc": "Lade dein Selfie mit dem handschriftlichen Zettel hoch",
+    "upload_verification_photo": "Foto hochladen",
+    "verification_instructions_title": "So funktioniert die Verifizierung",
+    "verification_step_1": "Schreibe deinen Profilnamen und das heutige Datum auf einen Zettel",
+    "verification_step_2": "Mache ein Selfie, auf dem du den Zettel neben deinem Gesicht hältst (muss \"{name}\" und \"{date}\" zeigen)",
+    "verification_step_3": "Lade das Foto unten hoch",
+    "verification_note_example": "Dein Zettel sollte sagen:"
   },
   "about": {
     "title": "Über Velvet Berlin",
