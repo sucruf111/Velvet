@@ -3,10 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function getAuthenticatedUser(_request: NextRequest) {
@@ -37,6 +43,7 @@ async function getAuthenticatedUser(_request: NextRequest) {
 }
 
 async function isAdmin(userId: string): Promise<boolean> {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data } = await supabaseAdmin
     .from('profiles')
     .select('role')
@@ -82,6 +89,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function getOverview() {
+  const supabaseAdmin = getSupabaseAdmin();
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -157,6 +165,7 @@ async function getOverview() {
 }
 
 async function getTimeline(searchParams: URLSearchParams) {
+  const supabaseAdmin = getSupabaseAdmin();
   const days = parseInt(searchParams.get('days') || '30');
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -189,6 +198,7 @@ async function getTimeline(searchParams: URLSearchParams) {
 }
 
 async function getPlanBreakdown() {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: subscriptions } = await supabaseAdmin
     .from('subscriptions')
     .select('plan_type, plan_name, amount, status')
@@ -208,6 +218,7 @@ async function getPlanBreakdown() {
 }
 
 async function getTopCustomers() {
+  const supabaseAdmin = getSupabaseAdmin();
   const { data: transactions } = await supabaseAdmin
     .from('transactions')
     .select(`
@@ -249,6 +260,7 @@ async function getTopCustomers() {
 }
 
 async function getLifecycleMetrics() {
+  const supabaseAdmin = getSupabaseAdmin();
   // Average subscription duration for cancelled subscriptions
   const { data: cancelledSubs } = await supabaseAdmin
     .from('subscriptions')

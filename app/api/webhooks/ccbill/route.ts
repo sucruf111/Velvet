@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const ccbillSalt = process.env.CCBILL_SALT || '';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // Plan mapping from CCBill form IDs to plan types
 const planMapping: Record<string, { type: string; name: string; price: number }> = {
@@ -34,6 +41,7 @@ function verifySignature(data: Record<string, string>, receivedHash: string): bo
 }
 
 async function handleNewSale(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId, email, formName, transactionId, initialPrice, recurringPrice } = data;
 
   const plan = planMapping[formName] || { type: formName, name: formName, price: parseFloat(initialPrice) || 0 };
@@ -95,6 +103,7 @@ async function handleNewSale(data: Record<string, string>) {
 }
 
 async function handleRenewal(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId, transactionId, billedAmount } = data;
 
   const { data: subscription } = await supabase
@@ -137,6 +146,7 @@ async function handleRenewal(data: Record<string, string>) {
 }
 
 async function handleCancellation(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId, reason } = data;
 
   const { data: subscription } = await supabase
@@ -165,6 +175,7 @@ async function handleCancellation(data: Record<string, string>) {
 }
 
 async function handleExpiration(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId } = data;
 
   const { data: subscription } = await supabase
@@ -196,6 +207,7 @@ async function handleExpiration(data: Record<string, string>) {
 }
 
 async function handleChargeback(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId, transactionId, amount } = data;
 
   const { data: subscription } = await supabase
@@ -240,6 +252,7 @@ async function handleChargeback(data: Record<string, string>) {
 }
 
 async function handleRefund(data: Record<string, string>) {
+  const supabase = getSupabaseAdmin();
   const { subscriptionId, transactionId, amount } = data;
 
   const { data: subscription } = await supabase
