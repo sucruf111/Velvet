@@ -261,8 +261,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       validateProfileData(data);
 
-      let profileId: string | undefined;
       const username = sanitizeString(data.username || data.displayName || data.agencyName).toLowerCase();
+
+      // First create the auth user (without profile_id initially)
+      const initialMetadata = {
+        username,
+        role: role as 'customer' | 'model' | 'agency' | 'admin',
+        favorites: [] as string[]
+      };
+
+      let authData;
+      let authError;
+
+      // Use phone if provided, otherwise use email
+      if (data.phone) {
+        const result = await supabase.auth.signUp({
+          phone: data.phone,
+          password: data.password,
+          options: {
+            data: initialMetadata
+          }
+        });
+        authData = result.data;
+        authError = result.error;
+      } else if (data.email) {
+        const result = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: initialMetadata
+          }
+        });
+        authData = result.data;
+        authError = result.error;
+      } else {
+        throw new Error('Email or phone number is required');
+      }
+
+      if (authError) throw authError;
+      if (!authData?.user) throw new Error('Signup failed: No user returned');
+
+      // Now create the profile/agency after user is authenticated
+      let profileId: string | undefined;
 
       if (role === 'model' && data.displayName) {
         const now = new Date().toISOString();
@@ -270,6 +310,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .from('profiles')
           .insert({
             id: crypto.randomUUID(),
+            userId: authData.user.id,
             name: sanitizeString(data.displayName),
             age: Math.min(99, Math.max(18, Number(data.age) || 25)),
             district: (data.district || 'Mitte') as District,
@@ -309,6 +350,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .from('agencies')
           .insert({
             id: crypto.randomUUID(),
+            userId: authData.user.id,
             name: sanitizedAgencyName,
             description: sanitizeString(data.description) || 'Welcome to our agency.',
             logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
@@ -330,44 +372,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profileId = newAgency?.id;
       }
 
-      // Support both email and phone registration
-      const userMetadata = {
-        username,
-        role: role as 'customer' | 'model' | 'agency' | 'admin',
-        profile_id: profileId,
-        favorites: [] as string[]
-      };
-
-      let authData;
-      let authError;
-
-      // Use phone if provided, otherwise use email
-      if (data.phone) {
-        const result = await supabase.auth.signUp({
-          phone: data.phone,
-          password: data.password,
-          options: {
-            data: userMetadata
-          }
+      // Update user metadata with the profile_id
+      if (profileId) {
+        await supabase.auth.updateUser({
+          data: { profile_id: profileId }
         });
-        authData = result.data;
-        authError = result.error;
-      } else if (data.email) {
-        const result = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            data: userMetadata
-          }
-        });
-        authData = result.data;
-        authError = result.error;
-      } else {
-        throw new Error('Email or phone number is required');
       }
-
-      if (authError) throw authError;
-      if (!authData?.user) throw new Error('Signup failed: No user returned');
 
       setUser(transformSupabaseUser(authData.user));
     } finally {
