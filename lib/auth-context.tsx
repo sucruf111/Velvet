@@ -342,6 +342,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .from('profiles')
           .insert({
             id: crypto.randomUUID(),
+            userId: authData.user.id,
             name: sanitizeString(data.displayName),
             age: Math.min(99, Math.max(18, Number(data.age) || 25)),
             district: (data.district || 'Mitte') as District,
@@ -381,6 +382,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .from('agencies')
           .insert({
             id: crypto.randomUUID(),
+            userId: authData.user.id,
             name: sanitizedAgencyName,
             description: sanitizeString(data.description) || 'Welcome to our agency.',
             logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
