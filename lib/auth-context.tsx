@@ -271,211 +271,147 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (data: RegistrationData, role: UserRole) => {
-    // Prevent duplicate registrations
-    if (isLoggingIn || isRegistering) {
-      console.warn('Registration already in progress');
-      return;
+    // Simple registration - create user and sign in, profile creation happens in background
+    const username = sanitizeString(data.username || data.displayName || data.agencyName).toLowerCase();
+
+    const initialMetadata = {
+      username,
+      role: role as 'customer' | 'model' | 'agency' | 'admin',
+      favorites: [] as string[],
+      // Store registration data for profile creation later
+      pendingProfile: role !== 'customer' ? {
+        displayName: data.displayName,
+        agencyName: data.agencyName,
+        district: data.district,
+        age: data.age,
+        priceStart: data.priceStart,
+        description: data.description,
+        contactPhone: data.contactPhone,
+        whatsapp: data.whatsapp,
+        telegram: data.telegram,
+        website: data.website,
+        height: data.height,
+        dressSize: data.dressSize,
+        shoeSize: data.shoeSize,
+        braSize: data.braSize,
+        services: data.services,
+        visitType: data.visitType
+      } : undefined
+    };
+
+    // Sign up
+    const signUpResult = data.phone
+      ? await supabase.auth.signUp({
+          phone: data.phone,
+          password: data.password,
+          options: { data: initialMetadata }
+        })
+      : await supabase.auth.signUp({
+          email: data.email!,
+          password: data.password,
+          options: { data: initialMetadata }
+        });
+
+    if (signUpResult.error) throw signUpResult.error;
+    if (!signUpResult.data?.user) throw new Error('Signup failed');
+
+    // Sign in immediately
+    const signInResult = data.phone
+      ? await supabase.auth.signInWithPassword({
+          phone: data.phone,
+          password: data.password
+        })
+      : await supabase.auth.signInWithPassword({
+          email: data.email!,
+          password: data.password
+        });
+
+    if (signInResult.error) {
+      // User created but needs email confirmation
+      console.warn('Sign-in failed:', signInResult.error.message);
     }
 
-    setIsLoggingIn(true);
-    setIsRegistering(true);
-    try {
-      validateProfileData(data);
+    // Set user state - don't wait for profile creation
+    setUser(transformSupabaseUser(signUpResult.data.user));
 
-      const username = sanitizeString(data.username || data.displayName || data.agencyName).toLowerCase();
+    // Create profile/agency in background (non-blocking)
+    if (role === 'model' && data.displayName) {
+      createModelProfile(signUpResult.data.user.id, data).catch(console.error);
+    } else if (role === 'agency' && data.agencyName) {
+      createAgencyProfile(signUpResult.data.user.id, data).catch(console.error);
+    }
+  };
 
-      // First create the auth user (without profile_id initially)
-      const initialMetadata = {
-        username,
-        role: role as 'customer' | 'model' | 'agency' | 'admin',
-        favorites: [] as string[]
-      };
+  // Background profile creation functions
+  const createModelProfile = async (userId: string, data: RegistrationData) => {
+    const now = new Date().toISOString();
+    const { data: newProfile, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: crypto.randomUUID(),
+        userId,
+        name: sanitizeString(data.displayName),
+        age: Math.min(99, Math.max(18, Number(data.age) || 25)),
+        district: (data.district || 'Mitte') as District,
+        priceStart: Math.min(10000, Math.max(0, Number(data.priceStart) || 150)),
+        languages: ['Deutsch', 'English'],
+        services: data.services || [],
+        description: sanitizeString(data.description) || 'Welcome to my profile.',
+        images: [],
+        isPremium: false,
+        isNew: true,
+        isVerified: false,
+        isVelvetChoice: false,
+        clicks: 0,
+        phone: sanitizeString(data.contactPhone),
+        whatsapp: sanitizeString(data.whatsapp),
+        telegram: sanitizeString(data.telegram),
+        height: Math.min(220, Math.max(100, Number(data.height) || 170)),
+        dressSize: sanitizeString(data.dressSize) || '36',
+        shoeSize: Math.min(50, Math.max(30, Number(data.shoeSize) || 38)),
+        braSize: sanitizeString(data.braSize) || '75B',
+        reviews: [],
+        availability: [],
+        showSchedule: false,
+        lastActive: now,
+        isOnline: true,
+        createdAt: now,
+        visitType: (data.visitType || 'both')
+      })
+      .select()
+      .single();
 
-      let authData;
-      let authError;
+    if (!error && newProfile) {
+      await supabase.auth.updateUser({ data: { profile_id: newProfile.id } });
+    }
+  };
 
-      // Use phone if provided, otherwise use email
-      if (data.phone) {
-        const result = await supabase.auth.signUp({
-          phone: data.phone,
-          password: data.password,
-          options: {
-            data: initialMetadata
-          }
-        });
-        authData = result.data;
-        authError = result.error;
-      } else if (data.email) {
-        const result = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            data: initialMetadata
-          }
-        });
-        authData = result.data;
-        authError = result.error;
-      } else {
-        throw new Error('Email or phone number is required');
-      }
+  const createAgencyProfile = async (userId: string, data: RegistrationData) => {
+    const sanitizedAgencyName = sanitizeString(data.agencyName);
+    const { data: newAgency, error } = await supabase
+      .from('agencies')
+      .insert({
+        id: crypto.randomUUID(),
+        userId,
+        name: sanitizedAgencyName,
+        description: sanitizeString(data.description) || 'Welcome to our agency.',
+        logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
+        banner: '',
+        image: '',
+        website: sanitizeString(data.website),
+        phone: sanitizeString(data.contactPhone),
+        whatsapp: sanitizeString(data.whatsapp),
+        telegram: sanitizeString(data.telegram),
+        email: sanitizeString(data.email),
+        district: (data.district || 'Mitte') as District,
+        isFeatured: false,
+        reviews: []
+      })
+      .select()
+      .single();
 
-      if (authError) throw authError;
-      if (!authData?.user) throw new Error('Signup failed: No user returned');
-
-      // After signup, we need to sign in to establish the session for RLS
-      // This is needed because signUp doesn't always create an active session
-      let signInError;
-      if (data.phone) {
-        const result = await supabase.auth.signInWithPassword({
-          phone: data.phone,
-          password: data.password
-        });
-        signInError = result.error;
-      } else if (data.email) {
-        const result = await supabase.auth.signInWithPassword({
-          email: data.email,
-          password: data.password
-        });
-        signInError = result.error;
-      }
-
-      // If sign-in fails (e.g., email confirmation required), still complete registration
-      // The user will need to confirm their email and then log in
-      if (signInError) {
-        console.warn('Sign-in after signup failed:', signInError.message);
-        // User is created but needs email confirmation
-        // Set the user without a session - they'll need to log in after confirming
-        setUser(transformSupabaseUser(authData.user));
-        return; // Exit early - profile will be created on first login
-      }
-
-      // Now create the profile/agency after user is authenticated
-      let profileId: string | undefined;
-
-      try {
-        if (role === 'model' && data.displayName) {
-          // Check if profile already exists for this user (prevent duplicates)
-          const { data: existingProfiles, error: checkError } = await supabase
-            .from('profiles')
-            .select('id')
-            .filter('userId', 'eq', authData.user.id);
-
-          if (checkError) {
-            console.error('Error checking existing profiles:', checkError);
-          }
-
-          const existingProfile = existingProfiles?.[0];
-
-          if (existingProfile) {
-            profileId = existingProfile.id;
-          } else {
-            const now = new Date().toISOString();
-            const { data: newProfile, error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-              id: crypto.randomUUID(),
-              userId: authData.user.id,
-              name: sanitizeString(data.displayName),
-              age: Math.min(99, Math.max(18, Number(data.age) || 25)),
-              district: (data.district || 'Mitte') as District,
-              priceStart: Math.min(10000, Math.max(0, Number(data.priceStart) || 150)),
-              languages: ['Deutsch', 'English'],
-              services: data.services || [],
-              description: sanitizeString(data.description) || 'Welcome to my profile.',
-              images: [],
-              isPremium: false,
-              isNew: true,
-              isVerified: false,
-              isVelvetChoice: false,
-              clicks: 0,
-              phone: sanitizeString(data.contactPhone),
-              whatsapp: sanitizeString(data.whatsapp),
-              telegram: sanitizeString(data.telegram),
-              height: Math.min(220, Math.max(100, Number(data.height) || 170)),
-              dressSize: sanitizeString(data.dressSize) || '36',
-              shoeSize: Math.min(50, Math.max(30, Number(data.shoeSize) || 38)),
-              braSize: sanitizeString(data.braSize) || '75B',
-              reviews: [],
-              availability: [],
-              showSchedule: false,
-              lastActive: now,
-              isOnline: true,
-              createdAt: now,
-              visitType: (data.visitType || 'both')
-            })
-            .select()
-            .single();
-
-            if (profileError) {
-              console.error('Error creating profile:', profileError);
-              // Don't throw - user is created, profile can be created later
-            } else {
-              profileId = newProfile?.id;
-            }
-          }
-        } else if (role === 'agency' && data.agencyName) {
-          // Check if agency already exists for this user (prevent duplicates)
-          const { data: existingAgencies, error: checkError } = await supabase
-            .from('agencies')
-            .select('id')
-            .filter('userId', 'eq', authData.user.id);
-
-          if (checkError) {
-            console.error('Error checking existing agencies:', checkError);
-          }
-
-          const existingAgency = existingAgencies?.[0];
-
-          if (existingAgency) {
-            profileId = existingAgency.id;
-          } else {
-            const sanitizedAgencyName = sanitizeString(data.agencyName);
-            const { data: newAgency, error: agencyError } = await supabase
-              .from('agencies')
-              .insert({
-                id: crypto.randomUUID(),
-                userId: authData.user.id,
-                name: sanitizedAgencyName,
-                description: sanitizeString(data.description) || 'Welcome to our agency.',
-                logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
-                banner: '',
-                image: '',
-                website: sanitizeString(data.website),
-                phone: sanitizeString(data.contactPhone),
-                whatsapp: sanitizeString(data.whatsapp),
-                telegram: sanitizeString(data.telegram),
-                email: sanitizeString(data.email),
-                district: (data.district || 'Mitte') as District,
-                isFeatured: false,
-                reviews: []
-              })
-              .select()
-              .single();
-
-            if (agencyError) {
-              console.error('Error creating agency:', agencyError);
-              // Don't throw - user is created, agency can be created later
-            } else {
-              profileId = newAgency?.id;
-            }
-          }
-        }
-
-        // Update user metadata with the profile_id
-        if (profileId) {
-          await supabase.auth.updateUser({
-            data: { profile_id: profileId }
-          });
-        }
-      } catch (profileCreationError) {
-        // Log but don't fail registration - user account is created
-        console.error('Profile creation error:', profileCreationError);
-      }
-
-      setUser(transformSupabaseUser(authData.user));
-    } finally {
-      setIsLoggingIn(false);
-      setIsRegistering(false);
+    if (!error && newAgency) {
+      await supabase.auth.updateUser({ data: { profile_id: newAgency.id } });
     }
   };
 
