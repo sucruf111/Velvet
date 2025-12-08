@@ -2,7 +2,7 @@ import { getProfiles, getAgencies } from '@/lib/supabase';
 import { HomeClient } from '@/components/HomeClient';
 import { ServiceType, District } from '@/lib/types';
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 10; // Revalidate every 10 seconds for fresh data
 
 export default async function HomePage() {
   const [profiles, agencies] = await Promise.all([

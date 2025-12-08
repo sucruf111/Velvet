@@ -11,21 +11,29 @@ interface ProfileCardProps {
   profile: Profile;
 }
 
+// Default placeholder for profiles without images
+const PLACEHOLDER_IMAGE = 'https://ui-avatars.com/api/?name=V&background=1a1a1a&color=d4af37&size=400&font-size=0.5';
+
 export function ProfileCard({ profile }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const t = useTranslations('card');
   const visitT = useTranslations('visit');
 
+  // Use placeholder if no images
+  const images = profile.images && profile.images.length > 0
+    ? profile.images
+    : [PLACEHOLDER_IMAGE];
+
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % profile.images.length);
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + profile.images.length) % profile.images.length);
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   const isTop = profile.clicks > 2000;
@@ -37,14 +45,14 @@ export function ProfileCard({ profile }: ProfileCardProps) {
     <div className="group relative w-full bg-neutral-900 border border-white/5 hover:border-luxury-gold/50 transition-all duration-500 hover:shadow-[0_0_20px_rgba(212,175,55,0.1)] overflow-hidden rounded-sm">
       <Link href={`/profile/${profile.id}`} className="block relative aspect-[3/4] overflow-hidden bg-neutral-950">
         <img
-          src={profile.images[currentImageIndex]}
+          src={images[currentImageIndex]}
           alt={profile.name}
           className={`w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105 ${isUnavailable ? 'opacity-40 grayscale' : 'opacity-90 group-hover:opacity-100'}`}
           loading="lazy"
         />
 
         {/* Navigation Arrows */}
-        {profile.images.length > 1 && (
+        {images.length > 1 && (
           <>
             <button
               onClick={prevImage}
@@ -61,7 +69,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
 
             {/* Dots Indicator */}
             <div className="absolute bottom-24 left-0 w-full flex justify-center gap-1.5 z-40 opacity-0 group-hover:opacity-100 transition-all duration-500">
-              {profile.images.map((_, idx) => (
+              {images.map((_, idx) => (
                 <div
                   key={idx}
                   className={`h-1 w-1 rounded-full shadow-sm transition-all ${idx === currentImageIndex ? 'bg-luxury-gold w-3' : 'bg-white/40'}`}
