@@ -152,11 +152,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const metadata = session.user.user_metadata as UserMetadata;
-        const isVerified = await fetchVerificationStatus(
-          session.user.id,
-          metadata?.role || 'customer',
-          metadata?.profile_id
-        );
+        let isVerified = false;
+        try {
+          isVerified = await fetchVerificationStatus(
+            session.user.id,
+            metadata?.role || 'customer',
+            metadata?.profile_id
+          );
+        } catch (e) {
+          console.error('Verification check error in auth state change:', e);
+        }
         setUser(transformSupabaseUser(session.user, isVerified));
       } else {
         setUser(null);
