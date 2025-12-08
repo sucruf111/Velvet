@@ -421,7 +421,14 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
       const result = await response.json();
 
       if (result.success && result.urls) {
-        updateField('images', [...formData.images, ...result.urls]);
+        const newImages = [...formData.images, ...result.urls];
+        updateField('images', newImages);
+
+        // Auto-save images to database immediately
+        await supabase
+          .from('profiles')
+          .update({ images: newImages })
+          .eq('id', profile.id);
       } else {
         setUploadError(result.error || 'Upload failed');
       }
@@ -436,6 +443,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
 
   const removeImage = async (index: number) => {
     const imageUrl = formData.images[index];
+    const newImages = formData.images.filter((_, i) => i !== index);
 
     // Try to delete from server if it's a local upload
     if (imageUrl.startsWith('/uploads/')) {
@@ -450,7 +458,13 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
       }
     }
 
-    updateField('images', formData.images.filter((_, i) => i !== index));
+    updateField('images', newImages);
+
+    // Auto-save to database
+    await supabase
+      .from('profiles')
+      .update({ images: newImages })
+      .eq('id', profile.id);
   };
 
   const handleSave = async () => {
