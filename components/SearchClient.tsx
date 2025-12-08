@@ -21,7 +21,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
   // Initialize filters from URL params
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
   const [selectedDistrict, setSelectedDistrict] = useState(searchParams.get('district') || '');
-  const [maxPrice, setMaxPrice] = useState<number>(1000);
+  const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [serviceFilter, setServiceFilter] = useState<string>(searchParams.get('service') || '');
   const [isNewFilter, setIsNewFilter] = useState(searchParams.get('isNew') === 'true');
   const [isPremiumFilter, setIsPremiumFilter] = useState(searchParams.get('isPremium') === 'true');
@@ -58,7 +58,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
     setServiceFilter('');
     setIsNewFilter(false);
     setIsPremiumFilter(false);
-    setMaxPrice(1000);
+    setMaxPrice(10000);
   };
 
   return (
