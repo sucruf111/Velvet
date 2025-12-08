@@ -254,6 +254,7 @@ export default function VBControlPage() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [verificationApps, setVerificationApps] = useState<(VerificationApplication & { profile?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified' | 'premium' | 'disabled' | 'flagged'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'clicks' | 'fraud'>('date');
@@ -292,6 +293,7 @@ export default function VBControlPage() {
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       // Fetch profiles
       const { data: profilesData } = await supabase
@@ -373,8 +375,9 @@ export default function VBControlPage() {
         setAgencies(agenciesData);
       }
 
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load admin data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -814,6 +817,17 @@ export default function VBControlPage() {
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
+            <AlertTriangle size={48} className="mx-auto text-red-400 mb-4" />
+            <p className="text-red-300 mb-4">{error}</p>
+            <button
+              onClick={fetchData}
+              className="px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         ) : (
           <>

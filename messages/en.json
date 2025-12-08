@@ -169,7 +169,13 @@
     "optional": "Optional",
     "anonymous": "Anonymous",
     "coming_soon": "Coming Soon",
-    "back_home": "Back to Home"
+    "back_home": "Back to Home",
+    "retry": "Try Again",
+    "error_loading_data": "Failed to load data. Please try again.",
+    "no_profile_found": "No Profile Found",
+    "no_profile_found_desc": "Your account is not linked to a profile. Please contact support.",
+    "no_agency_found": "No Agency Found",
+    "no_agency_found_desc": "Your account is not linked to an agency. Please contact support."
   },
   "checkout": {
     "title": "Checkout",

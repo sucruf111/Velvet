@@ -169,7 +169,13 @@
     "optional": "Optional",
     "anonymous": "Anonym",
     "coming_soon": "Demnächst verfügbar",
-    "back_home": "Zurück zur Startseite"
+    "back_home": "Zurück zur Startseite",
+    "retry": "Erneut versuchen",
+    "error_loading_data": "Daten konnten nicht geladen werden. Bitte versuche es erneut.",
+    "no_profile_found": "Kein Profil gefunden",
+    "no_profile_found_desc": "Dein Konto ist mit keinem Profil verknüpft. Bitte kontaktiere den Support.",
+    "no_agency_found": "Keine Agentur gefunden",
+    "no_agency_found_desc": "Dein Konto ist mit keiner Agentur verknüpft. Bitte kontaktiere den Support."
   },
   "checkout": {
     "title": "Kasse",

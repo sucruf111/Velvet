@@ -54,6 +54,8 @@ export default function DashboardPage() {
   const [favoriteProfiles, setFavoriteProfiles] = useState<Profile[]>([]);
   const [verificationApp, setVerificationApp] = useState<VerificationApplication | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const tCommon = useTranslations('common');
 
   const supabase = createClient();
 
@@ -75,40 +77,48 @@ export default function DashboardPage() {
   const fetchUserData = async () => {
     if (!user) return;
     setLoading(true);
+    setError(null);
 
     try {
       if (user.role === 'customer') {
         if (user.favorites && user.favorites.length > 0) {
-          const { data } = await supabase
+          const { data, error: fetchError } = await supabase
             .from('profiles')
             .select('*')
             .in('id', user.favorites);
+          if (fetchError) throw fetchError;
           setFavoriteProfiles(data || []);
         }
       } else if (user.role === 'model' && user.profileId) {
-        const { data } = await supabase
+        const { data, error: fetchError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.profileId)
-          .single();
+          .maybeSingle();
+        if (fetchError) throw fetchError;
         setMyProfile(data);
 
-        // Fetch verification application if exists
-        const { data: verApp } = await supabase
-          .from('verification_applications')
-          .select('*')
-          .eq('profileId', user.profileId)
-          .order('createdAt', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (verApp) setVerificationApp(verApp);
+        // Fetch verification application if exists (non-blocking)
+        try {
+          const { data: verApp } = await supabase
+            .from('verification_applications')
+            .select('*')
+            .eq('profileId', user.profileId)
+            .order('createdAt', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (verApp) setVerificationApp(verApp);
+        } catch (verError) {
+          console.warn('Verification data unavailable:', verError);
+        }
       } else if (user.role === 'agency') {
         // Fetch agency by userId
-        const { data: agency } = await supabase
+        const { data: agency, error: fetchError } = await supabase
           .from('agencies')
           .select('*')
           .eq('userId', user.id)
           .maybeSingle();
+        if (fetchError) throw fetchError;
 
         if (agency) {
           setMyAgency(agency);
@@ -120,8 +130,9 @@ export default function DashboardPage() {
           setAgencyProfiles(profiles || []);
         }
       }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError(tCommon('error_loading_data'));
     } finally {
       setLoading(false);
     }
@@ -159,6 +170,12 @@ export default function DashboardPage() {
           {loading ? (
             <div className="flex justify-center py-20">
               <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
+              <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
+              <p className="text-red-300 mb-4">{error}</p>
+              <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
             </div>
           ) : favoriteProfiles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -217,9 +234,15 @@ export default function DashboardPage() {
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin mb-4" />
               </div>
+            ) : error ? (
+              <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
+                <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
+                <p className="text-red-300 mb-4">{error}</p>
+                <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
+              </div>
             ) : !myAgency ? (
-              <div className="bg-red-900/20 border border-red-900/50 p-6 text-red-200 rounded-lg">
-                <strong>No Agency Found:</strong> Your account is not linked to an agency.
+              <div className="bg-amber-900/20 border border-amber-900/50 p-6 text-amber-200 rounded-lg">
+                <strong>{tCommon('no_agency_found')}:</strong> {tCommon('no_agency_found_desc')}
               </div>
             ) : (
               <>
@@ -274,9 +297,15 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin mb-4" />
             </div>
+          ) : error ? (
+            <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
+              <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
+              <p className="text-red-300 mb-4">{error}</p>
+              <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
+            </div>
           ) : !myProfile ? (
-            <div className="bg-red-900/20 border border-red-900/50 p-6 text-red-200 rounded-lg">
-              <strong>No Profile Found:</strong> Your account is not linked to a profile.
+            <div className="bg-amber-900/20 border border-amber-900/50 p-6 text-amber-200 rounded-lg">
+              <strong>{tCommon('no_profile_found')}:</strong> {tCommon('no_profile_found_desc')}
             </div>
           ) : (
             <>
