@@ -100,7 +100,7 @@ export default function DashboardPage() {
           .eq('profileId', user.profileId)
           .order('createdAt', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         if (verApp) setVerificationApp(verApp);
       } else if (user.role === 'agency') {
         // Fetch agency by userId
@@ -108,7 +108,7 @@ export default function DashboardPage() {
           .from('agencies')
           .select('*')
           .eq('userId', user.id)
-          .single();
+          .maybeSingle();
 
         if (agency) {
           setMyAgency(agency);
