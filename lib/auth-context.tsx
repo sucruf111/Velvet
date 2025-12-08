@@ -352,103 +352,124 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Now create the profile/agency after user is authenticated
       let profileId: string | undefined;
 
-      if (role === 'model' && data.displayName) {
-        // Check if profile already exists for this user (prevent duplicates)
-        const { data: existingProfiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .filter('userId', 'eq', authData.user.id);
-
-        const existingProfile = existingProfiles?.[0];
-
-        if (existingProfile) {
-          profileId = existingProfile.id;
-        } else {
-          const now = new Date().toISOString();
-          const { data: newProfile, error: profileError } = await supabase
+      try {
+        if (role === 'model' && data.displayName) {
+          // Check if profile already exists for this user (prevent duplicates)
+          const { data: existingProfiles, error: checkError } = await supabase
             .from('profiles')
-            .insert({
-            id: crypto.randomUUID(),
-            userId: authData.user.id,
-            name: sanitizeString(data.displayName),
-            age: Math.min(99, Math.max(18, Number(data.age) || 25)),
-            district: (data.district || 'Mitte') as District,
-            priceStart: Math.min(10000, Math.max(0, Number(data.priceStart) || 150)),
-            languages: ['Deutsch', 'English'],
-            services: data.services || [],
-            description: sanitizeString(data.description) || 'Welcome to my profile.',
-            images: [],
-            isPremium: false,
-            isNew: true,
-            isVerified: false,
-            isVelvetChoice: false,
-            clicks: 0,
-            phone: sanitizeString(data.contactPhone),
-            whatsapp: sanitizeString(data.whatsapp),
-            telegram: sanitizeString(data.telegram),
-            height: Math.min(220, Math.max(100, Number(data.height) || 170)),
-            dressSize: sanitizeString(data.dressSize) || '36',
-            shoeSize: Math.min(50, Math.max(30, Number(data.shoeSize) || 38)),
-            braSize: sanitizeString(data.braSize) || '75B',
-            reviews: [],
-            availability: [],
-            showSchedule: false,
-            lastActive: now,
-            isOnline: true,
-            createdAt: now,
-            visitType: (data.visitType || 'both')
-          })
-          .select()
-          .single();
+            .select('id')
+            .filter('userId', 'eq', authData.user.id);
 
-          if (profileError) throw profileError;
-          profileId = newProfile?.id;
-        }
-      } else if (role === 'agency' && data.agencyName) {
-        // Check if agency already exists for this user (prevent duplicates)
-        const { data: existingAgencies } = await supabase
-          .from('agencies')
-          .select('id')
-          .filter('userId', 'eq', authData.user.id);
+          if (checkError) {
+            console.error('Error checking existing profiles:', checkError);
+          }
 
-        const existingAgency = existingAgencies?.[0];
+          const existingProfile = existingProfiles?.[0];
 
-        if (existingAgency) {
-          profileId = existingAgency.id;
-        } else {
-          const sanitizedAgencyName = sanitizeString(data.agencyName);
-          const { data: newAgency, error: agencyError } = await supabase
-            .from('agencies')
-            .insert({
+          if (existingProfile) {
+            profileId = existingProfile.id;
+          } else {
+            const now = new Date().toISOString();
+            const { data: newProfile, error: profileError } = await supabase
+              .from('profiles')
+              .insert({
               id: crypto.randomUUID(),
               userId: authData.user.id,
-              name: sanitizedAgencyName,
-              description: sanitizeString(data.description) || 'Welcome to our agency.',
-              logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
-              banner: '',
-              image: '',
-              website: sanitizeString(data.website),
+              name: sanitizeString(data.displayName),
+              age: Math.min(99, Math.max(18, Number(data.age) || 25)),
+              district: (data.district || 'Mitte') as District,
+              priceStart: Math.min(10000, Math.max(0, Number(data.priceStart) || 150)),
+              languages: ['Deutsch', 'English'],
+              services: data.services || [],
+              description: sanitizeString(data.description) || 'Welcome to my profile.',
+              images: [],
+              isPremium: false,
+              isNew: true,
+              isVerified: false,
+              isVelvetChoice: false,
+              clicks: 0,
               phone: sanitizeString(data.contactPhone),
               whatsapp: sanitizeString(data.whatsapp),
               telegram: sanitizeString(data.telegram),
-              email: sanitizeString(data.email),
-              district: (data.district || 'Mitte') as District,
-              isFeatured: false,
-              reviews: []
+              height: Math.min(220, Math.max(100, Number(data.height) || 170)),
+              dressSize: sanitizeString(data.dressSize) || '36',
+              shoeSize: Math.min(50, Math.max(30, Number(data.shoeSize) || 38)),
+              braSize: sanitizeString(data.braSize) || '75B',
+              reviews: [],
+              availability: [],
+              showSchedule: false,
+              lastActive: now,
+              isOnline: true,
+              createdAt: now,
+              visitType: (data.visitType || 'both')
             })
             .select()
             .single();
 
-          if (agencyError) throw agencyError;
-          profileId = newAgency?.id;
-        }
-      }
+            if (profileError) {
+              console.error('Error creating profile:', profileError);
+              // Don't throw - user is created, profile can be created later
+            } else {
+              profileId = newProfile?.id;
+            }
+          }
+        } else if (role === 'agency' && data.agencyName) {
+          // Check if agency already exists for this user (prevent duplicates)
+          const { data: existingAgencies, error: checkError } = await supabase
+            .from('agencies')
+            .select('id')
+            .filter('userId', 'eq', authData.user.id);
 
-      // Update user metadata with the profile_id
-      if (profileId) {
-        await supabase.auth.updateUser({
-          data: { profile_id: profileId }
-        });
+          if (checkError) {
+            console.error('Error checking existing agencies:', checkError);
+          }
+
+          const existingAgency = existingAgencies?.[0];
+
+          if (existingAgency) {
+            profileId = existingAgency.id;
+          } else {
+            const sanitizedAgencyName = sanitizeString(data.agencyName);
+            const { data: newAgency, error: agencyError } = await supabase
+              .from('agencies')
+              .insert({
+                id: crypto.randomUUID(),
+                userId: authData.user.id,
+                name: sanitizedAgencyName,
+                description: sanitizeString(data.description) || 'Welcome to our agency.',
+                logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
+                banner: '',
+                image: '',
+                website: sanitizeString(data.website),
+                phone: sanitizeString(data.contactPhone),
+                whatsapp: sanitizeString(data.whatsapp),
+                telegram: sanitizeString(data.telegram),
+                email: sanitizeString(data.email),
+                district: (data.district || 'Mitte') as District,
+                isFeatured: false,
+                reviews: []
+              })
+              .select()
+              .single();
+
+            if (agencyError) {
+              console.error('Error creating agency:', agencyError);
+              // Don't throw - user is created, agency can be created later
+            } else {
+              profileId = newAgency?.id;
+            }
+          }
+        }
+
+        // Update user metadata with the profile_id
+        if (profileId) {
+          await supabase.auth.updateUser({
+            data: { profile_id: profileId }
+          });
+        }
+      } catch (profileCreationError) {
+        // Log but don't fail registration - user account is created
+        console.error('Profile creation error:', profileCreationError);
       }
 
       setUser(transformSupabaseUser(authData.user));
