@@ -97,7 +97,7 @@ const DEFAULT_FORM_DATA: FormData = {
 };
 
 export default function RegisterPage() {
-  const { register, isLoggingIn } = useAuth();
+  const { register, isLoggingIn, isAuthenticated } = useAuth();
   const t = useTranslations();
   const router = useRouter();
 
@@ -109,6 +109,19 @@ export default function RegisterPage() {
 
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM_DATA);
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Clear registration state when already logged in
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore errors
+      }
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
   // Load saved state from sessionStorage on mount
   useEffect(() => {
     try {
@@ -117,7 +130,10 @@ export default function RegisterPage() {
         const parsed: StoredRegistrationState = JSON.parse(saved);
         if (parsed.registrationType) {
           setRegistrationType(parsed.registrationType);
-          setStep(parsed.step || 1);
+          // Only restore step if it's not the final step (prevent auto-submit on reload)
+          const maxSteps = parsed.registrationType === 'customer' ? 1 :
+                          parsed.registrationType === 'model' ? 3 : 2;
+          setStep(Math.min(parsed.step || 1, maxSteps));
           setFormData(parsed.formData || DEFAULT_FORM_DATA);
         }
       }
