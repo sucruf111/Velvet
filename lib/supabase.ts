@@ -11,7 +11,6 @@ export async function getProfiles(): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('isDisabled', false)
     .order('lastActive', { ascending: false });
 
   if (error) {
@@ -70,8 +69,7 @@ export async function getAgencyById(id: string): Promise<Agency | null> {
 export async function getProfilesCount(): Promise<number> {
   const { count, error } = await supabase
     .from('profiles')
-    .select('*', { count: 'exact', head: true })
-    .eq('isDisabled', false);
+    .select('*', { count: 'exact', head: true });
 
   if (error) {
     console.error('Error counting profiles:', error);
