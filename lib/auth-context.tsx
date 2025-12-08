@@ -218,8 +218,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Sign in failed: No user returned');
+      if (error) {
+        // Map Supabase error messages to user-friendly messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password');
+        }
+        throw error;
+      }
+      if (!data.user) throw new Error('Invalid email or password');
 
       const metadata = data.user.user_metadata as UserMetadata;
       const isVerified = await fetchVerificationStatus(
@@ -241,8 +247,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Sign in failed: No user returned');
+      if (error) {
+        // Map Supabase error messages to user-friendly messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid phone number or password');
+        }
+        throw error;
+      }
+      if (!data.user) throw new Error('Invalid phone number or password');
 
       const metadata = data.user.user_metadata as UserMetadata;
       const isVerified = await fetchVerificationStatus(
