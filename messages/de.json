@@ -373,5 +373,39 @@
       "register": "Erst kostenlos registrieren",
       "urgency": "Angebot gilt nur noch diese Woche"
     }
+  },
+  "legal": {
+    "back": "Zurück",
+    "terms_title": "Allgemeine Geschäftsbedingungen",
+    "last_updated": "Letzte Aktualisierung",
+    "section_1_title": "1. Annahme der Bedingungen",
+    "section_1_content": "Durch den Zugriff auf und die Nutzung von Velvet Berlin erklären Sie sich mit diesen Allgemeinen Geschäftsbedingungen einverstanden. Wenn Sie mit einem Teil dieser Bedingungen nicht einverstanden sind, dürfen Sie unsere Plattform nicht nutzen.",
+    "section_2_title": "2. Beschreibung des Dienstes",
+    "section_2_content": "Velvet Berlin ist eine unabhängige Werbeplattform, die Profile und Kontaktinformationen für Escorts, Begleiterinnen und Agenturen in Berlin anzeigt. Wir sind ausschließlich ein Verzeichnisdienst und beschäftigen, verwalten oder vertreten keine der auf dieser Plattform gelisteten Personen.",
+    "section_3_title": "3. Nutzungsberechtigung",
+    "section_3_content": "Sie müssen mindestens 18 Jahre alt sein, um diese Plattform nutzen zu können. Durch die Nutzung von Velvet Berlin bestätigen Sie, dass Sie diese Altersanforderung erfüllen und rechtsfähig sind, diesen Vertrag einzugehen.",
+    "section_4_title": "4. Nutzerverhalten",
+    "section_4_content": "Nutzer verpflichten sich, die Plattform nicht für illegale Zwecke zu nutzen, andere Nutzer nicht zu belästigen oder zu missbrauchen, keine falschen oder irreführenden Informationen zu veröffentlichen und keine geltenden Gesetze oder Vorschriften zu verletzen.",
+    "section_5_title": "5. Haftungsausschluss",
+    "section_5_content": "Velvet Berlin übernimmt keine Garantie für die Richtigkeit, Zuverlässigkeit oder Vollständigkeit der Inhalte auf dieser Plattform. Alle über auf dieser Plattform gefundene Kontakte getroffenen Vereinbarungen werden direkt zwischen den beteiligten Parteien getroffen.",
+    "section_6_title": "6. Haftungsbeschränkung",
+    "section_6_content": "Velvet Berlin haftet nicht für direkte, indirekte, zufällige, besondere oder Folgeschäden, die aus der Nutzung oder Unmöglichkeit der Nutzung unserer Dienste entstehen."
+  },
+  "privacy": {
+    "back": "Zurück",
+    "title": "Datenschutzerklärung",
+    "last_updated": "Letzte Aktualisierung",
+    "intro_title": "Einleitung",
+    "intro_content": "Velvet Berlin verpflichtet sich zum Schutz Ihrer Privatsphäre. Diese Datenschutzerklärung erklärt, wie wir Ihre personenbezogenen Daten erfassen, verwenden und schützen, wenn Sie unsere Plattform nutzen.",
+    "data_collection_title": "Welche Daten wir erfassen",
+    "data_collection_content": "Wir erfassen Informationen, die Sie uns direkt zur Verfügung stellen, wie Kontoinformationen (Benutzername, E-Mail), Profildaten für Werbetreibende und Nutzungsdaten durch Cookies und Analysen.",
+    "data_usage_title": "Wie wir Ihre Daten verwenden",
+    "data_usage_content": "Wir verwenden Ihre Daten, um unsere Dienste bereitzustellen und zu verbessern, Transaktionen zu verarbeiten, mit Ihnen zu kommunizieren und die Sicherheit unserer Plattform zu gewährleisten.",
+    "cookies_title": "Cookies",
+    "cookies_content": "Wir verwenden Cookies und ähnliche Technologien, um Ihr Erlebnis zu verbessern, Nutzungsmuster zu analysieren und Ihre Präferenzen zu speichern. Sie können Cookie-Einstellungen über Ihren Browser steuern.",
+    "rights_title": "Ihre Rechte",
+    "rights_content": "Sie haben das Recht, auf Ihre personenbezogenen Daten zuzugreifen, diese zu korrigieren oder zu löschen. Sie können auch Datenübertragbarkeit verlangen oder bestimmten Verarbeitungsaktivitäten widersprechen. Kontaktieren Sie uns, um diese Rechte auszuüben.",
+    "contact_title": "Kontakt",
+    "contact_content": "Wenn Sie Fragen zu dieser Datenschutzerklärung oder unseren Datenpraktiken haben, kontaktieren Sie uns bitte über unsere Website oder per E-Mail."
   }
 }
