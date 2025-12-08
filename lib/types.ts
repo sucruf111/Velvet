@@ -71,6 +71,7 @@ export interface Review {
 
 export interface Agency {
   id: string;
+  userId?: string;
   name: string;
   description: string;
   logo: string;
@@ -136,3 +137,20 @@ export const isProfileNew = (profile: Profile): boolean => {
   const diffDays = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
   return diffDays <= 7;
 };
+
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
+export interface VerificationApplication {
+  id: string;
+  profileId: string;
+  userId: string;
+  status: VerificationStatus;
+  idPhotoUrl: string;
+  selfieWithIdUrl: string;
+  notes?: string;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+}

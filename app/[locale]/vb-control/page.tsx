@@ -8,11 +8,12 @@ import {
   Users, Building2, BarChart3, CheckCircle, Trash2, Eye, Shield, TrendingUp,
   AlertTriangle, Search, Download, RefreshCw, DollarSign,
   Activity, Flag, Ban, Phone, Image as ImageIcon, MapPin,
-  ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings
+  ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings,
+  ShieldCheck, X
 } from 'lucide-react';
-import { Profile, Agency } from '@/lib/types';
+import { Profile, Agency, VerificationApplication } from '@/lib/types';
 
-type Tab = 'overview' | 'profiles' | 'fraud' | 'agencies' | 'users' | 'revenue' | 'activity';
+type Tab = 'overview' | 'profiles' | 'fraud' | 'agencies' | 'users' | 'revenue' | 'activity' | 'verifications';
 
 interface FraudIndicator {
   type: string;
@@ -251,6 +252,7 @@ export default function VBControlPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [verificationApps, setVerificationApps] = useState<(VerificationApplication & { profile?: Profile })[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified' | 'premium' | 'disabled' | 'flagged'>('all');
@@ -268,7 +270,8 @@ export default function VBControlPage() {
     flaggedProfiles: 0,
     totalUsers: 0,
     totalRevenue: 0,
-    activeSubscriptions: 0
+    activeSubscriptions: 0,
+    pendingVerifications: 0
   });
 
   const supabase = createClient();
@@ -313,6 +316,12 @@ export default function VBControlPage() {
         .select('*')
         .eq('status', 'completed');
 
+      // Fetch verification applications
+      const { data: verificationsData } = await supabase
+        .from('verification_applications')
+        .select('*')
+        .order('createdAt', { ascending: false });
+
       if (profilesData) {
         setProfiles(profilesData);
 
@@ -334,6 +343,7 @@ export default function VBControlPage() {
         }, 0) || 0;
 
         const activeSubscriptions = subscriptionsData?.filter(s => s.status === 'active').length || 0;
+        const pendingVerifications = verificationsData?.filter(v => v.status === 'pending').length || 0;
 
         setStats({
           totalProfiles: profilesData.length,
@@ -345,8 +355,18 @@ export default function VBControlPage() {
           flaggedProfiles: flaggedCount,
           totalUsers: 0, // Will be updated if we can fetch users
           totalRevenue,
-          activeSubscriptions
+          activeSubscriptions,
+          pendingVerifications
         });
+
+        // Set verification apps with profile data
+        if (verificationsData) {
+          const appsWithProfiles = verificationsData.map(app => ({
+            ...app,
+            profile: profilesData.find(p => p.id === app.profileId)
+          }));
+          setVerificationApps(appsWithProfiles);
+        }
       }
 
       if (agenciesData) {
@@ -552,6 +572,77 @@ export default function VBControlPage() {
     }
   };
 
+  // Verification Actions
+  const approveVerification = async (appId: string, profileId: string) => {
+    if (!confirm('Approve this verification? This will mark the profile as verified.')) return;
+
+    const now = new Date().toISOString();
+
+    // Update verification application
+    const { error: appError } = await supabase
+      .from('verification_applications')
+      .update({
+        status: 'approved',
+        reviewedAt: now,
+        reviewedBy: user?.id
+      })
+      .eq('id', appId);
+
+    // Update profile to verified
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ isVerified: true })
+      .eq('id', profileId);
+
+    if (!appError && !profileError) {
+      setVerificationApps(verificationApps.map(app =>
+        app.id === appId ? { ...app, status: 'approved', reviewedAt: now } : app
+      ));
+      setProfiles(profiles.map(p =>
+        p.id === profileId ? { ...p, isVerified: true } : p
+      ));
+      setStats(prev => ({
+        ...prev,
+        pendingVerifications: prev.pendingVerifications - 1,
+        verifiedProfiles: prev.verifiedProfiles + 1
+      }));
+    }
+  };
+
+  const [rejectNotes, setRejectNotes] = useState<string>('');
+  const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
+
+  const rejectVerification = async (appId: string) => {
+    if (!rejectNotes.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
+    const now = new Date().toISOString();
+
+    const { error } = await supabase
+      .from('verification_applications')
+      .update({
+        status: 'rejected',
+        adminNotes: rejectNotes,
+        reviewedAt: now,
+        reviewedBy: user?.id
+      })
+      .eq('id', appId);
+
+    if (!error) {
+      setVerificationApps(verificationApps.map(app =>
+        app.id === appId ? { ...app, status: 'rejected', adminNotes: rejectNotes, reviewedAt: now } : app
+      ));
+      setStats(prev => ({
+        ...prev,
+        pendingVerifications: prev.pendingVerifications - 1
+      }));
+      setRejectingAppId(null);
+      setRejectNotes('');
+    }
+  };
+
   const exportData = () => {
     const data = filteredProfiles.map(p => ({
       name: p.name,
@@ -689,6 +780,7 @@ export default function VBControlPage() {
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'profiles', label: 'Profiles', icon: Users },
+            { id: 'verifications', label: 'Verifications', icon: ShieldCheck },
             { id: 'fraud', label: 'Fraud Detection', icon: AlertTriangle },
             { id: 'agencies', label: 'Agencies', icon: Building2 },
             { id: 'revenue', label: 'Revenue', icon: DollarSign },
@@ -704,6 +796,11 @@ export default function VBControlPage() {
             >
               <tab.icon size={16} />
               {tab.label}
+              {tab.id === 'verifications' && stats.pendingVerifications > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-white text-xs rounded-full">
+                  {stats.pendingVerifications}
+                </span>
+              )}
               {tab.id === 'fraud' && stats.flaggedProfiles > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
                   {stats.flaggedProfiles}
@@ -1364,6 +1461,210 @@ export default function VBControlPage() {
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Verifications Tab */}
+            {activeTab === 'verifications' && (
+              <div className="space-y-6">
+                {/* Pending Verifications */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <ShieldCheck size={20} className="text-amber-400" />
+                    Pending Verifications ({verificationApps.filter(a => a.status === 'pending').length})
+                  </h3>
+
+                  {verificationApps.filter(a => a.status === 'pending').length === 0 ? (
+                    <div className="text-center py-12 text-neutral-500">
+                      <ShieldCheck size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>No pending verification requests</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {verificationApps
+                        .filter(a => a.status === 'pending')
+                        .map(app => (
+                          <div key={app.id} className="bg-neutral-800/30 rounded-xl p-4 border border-neutral-700">
+                            <div className="flex flex-col lg:flex-row gap-6">
+                              {/* Profile Info */}
+                              <div className="flex items-start gap-4 flex-1">
+                                <div className="w-16 h-16 rounded-lg bg-neutral-700 overflow-hidden flex-shrink-0">
+                                  {app.profile?.images?.[0] ? (
+                                    <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                                      <ImageIcon size={24} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white font-medium text-lg">
+                                      {app.profile?.name || 'Unknown Profile'}
+                                    </span>
+                                  </div>
+                                  <div className="text-neutral-400 text-sm mt-1">
+                                    {app.profile?.age}y • {app.profile?.district}
+                                  </div>
+                                  <div className="text-neutral-500 text-xs mt-1">
+                                    Submitted: {formatDate(app.createdAt)}
+                                  </div>
+                                  {app.notes && (
+                                    <div className="mt-2 p-2 bg-neutral-900/50 rounded text-sm text-neutral-300">
+                                      <span className="text-neutral-500">Note: </span>{app.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Verification Photos */}
+                              <div className="flex gap-4">
+                                <div className="space-y-2">
+                                  <div className="text-xs text-neutral-500 uppercase">ID Photo</div>
+                                  <a
+                                    href={app.idPhotoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-32 h-24 rounded-lg overflow-hidden border border-neutral-600 hover:border-luxury-gold transition-colors"
+                                  >
+                                    <img
+                                      src={app.idPhotoUrl}
+                                      alt="ID Photo"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </a>
+                                </div>
+                                <div className="space-y-2">
+                                  <div className="text-xs text-neutral-500 uppercase">Selfie with ID</div>
+                                  <a
+                                    href={app.selfieWithIdUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-32 h-24 rounded-lg overflow-hidden border border-neutral-600 hover:border-luxury-gold transition-colors"
+                                  >
+                                    <img
+                                      src={app.selfieWithIdUrl}
+                                      alt="Selfie"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </a>
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex lg:flex-col gap-2 lg:w-32">
+                                <button
+                                  onClick={() => approveVerification(app.id, app.profileId)}
+                                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  <CheckCircle size={16} />
+                                  Approve
+                                </button>
+                                {rejectingAppId === app.id ? (
+                                  <div className="flex-1 lg:flex-none space-y-2">
+                                    <textarea
+                                      value={rejectNotes}
+                                      onChange={e => setRejectNotes(e.target.value)}
+                                      placeholder="Reason for rejection..."
+                                      className="w-full bg-neutral-900 border border-neutral-600 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none resize-none"
+                                      rows={2}
+                                    />
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => rejectVerification(app.id)}
+                                        className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+                                      >
+                                        Confirm
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setRejectingAppId(null);
+                                          setRejectNotes('');
+                                        }}
+                                        className="px-2 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-xs"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setRejectingAppId(app.id)}
+                                    className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-red-600/30"
+                                  >
+                                    <X size={16} />
+                                    Reject
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Recent Decisions */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <Activity size={20} className="text-luxury-gold" />
+                    Recent Decisions
+                  </h3>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="border-b border-neutral-800">
+                        <tr>
+                          <th className="text-left p-3 text-xs font-medium text-neutral-500 uppercase">Profile</th>
+                          <th className="text-left p-3 text-xs font-medium text-neutral-500 uppercase">Status</th>
+                          <th className="text-left p-3 text-xs font-medium text-neutral-500 uppercase">Reviewed</th>
+                          <th className="text-left p-3 text-xs font-medium text-neutral-500 uppercase">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-800">
+                        {verificationApps
+                          .filter(a => a.status !== 'pending')
+                          .slice(0, 10)
+                          .map(app => (
+                            <tr key={app.id} className="hover:bg-neutral-800/30">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded bg-neutral-800 overflow-hidden">
+                                    {app.profile?.images?.[0] && (
+                                      <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
+                                    )}
+                                  </div>
+                                  <span className="text-white text-sm">{app.profile?.name || 'Unknown'}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                  app.status === 'approved'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {app.status === 'approved' ? <CheckCircle size={12} /> : <X size={12} />}
+                                  {app.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-neutral-400 text-sm">
+                                {app.reviewedAt ? formatDate(app.reviewedAt) : '-'}
+                              </td>
+                              <td className="p-3 text-neutral-500 text-sm max-w-xs truncate">
+                                {app.adminNotes || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {verificationApps.filter(a => a.status !== 'pending').length === 0 && (
+                    <div className="text-center py-8 text-neutral-500">
+                      No verification decisions yet
+                    </div>
+                  )}
                 </div>
               </div>
             )}

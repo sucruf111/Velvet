@@ -5,16 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/lib/auth-context';
-import { Profile, District } from '@/lib/types';
+import { Profile, District, Agency } from '@/lib/types';
 import { Button } from '@/components/ui';
 import { ProfileCard } from '@/components/ProfileCard';
 import {
   BarChart3, Image as ImageIcon, CreditCard, Heart, LogOut,
   Save, Check, Eye, EyeOff, Trash2, AlertCircle, Upload,
-  Phone, MessageCircle, User, Euro, Sparkles
+  Phone, MessageCircle, User, Euro, Sparkles, Building2, Users, Globe, Plus,
+  ShieldCheck, Camera, Clock, X
 } from 'lucide-react';
+import { VerificationApplication } from '@/lib/types';
 
-type DashboardTab = 'overview' | 'profile' | 'billing' | 'account';
+type DashboardTab = 'overview' | 'profile' | 'billing' | 'account' | 'verify';
+type AgencyTab = 'overview' | 'agency' | 'models' | 'billing';
 
 const AVAILABLE_LANGUAGES = [
   'Deutsch', 'English', 'Русский', 'Español', 'Français',
@@ -44,8 +47,12 @@ export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  const [agencyTab, setAgencyTab] = useState<AgencyTab>('overview');
   const [myProfile, setMyProfile] = useState<Profile | null>(null);
+  const [myAgency, setMyAgency] = useState<Agency | null>(null);
+  const [agencyProfiles, setAgencyProfiles] = useState<Profile[]>([]);
   const [favoriteProfiles, setFavoriteProfiles] = useState<Profile[]>([]);
+  const [verificationApp, setVerificationApp] = useState<VerificationApplication | null>(null);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();
@@ -85,6 +92,33 @@ export default function DashboardPage() {
           .eq('id', user.profileId)
           .single();
         setMyProfile(data);
+
+        // Fetch verification application if exists
+        const { data: verApp } = await supabase
+          .from('verification_applications')
+          .select('*')
+          .eq('profileId', user.profileId)
+          .order('createdAt', { ascending: false })
+          .limit(1)
+          .single();
+        if (verApp) setVerificationApp(verApp);
+      } else if (user.role === 'agency') {
+        // Fetch agency by userId
+        const { data: agency } = await supabase
+          .from('agencies')
+          .select('*')
+          .eq('userId', user.id)
+          .single();
+
+        if (agency) {
+          setMyAgency(agency);
+          // Fetch all profiles belonging to this agency
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('agencyId', agency.id);
+          setAgencyProfiles(profiles || []);
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -145,6 +179,62 @@ export default function DashboardPage() {
     );
   }
 
+  // Agency Dashboard
+  if (user.role === 'agency') {
+    return (
+      <div className="min-h-screen bg-luxury-black pt-24 pb-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="font-serif text-3xl text-white flex items-center gap-3">
+                <Building2 className="text-luxury-gold" size={28} />
+                {t('agency_dashboard')}
+              </h1>
+              {myAgency && (
+                <p className="text-luxury-gold text-sm mt-1">{myAgency.name}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-neutral-500 text-sm">{user.username}</span>
+              <button onClick={handleLogout} className="text-neutral-400 hover:text-white text-sm flex items-center gap-1">
+                <LogOut size={14} /> {t('logout')}
+              </button>
+            </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-1 mb-8 bg-neutral-900/50 p-1 rounded-lg w-fit">
+            <TabButton active={agencyTab === 'overview'} onClick={() => setAgencyTab('overview')} icon={<BarChart3 size={16} />} label={t('overview')} />
+            <TabButton active={agencyTab === 'agency'} onClick={() => setAgencyTab('agency')} icon={<Building2 size={16} />} label={t('edit_agency')} />
+            <TabButton active={agencyTab === 'models'} onClick={() => setAgencyTab('models')} icon={<Users size={16} />} label={t('manage_models')} />
+            <TabButton active={agencyTab === 'billing'} onClick={() => setAgencyTab('billing')} icon={<CreditCard size={16} />} label={t('billing')} />
+          </div>
+
+          {/* Content */}
+          <div className="min-h-[500px]">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin mb-4" />
+              </div>
+            ) : !myAgency ? (
+              <div className="bg-red-900/20 border border-red-900/50 p-6 text-red-200 rounded-lg">
+                <strong>No Agency Found:</strong> Your account is not linked to an agency.
+              </div>
+            ) : (
+              <>
+                {agencyTab === 'overview' && <AgencyOverviewTab agency={myAgency} profiles={agencyProfiles} setAgencyTab={setAgencyTab} />}
+                {agencyTab === 'agency' && <AgencyProfileEditor agency={myAgency} onUpdate={fetchUserData} />}
+                {agencyTab === 'models' && <AgencyModelsTab agency={myAgency} profiles={agencyProfiles} onUpdate={fetchUserData} />}
+                {agencyTab === 'billing' && <AgencyBillingTab />}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Model Dashboard
   return (
     <div className="min-h-screen bg-luxury-black pt-24 pb-12 px-4">
@@ -171,6 +261,9 @@ export default function DashboardPage() {
         <div className="flex gap-1 mb-8 bg-neutral-900/50 p-1 rounded-lg w-fit">
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<BarChart3 size={16} />} label={t('overview')} />
           <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label={t('edit_profile')} />
+          {!myProfile?.isVerified && (
+            <TabButton active={activeTab === 'verify'} onClick={() => setActiveTab('verify')} icon={<ShieldCheck size={16} />} label={t('verification')} />
+          )}
           <TabButton active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} icon={<CreditCard size={16} />} label={t('billing')} />
           <TabButton active={activeTab === 'account'} onClick={() => setActiveTab('account')} icon={<Eye size={16} />} label={t('account_settings')} />
         </div>
@@ -189,6 +282,7 @@ export default function DashboardPage() {
             <>
               {activeTab === 'overview' && <OverviewTab profile={myProfile} setActiveTab={setActiveTab} />}
               {activeTab === 'profile' && <ProfileEditor profile={myProfile} onUpdate={fetchUserData} />}
+              {activeTab === 'verify' && <VerificationTab profile={myProfile} application={verificationApp} onUpdate={fetchUserData} />}
               {activeTab === 'billing' && <BillingTab profile={myProfile} />}
               {activeTab === 'account' && <AccountTab profile={myProfile} onUpdate={fetchUserData} />}
             </>
@@ -927,6 +1021,973 @@ function AccountTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Verification Tab
+function VerificationTab({
+  profile,
+  application,
+  onUpdate
+}: {
+  profile: Profile;
+  application: VerificationApplication | null;
+  onUpdate: () => void;
+}) {
+  const t = useTranslations('dashboard');
+  const { user } = useAuth();
+  const supabase = createClient();
+  const idPhotoRef = useRef<HTMLInputElement>(null);
+  const selfieRef = useRef<HTMLInputElement>(null);
+
+  const [idPhotoUrl, setIdPhotoUrl] = useState(application?.idPhotoUrl || '');
+  const [selfieWithIdUrl, setSelfieWithIdUrl] = useState(application?.selfieWithIdUrl || '');
+  const [notes, setNotes] = useState(application?.notes || '');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('images', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      if (result.success && result.urls?.[0]) {
+        if (type === 'id') {
+          setIdPhotoUrl(result.urls[0]);
+        } else {
+          setSelfieWithIdUrl(result.urls[0]);
+        }
+      } else {
+        setUploadError(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError('Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!idPhotoUrl || !selfieWithIdUrl || !user) return;
+
+    setIsSubmitting(true);
+    try {
+      if (application) {
+        // Update existing application
+        await supabase
+          .from('verification_applications')
+          .update({
+            idPhotoUrl,
+            selfieWithIdUrl,
+            notes,
+            status: 'pending',
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', application.id);
+      } else {
+        // Create new application
+        await supabase
+          .from('verification_applications')
+          .insert({
+            profileId: profile.id,
+            userId: user.id,
+            idPhotoUrl,
+            selfieWithIdUrl,
+            notes,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Submit error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Already has a pending or approved application
+  if (application?.status === 'pending') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-amber-900/10 border border-amber-800 rounded-lg p-8 text-center">
+          <Clock className="mx-auto text-amber-400 mb-4" size={48} />
+          <h3 className="text-xl font-serif text-white mb-2">{t('verification_pending_title')}</h3>
+          <p className="text-neutral-400 mb-4">{t('verification_pending_desc')}</p>
+          <p className="text-amber-400 text-sm">{t('verification_submitted_on')} {new Date(application.createdAt).toLocaleDateString()}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{t('id_photo')}</p>
+            <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden">
+              <img src={application.idPhotoUrl} alt="ID" className="w-full h-full object-cover blur-sm" />
+            </div>
+          </div>
+          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">{t('selfie_with_id')}</p>
+            <div className="aspect-video bg-neutral-800 rounded-lg overflow-hidden">
+              <img src={application.selfieWithIdUrl} alt="Selfie" className="w-full h-full object-cover blur-sm" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Rejected - allow resubmission
+  if (application?.status === 'rejected') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-900/10 border border-red-800 rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <X className="text-red-400" size={24} />
+            <h3 className="text-lg font-semibold text-white">{t('verification_rejected_title')}</h3>
+          </div>
+          <p className="text-neutral-400 mb-2">{t('verification_rejected_desc')}</p>
+          {application.adminNotes && (
+            <p className="text-red-300 text-sm bg-red-900/20 p-3 rounded-md mt-3">
+              <strong>{t('reason')}:</strong> {application.adminNotes}
+            </p>
+          )}
+        </div>
+
+        {/* Show resubmission form */}
+        <VerificationForm
+          idPhotoUrl={idPhotoUrl}
+          selfieWithIdUrl={selfieWithIdUrl}
+          notes={notes}
+          setIdPhotoUrl={setIdPhotoUrl}
+          setSelfieWithIdUrl={setSelfieWithIdUrl}
+          setNotes={setNotes}
+          handleImageUpload={handleImageUpload}
+          handleSubmit={handleSubmit}
+          isUploading={isUploading}
+          isSubmitting={isSubmitting}
+          uploadError={uploadError}
+          idPhotoRef={idPhotoRef}
+          selfieRef={selfieRef}
+          t={t}
+        />
+      </div>
+    );
+  }
+
+  // No application yet - show form
+  return (
+    <div className="space-y-6">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <ShieldCheck className="text-luxury-gold" size={24} />
+          <h3 className="text-lg font-semibold text-white">{t('get_verified')}</h3>
+        </div>
+        <p className="text-neutral-400 mb-4">{t('verification_benefits')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="flex items-center gap-2 text-green-400">
+            <Check size={16} /> {t('benefit_badge')}
+          </div>
+          <div className="flex items-center gap-2 text-green-400">
+            <Check size={16} /> {t('benefit_trust')}
+          </div>
+          <div className="flex items-center gap-2 text-green-400">
+            <Check size={16} /> {t('benefit_visibility')}
+          </div>
+        </div>
+      </div>
+
+      <VerificationForm
+        idPhotoUrl={idPhotoUrl}
+        selfieWithIdUrl={selfieWithIdUrl}
+        notes={notes}
+        setIdPhotoUrl={setIdPhotoUrl}
+        setSelfieWithIdUrl={setSelfieWithIdUrl}
+        setNotes={setNotes}
+        handleImageUpload={handleImageUpload}
+        handleSubmit={handleSubmit}
+        isUploading={isUploading}
+        isSubmitting={isSubmitting}
+        uploadError={uploadError}
+        idPhotoRef={idPhotoRef}
+        selfieRef={selfieRef}
+        t={t}
+      />
+    </div>
+  );
+}
+
+function VerificationForm({
+  idPhotoUrl,
+  selfieWithIdUrl,
+  notes,
+  setIdPhotoUrl,
+  setSelfieWithIdUrl,
+  setNotes,
+  handleImageUpload,
+  handleSubmit,
+  isUploading,
+  isSubmitting,
+  uploadError,
+  idPhotoRef,
+  selfieRef,
+  t
+}: {
+  idPhotoUrl: string;
+  selfieWithIdUrl: string;
+  notes: string;
+  setIdPhotoUrl: (url: string) => void;
+  setSelfieWithIdUrl: (url: string) => void;
+  setNotes: (notes: string) => void;
+  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => void;
+  handleSubmit: () => void;
+  isUploading: boolean;
+  isSubmitting: boolean;
+  uploadError: string;
+  idPhotoRef: React.RefObject<HTMLInputElement>;
+  selfieRef: React.RefObject<HTMLInputElement>;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <>
+      {uploadError && (
+        <div className="bg-red-900/20 border border-red-900/50 p-3 text-red-300 rounded-md text-sm">
+          {uploadError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ID Photo */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+            <Camera size={18} className="text-luxury-gold" /> {t('id_photo')}
+          </h4>
+          <p className="text-neutral-500 text-sm mb-4">{t('id_photo_desc')}</p>
+
+          <input
+            ref={idPhotoRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => handleImageUpload(e, 'id')}
+          />
+
+          {idPhotoUrl ? (
+            <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden group">
+              <img src={idPhotoUrl} alt="ID" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button
+                  onClick={() => idPhotoRef.current?.click()}
+                  className="bg-luxury-gold text-black px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {t('change')}
+                </button>
+                <button
+                  onClick={() => setIdPhotoUrl('')}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {t('remove')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => idPhotoRef.current?.click()}
+              disabled={isUploading}
+              className="w-full aspect-video border-2 border-dashed border-neutral-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-luxury-gold transition-colors"
+            >
+              <Upload size={24} className="text-neutral-500" />
+              <span className="text-neutral-400 text-sm">{isUploading ? 'Uploading...' : t('upload_id')}</span>
+            </button>
+          )}
+        </div>
+
+        {/* Selfie with ID */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+          <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+            <Camera size={18} className="text-luxury-gold" /> {t('selfie_with_id')}
+          </h4>
+          <p className="text-neutral-500 text-sm mb-4">{t('selfie_desc')}</p>
+
+          <input
+            ref={selfieRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => handleImageUpload(e, 'selfie')}
+          />
+
+          {selfieWithIdUrl ? (
+            <div className="relative aspect-video bg-neutral-800 rounded-lg overflow-hidden group">
+              <img src={selfieWithIdUrl} alt="Selfie" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button
+                  onClick={() => selfieRef.current?.click()}
+                  className="bg-luxury-gold text-black px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {t('change')}
+                </button>
+                <button
+                  onClick={() => setSelfieWithIdUrl('')}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  {t('remove')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => selfieRef.current?.click()}
+              disabled={isUploading}
+              className="w-full aspect-video border-2 border-dashed border-neutral-700 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-luxury-gold transition-colors"
+            >
+              <Upload size={24} className="text-neutral-500" />
+              <span className="text-neutral-400 text-sm">{isUploading ? 'Uploading...' : t('upload_selfie')}</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+        <h4 className="text-white font-semibold mb-2">{t('additional_notes')}</h4>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          rows={3}
+          className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none resize-none"
+          placeholder={t('notes_placeholder')}
+        />
+      </div>
+
+      {/* Submit */}
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSubmit}
+          disabled={!idPhotoUrl || !selfieWithIdUrl || isSubmitting}
+          className="flex items-center gap-2 px-8"
+        >
+          <ShieldCheck size={16} />
+          {isSubmitting ? t('submitting') : t('submit_verification')}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+// Agency Overview Tab
+function AgencyOverviewTab({
+  agency,
+  profiles,
+  setAgencyTab
+}: {
+  agency: Agency;
+  profiles: Profile[];
+  setAgencyTab: (tab: AgencyTab) => void;
+}) {
+  const t = useTranslations('dashboard');
+
+  const totalClicks = profiles.reduce((sum, p) => sum + (p.clicks || 0), 0);
+  const activeModels = profiles.filter(p => !p.isDisabled).length;
+  const premiumModels = profiles.filter(p => p.isPremium).length;
+  const verifiedModels = profiles.filter(p => p.isVerified).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Agency Info Banner */}
+      <div className="relative bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
+        {agency.banner && (
+          <div className="absolute inset-0 opacity-20">
+            <img src={agency.banner} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="relative p-6 flex items-center gap-6">
+          <div className="w-20 h-20 bg-neutral-800 rounded-lg overflow-hidden flex-shrink-0 border border-neutral-700">
+            {agency.logo ? (
+              <img src={agency.logo} alt={agency.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 size={32} className="text-neutral-600" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <h2 className="font-serif text-2xl text-white mb-1">{agency.name}</h2>
+            <p className="text-neutral-400 text-sm line-clamp-2">{agency.description}</p>
+            <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500">
+              <span className="flex items-center gap-1">
+                <Users size={12} /> {profiles.length} models
+              </span>
+              {agency.website && (
+                <span className="flex items-center gap-1">
+                  <Globe size={12} /> {agency.website}
+                </span>
+              )}
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => setAgencyTab('agency')} className="flex items-center gap-2">
+            <Building2 size={14} /> {t('edit_agency')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard label={t('total_views')} value={totalClicks} emoji="👁️" />
+        <MetricCard label={t('active_models')} value={activeModels} emoji="✨" />
+        <MetricCard label={t('premium_models')} value={premiumModels} emoji="⭐" />
+        <MetricCard label={t('verified_models')} value={verifiedModels} emoji="✅" />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <QuickActionCard icon={<Building2 size={20} />} label={t('edit_agency')} onClick={() => setAgencyTab('agency')} />
+        <QuickActionCard icon={<Users size={20} />} label={t('manage_models')} onClick={() => setAgencyTab('models')} />
+        <QuickActionCard icon={<Plus size={20} />} label={t('add_model')} onClick={() => setAgencyTab('models')} />
+        <QuickActionCard icon={<CreditCard size={20} />} label={t('view_packages')} onClick={() => setAgencyTab('billing')} />
+      </div>
+
+      {/* Recent Models */}
+      {profiles.length > 0 && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold">{t('your_models')}</h3>
+            <button onClick={() => setAgencyTab('models')} className="text-luxury-gold text-sm hover:underline">
+              {t('view_all')}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {profiles.slice(0, 4).map(profile => (
+              <div key={profile.id} className="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
+                <div className="aspect-square w-full mb-3 rounded-md overflow-hidden bg-neutral-800">
+                  {profile.images?.[0] ? (
+                    <img src={profile.images[0]} alt={profile.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User size={24} className="text-neutral-600" />
+                    </div>
+                  )}
+                </div>
+                <h4 className="text-white font-medium text-sm truncate">{profile.name}</h4>
+                <p className="text-neutral-500 text-xs">{profile.clicks || 0} views</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Agency Profile Editor Tab
+function AgencyProfileEditor({ agency, onUpdate }: { agency: Agency; onUpdate: () => void }) {
+  const t = useTranslations('dashboard');
+  const supabase = createClient();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState({
+    name: agency.name,
+    description: agency.description,
+    logo: agency.logo || '',
+    banner: agency.banner || '',
+    website: agency.website || '',
+    phone: agency.phone || '',
+    whatsapp: agency.whatsapp || '',
+    telegram: agency.telegram || '',
+    email: agency.email,
+    district: agency.district
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const updateField = <K extends keyof typeof formData>(key: K, value: typeof formData[K]) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+    setSaveSuccess(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'banner') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('images', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const result = await response.json();
+      if (result.success && result.urls?.[0]) {
+        updateField(field, result.urls[0]);
+        // Auto-save
+        await supabase.from('agencies').update({ [field]: result.urls[0] }).eq('id', agency.id);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await supabase.from('agencies').update({
+        name: formData.name,
+        description: formData.description,
+        logo: formData.logo,
+        banner: formData.banner,
+        website: formData.website,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp,
+        telegram: formData.telegram,
+        email: formData.email,
+        district: formData.district
+      }).eq('id', agency.id);
+
+      setSaveSuccess(true);
+      onUpdate();
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Banner & Logo */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
+        {/* Banner */}
+        <div
+          className="relative h-40 bg-neutral-800 cursor-pointer group"
+          onClick={() => bannerInputRef.current?.click()}
+        >
+          {formData.banner ? (
+            <img src={formData.banner} alt="Banner" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageIcon size={32} className="text-neutral-600" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="text-white text-sm flex items-center gap-2">
+              <Upload size={16} /> {t('upload_banner')}
+            </span>
+          </div>
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => handleImageUpload(e, 'banner')}
+          />
+        </div>
+
+        {/* Logo & Name */}
+        <div className="p-6 flex items-center gap-6">
+          <div
+            className="w-24 h-24 bg-neutral-800 rounded-lg overflow-hidden cursor-pointer group relative flex-shrink-0 border border-neutral-700"
+            onClick={() => logoInputRef.current?.click()}
+          >
+            {formData.logo ? (
+              <img src={formData.logo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 size={32} className="text-neutral-600" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Upload size={16} className="text-white" />
+            </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={e => handleImageUpload(e, 'logo')}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('agency_name')}</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={e => updateField('name', e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md text-xl font-serif focus:border-luxury-gold focus:outline-none"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Details */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-6">
+        <h3 className="text-lg font-semibold text-white">{t('agency_details')}</h3>
+
+        <div>
+          <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('about')}</label>
+          <textarea
+            value={formData.description}
+            onChange={e => updateField('description', e.target.value)}
+            rows={4}
+            className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none resize-none"
+            placeholder="Tell clients about your agency..."
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('district')}</label>
+            <select
+              value={formData.district}
+              onChange={e => updateField('district', e.target.value as District)}
+              className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+            >
+              {Object.values(District).map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <InputField
+            label={t('website')}
+            value={formData.website}
+            onChange={v => updateField('website', v)}
+            icon={<Globe size={16} />}
+            placeholder="https://..."
+          />
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-6">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Phone size={18} className="text-luxury-gold" /> {t('contact_info')}
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <InputField
+            label={t('email')}
+            value={formData.email}
+            onChange={v => updateField('email', v)}
+            placeholder="contact@agency.com"
+          />
+          <InputField
+            label={t('phone')}
+            value={formData.phone}
+            onChange={v => updateField('phone', v)}
+            icon={<Phone size={16} />}
+            placeholder="+49 123 456789"
+          />
+          <InputField
+            label={t('whatsapp')}
+            value={formData.whatsapp}
+            onChange={v => updateField('whatsapp', v)}
+            icon={<MessageCircle size={16} />}
+            placeholder="+49 123 456789"
+          />
+          <InputField
+            label={t('telegram')}
+            value={formData.telegram}
+            onChange={v => updateField('telegram', v)}
+            icon={<MessageCircle size={16} />}
+            placeholder="@username"
+          />
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={isSaving || isUploading} className="flex items-center gap-2 px-8">
+          {saveSuccess ? <Check size={16} /> : <Save size={16} />}
+          {isSaving ? 'Saving...' : saveSuccess ? t('saved') : t('save')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Agency Models Tab
+function AgencyModelsTab({
+  agency,
+  profiles,
+  onUpdate
+}: {
+  agency: Agency;
+  profiles: Profile[];
+  onUpdate: () => void;
+}) {
+  const t = useTranslations('dashboard');
+  const router = useRouter();
+  const supabase = createClient();
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const toggleModelStatus = async (profileId: string, currentStatus: boolean) => {
+    await supabase.from('profiles').update({ isDisabled: !currentStatus }).eq('id', profileId);
+    onUpdate();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">{t('your_models')}</h2>
+          <p className="text-neutral-500 text-sm">{profiles.length} models in your agency</p>
+        </div>
+        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+          <Plus size={16} /> {t('add_model')}
+        </Button>
+      </div>
+
+      {/* Models Grid */}
+      {profiles.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {profiles.map(profile => (
+            <div
+              key={profile.id}
+              className={`bg-neutral-900 border rounded-lg overflow-hidden ${
+                profile.isDisabled ? 'border-red-900/50 opacity-60' : 'border-neutral-800'
+              }`}
+            >
+              <div className="aspect-video bg-neutral-800 relative">
+                {profile.images?.[0] ? (
+                  <img src={profile.images[0]} alt={profile.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User size={32} className="text-neutral-600" />
+                  </div>
+                )}
+                <div className="absolute top-2 right-2 flex gap-1">
+                  {profile.isPremium && (
+                    <span className="bg-luxury-gold text-black text-[10px] font-bold px-2 py-0.5 rounded">PREMIUM</span>
+                  )}
+                  {profile.isVerified && (
+                    <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">VERIFIED</span>
+                  )}
+                </div>
+                {profile.isDisabled && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <span className="text-red-400 text-sm font-bold uppercase">{t('disabled')}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-white font-semibold">{profile.name}</h3>
+                  <span className="text-luxury-gold font-bold">{profile.priceStart}€/h</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-neutral-500 mb-4">
+                  <span>{profile.age} years</span>
+                  <span>•</span>
+                  <span>{profile.district}</span>
+                  <span>•</span>
+                  <span>{profile.clicks || 0} views</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/profile/${profile.id}`)}
+                    className="flex-1 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm rounded-md flex items-center justify-center gap-1"
+                  >
+                    <Eye size={14} /> {t('view')}
+                  </button>
+                  <button
+                    onClick={() => toggleModelStatus(profile.id, profile.isDisabled || false)}
+                    className={`flex-1 px-3 py-2 text-sm rounded-md flex items-center justify-center gap-1 ${
+                      profile.isDisabled
+                        ? 'bg-green-600 hover:bg-green-500 text-white'
+                        : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
+                    }`}
+                  >
+                    {profile.isDisabled ? <Eye size={14} /> : <EyeOff size={14} />}
+                    {profile.isDisabled ? t('enable') : t('disable')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-neutral-900/30 border border-dashed border-neutral-800 rounded-lg">
+          <Users size={48} className="mx-auto text-neutral-700 mb-4" />
+          <h3 className="text-xl text-white font-serif mb-2">{t('no_models')}</h3>
+          <p className="text-neutral-500 mb-6">{t('no_models_desc')}</p>
+          <Button onClick={() => setShowAddModal(true)}>
+            <Plus size={16} className="mr-2" /> {t('add_first_model')}
+          </Button>
+        </div>
+      )}
+
+      {/* Add Model Modal */}
+      {showAddModal && (
+        <AddModelModal
+          agencyId={agency.id}
+          onClose={() => setShowAddModal(false)}
+          onSuccess={() => {
+            setShowAddModal(false);
+            onUpdate();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Add Model Modal
+function AddModelModal({
+  agencyId,
+  onClose,
+  onSuccess
+}: {
+  agencyId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations('dashboard');
+  const supabase = createClient();
+  const [name, setName] = useState('');
+  const [age, setAge] = useState(18);
+  const [district, setDistrict] = useState<District>(District.MITTE);
+  const [priceStart, setPriceStart] = useState(150);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+
+    setIsCreating(true);
+    try {
+      await supabase.from('profiles').insert({
+        name: name.trim(),
+        age,
+        district,
+        priceStart,
+        agencyId,
+        description: '',
+        images: [],
+        services: [],
+        languages: ['Deutsch'],
+        isPremium: false,
+        isNew: true,
+        isVerified: false,
+        isVelvetChoice: false,
+        clicks: 0,
+        reviews: [],
+        availability: [],
+        lastActive: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+      onSuccess();
+    } catch (error) {
+      console.error('Error creating profile:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-serif text-white flex items-center gap-2">
+            <Plus size={20} className="text-luxury-gold" /> {t('add_new_model')}
+          </h3>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white">
+            <AlertCircle size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('name')}</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Model name"
+              className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('age')}</label>
+              <input
+                type="number"
+                value={age}
+                onChange={e => setAge(Number(e.target.value))}
+                min={18}
+                className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('hourly_rate')}</label>
+              <input
+                type="number"
+                value={priceStart}
+                onChange={e => setPriceStart(Number(e.target.value))}
+                className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('district')}</label>
+            <select
+              value={district}
+              onChange={e => setDistrict(e.target.value as District)}
+              className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+            >
+              {Object.values(District).map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-md font-medium"
+          >
+            {t('cancel')}
+          </button>
+          <Button onClick={handleCreate} disabled={isCreating || !name.trim()} className="flex-1">
+            {isCreating ? 'Creating...' : t('create_model')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Agency Billing Tab
+function AgencyBillingTab() {
+  const t = useTranslations('dashboard');
+  const router = useRouter();
+
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
+      <CreditCard className="mx-auto text-neutral-600 mb-4" size={48} />
+      <h3 className="text-xl font-serif text-white mb-2">{t('agency_packages')}</h3>
+      <p className="text-neutral-400 mb-6">Upgrade your agency visibility and get more leads for your models.</p>
+      <Button onClick={() => router.push('/packages')}>{t('view_packages')}</Button>
     </div>
   );
 }
