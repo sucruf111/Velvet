@@ -269,6 +269,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const register = async (data: RegistrationData, role: UserRole) => {
+    // Prevent duplicate registrations
+    if (isLoggingIn) {
+      console.warn('Registration already in progress');
+      return;
+    }
+
     setIsLoggingIn(true);
     try {
       validateProfileData(data);
