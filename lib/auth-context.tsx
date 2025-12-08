@@ -59,7 +59,6 @@ interface AuthContextType {
   isFavorite: (profileId: string) => boolean;
   isAuthenticated: boolean;
   isLoggingIn: boolean;
-  isRegistering: boolean;
   resetPassword: (email: string) => Promise<void>;
   canAdvertise: boolean;
 }
@@ -73,57 +72,6 @@ function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
-
-// Input validation helpers
-const validateProfileData = (data: RegistrationData): void => {
-  if (data.age) {
-    const age = Number(data.age);
-    if (isNaN(age) || age < 18 || age > 99) {
-      throw new Error('Age must be between 18 and 99');
-    }
-  }
-
-  if (data.height) {
-    const height = Number(data.height);
-    if (isNaN(height) || height < 100 || height > 220) {
-      throw new Error('Height must be between 100 and 220 cm');
-    }
-  }
-
-  if (data.priceStart) {
-    const price = Number(data.priceStart);
-    if (isNaN(price) || price < 0 || price > 10000) {
-      throw new Error('Price must be between 0 and 10000');
-    }
-  }
-
-  if (data.shoeSize) {
-    const shoeSize = Number(data.shoeSize);
-    if (isNaN(shoeSize) || shoeSize < 30 || shoeSize > 50) {
-      throw new Error('Shoe size must be between 30 and 50');
-    }
-  }
-
-  if (data.displayName && data.displayName.length > 50) {
-    throw new Error('Display name must be 50 characters or less');
-  }
-
-  if (data.agencyName && data.agencyName.length > 100) {
-    throw new Error('Agency name must be 100 characters or less');
-  }
-
-  if (data.phone && !/^[+]?[\d\s()-]{6,20}$/.test(data.phone)) {
-    throw new Error('Invalid phone number format');
-  }
-
-  if (data.website && data.website.trim()) {
-    try {
-      new URL(data.website);
-    } catch {
-      throw new Error('Invalid website URL');
-    }
-  }
-};
 
 const sanitizeString = (str: string | undefined): string => {
   if (!str) return '';
@@ -147,7 +95,6 @@ function transformSupabaseUser(user: SupabaseUser, isVerified?: boolean): User {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const supabase = createClient();
 
@@ -481,7 +428,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isFavorite,
       isAuthenticated: !!user,
       isLoggingIn,
-      isRegistering,
       resetPassword,
       canAdvertise
     }}>
