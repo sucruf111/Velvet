@@ -19,10 +19,13 @@ export default function AgeVerifyPage() {
     // Set cookie that expires in 30 days
     const expires = new Date();
     expires.setDate(expires.getDate() + 30);
-    document.cookie = `velvet_age_verified=true; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+    const isSecure = window.location.protocol === 'https:';
+    document.cookie = `velvet_age_verified=true; expires=${expires.toUTCString()}; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
 
-    // Redirect to original destination
-    router.push(redirectPath);
+    // Small delay to ensure cookie is set, then redirect
+    setTimeout(() => {
+      window.location.href = redirectPath;
+    }, 100);
   };
 
   const handleDecline = () => {
