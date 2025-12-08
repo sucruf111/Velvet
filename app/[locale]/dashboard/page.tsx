@@ -1,19 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/lib/auth-context';
-import { Profile } from '@/lib/types';
+import { Profile, District } from '@/lib/types';
 import { Button } from '@/components/ui';
 import { ProfileCard } from '@/components/ProfileCard';
 import {
   BarChart3, Image as ImageIcon, CreditCard, Settings, Heart, LogOut,
-  Save, Check, Users, Eye, EyeOff, Trash2, AlertCircle
+  Save, Check, Users, Eye, EyeOff, Trash2, AlertCircle, Upload, X, Globe
 } from 'lucide-react';
 
 type DashboardTab = 'overview' | 'services' | 'photos' | 'billing' | 'settings' | 'account';
+
+const AVAILABLE_LANGUAGES = [
+  'Deutsch', 'English', 'Русский', 'Español', 'Français',
+  'Italiano', 'Polski', 'Türkçe', 'العربية', 'فارسی',
+  'Português', 'Nederlands', 'Čeština', 'Magyar', 'Română'
+];
+
+const SERVICE_CATEGORIES = {
+  core: ['Escort Service', 'Outcall', 'Incall', 'Overnight possibility', 'Dinner Date', 'Travel Companion'],
+  oral: ['BJ Natur INCLUDED IN PRICE', 'BJ Natur extra price', 'BJ with Condom', 'Swallow', 'Cum in Mouth (CIM)', 'Cum on Body', 'Cum on Face', 'Deep Throat'],
+  intimacy: ['Kiss', 'Tongue kiss', 'French Kissing', 'Girlfriend Experience'],
+  positions: ['69 Position', 'Anal', 'Rimming', 'Prostate massage', 'Spanish'],
+  special: ['BDSM', 'BDSM Light', 'Devote Spiele', 'Dominante Spiele', 'Rollen Spiele', 'Golden Shower Aktiv', 'Golden Shower Passiv', 'Kinky / Fetish'],
+  group: ['Couple', 'Sex with two men', 'Threesome (2 Girls)'],
+  other: ['Erotic Massage', 'Body to Body Massage', 'Striptease']
+};
 
 function createClient() {
   return createBrowserClient(
@@ -101,7 +117,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-10 border-b border-neutral-800 pb-6">
             <div>
               <h1 className="font-serif text-4xl text-white mb-2">{t('my_favorites')}</h1>
-              <p className="text-neutral-400">{t('favorites_welcome').replace('{name}', user.username)}</p>
+              <p className="text-neutral-400">{t('favorites_welcome', { name: user.username })}</p>
             </div>
             <Button variant="outline" onClick={handleLogout} className="flex gap-2 items-center">
               <LogOut size={16} /> {t('logout')}
@@ -180,7 +196,7 @@ export default function DashboardPage() {
               <>
                 {activeTab === 'overview' && <ModelOverview profile={myProfile} setActiveTab={setActiveTab} />}
                 {activeTab === 'photos' && <ModelPhotos profile={myProfile} onUpdate={fetchUserData} />}
-                {activeTab === 'billing' && <ModelBilling />}
+                {activeTab === 'billing' && <ModelBilling profile={myProfile} />}
                 {activeTab === 'settings' && <ModelSettings profile={myProfile} onUpdate={fetchUserData} />}
                 {activeTab === 'account' && <ModelAccount profile={myProfile} onUpdate={fetchUserData} />}
               </>
@@ -265,21 +281,35 @@ function ModelOverview({ profile, setActiveTab }: { profile: Profile; setActiveT
           </div>
         </div>
 
-        {/* Package Status */}
+        {/* Package Status - Only show upgrade for verified profiles */}
         <div className={`border p-6 rounded-sm ${profile.isPremium ? 'bg-luxury-gold/5 border-luxury-gold' : 'bg-neutral-950 border-neutral-800'}`}>
-          <h3 className="text-white font-semibold mb-1">
-            {profile.isPremium ? `Premium Package` : `Standard Package`}
-          </h3>
-          <p className="text-neutral-500 text-xs mb-4">
-            {profile.isPremium ? 'Enhanced visibility' : t('upgrade_visibility')}
-          </p>
-          <Button
-            variant={profile.isPremium ? 'outline' : 'primary'}
-            className="w-full !py-2 !text-sm"
-            onClick={() => setActiveTab('billing')}
-          >
-            {profile.isPremium ? t('extend_package') : t('upgrade_now')}
-          </Button>
+          {profile.isVerified ? (
+            <>
+              <h3 className="text-white font-semibold mb-1">
+                {profile.isPremium ? t('premium_package') : t('standard_package')}
+              </h3>
+              <p className="text-neutral-500 text-xs mb-4">
+                {profile.isPremium ? 'Enhanced visibility' : t('upgrade_visibility')}
+              </p>
+              <Button
+                variant={profile.isPremium ? 'outline' : 'primary'}
+                className="w-full !py-2 !text-sm"
+                onClick={() => setActiveTab('billing')}
+              >
+                {profile.isPremium ? t('extend_package') : t('upgrade_now')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-amber-400 font-semibold mb-1 flex items-center gap-2">
+                <AlertCircle size={16} />
+                {t('profile_not_verified')}
+              </h3>
+              <p className="text-neutral-500 text-xs">
+                {t('verification_pending')}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -333,16 +363,77 @@ function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: s
   );
 }
 
-// Model Photos Tab
+// Model Photos Tab with Upload
 function ModelPhotos({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
   const t = useTranslations('dashboard');
   const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<string[]>(profile.images || []);
   const [isSaved, setIsSaved] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const removeImage = (index: number) => {
     setImages(images.filter((_, i) => i !== index));
     setIsSaved(false);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError('');
+
+    try {
+      const newImages: string[] = [];
+
+      for (const file of Array.from(files)) {
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+          setUploadError('Only image files are allowed');
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          setUploadError('File size must be less than 5MB');
+          continue;
+        }
+
+        // Upload to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${profile.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          setUploadError('Failed to upload image');
+          continue;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(fileName);
+
+        newImages.push(publicUrl);
+      }
+
+      if (newImages.length > 0) {
+        setImages([...images, ...newImages]);
+        setIsSaved(false);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError('Failed to upload images');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -360,13 +451,41 @@ function ModelPhotos({ profile, onUpdate }: { profile: Profile; onUpdate: () => 
       <div className="flex justify-between items-center border-b border-neutral-800 pb-6">
         <div>
           <h2 className="font-serif text-3xl text-white">{t('my_photos')}</h2>
-          <p className="text-neutral-400 text-sm mt-1">{images.length} images</p>
+          <p className="text-neutral-400 text-sm mt-1">{t('images_count', { count: images.length })}</p>
         </div>
-        <Button onClick={handleSave} className="flex items-center gap-2">
-          {isSaved ? <Check size={16} /> : <Save size={16} />}
-          {isSaved ? t('saved') : t('save')}
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="flex items-center gap-2"
+          >
+            <Upload size={16} />
+            {isUploading ? '...' : t('upload_photos')}
+          </Button>
+          <Button onClick={handleSave} className="flex items-center gap-2">
+            {isSaved ? <Check size={16} /> : <Save size={16} />}
+            {isSaved ? t('saved') : t('save')}
+          </Button>
+        </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
+      {uploadError && (
+        <div className="bg-red-900/20 border border-red-900/50 p-3 text-red-200 rounded-sm text-sm">
+          {uploadError}
+        </div>
+      )}
+
+      <p className="text-neutral-500 text-xs">{t('upload_hint')}</p>
 
       {images.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -383,7 +502,7 @@ function ModelPhotos({ profile, onUpdate }: { profile: Profile; onUpdate: () => 
               </div>
               {i === 0 && (
                 <div className="absolute top-2 left-2 bg-luxury-gold text-black text-xs font-bold px-2 py-1 rounded">
-                  Main Photo
+                  {t('main_photo')}
                 </div>
               )}
             </div>
@@ -392,7 +511,15 @@ function ModelPhotos({ profile, onUpdate }: { profile: Profile; onUpdate: () => 
       ) : (
         <div className="text-center py-12 border border-dashed border-neutral-700 rounded-sm">
           <ImageIcon size={48} className="mx-auto text-neutral-600 mb-3" />
-          <p className="text-neutral-500">No images yet.</p>
+          <p className="text-neutral-500">{t('no_images')}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={16} className="mr-2" />
+            {t('upload_photos')}
+          </Button>
         </div>
       )}
     </div>
@@ -400,9 +527,28 @@ function ModelPhotos({ profile, onUpdate }: { profile: Profile; onUpdate: () => 
 }
 
 // Model Billing Tab
-function ModelBilling() {
+function ModelBilling({ profile }: { profile: Profile }) {
   const t = useTranslations('dashboard');
   const router = useRouter();
+
+  // Only show upgrade options for verified profiles
+  if (!profile.isVerified) {
+    return (
+      <div className="space-y-6">
+        <div className="border-b border-neutral-800 pb-6">
+          <h2 className="font-serif text-3xl text-white">{t('billing')}</h2>
+        </div>
+
+        <div className="bg-amber-900/20 border border-amber-900/50 rounded-lg p-8 text-center">
+          <AlertCircle className="mx-auto text-amber-400 mb-4" size={48} />
+          <h3 className="text-xl font-serif text-white mb-2">{t('profile_not_verified')}</h3>
+          <p className="text-neutral-400">
+            {t('verification_pending')}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -412,23 +558,35 @@ function ModelBilling() {
 
       <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-8 text-center">
         <CreditCard className="mx-auto text-neutral-700 mb-4" size={48} />
-        <h3 className="text-xl font-serif text-white mb-2">Upgrade Your Profile</h3>
+        <h3 className="text-xl font-serif text-white mb-2">{t('upgrade_visibility')}</h3>
         <p className="text-neutral-400 mb-6">
-          Get more visibility and premium features with a subscription package.
+          {t('upgrade_visibility')}
         </p>
         <Button onClick={() => router.push('/packages')}>
-          Browse Packages
+          {t('view_packages')}
         </Button>
       </div>
     </div>
   );
 }
 
-// Model Settings Tab
+// Model Settings Tab with Services and Languages
 function ModelSettings({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
   const t = useTranslations('dashboard');
   const supabase = createClient();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    age: number;
+    priceStart: number;
+    description: string;
+    district: District;
+    phone: string;
+    whatsapp: string;
+    telegram: string;
+    services: string[];
+    languages: string[];
+    visitType: 'incall' | 'outcall' | 'both';
+  }>({
     name: profile.name,
     age: profile.age,
     priceStart: profile.priceStart,
@@ -436,9 +594,34 @@ function ModelSettings({ profile, onUpdate }: { profile: Profile; onUpdate: () =
     district: profile.district,
     phone: profile.phone || '',
     whatsapp: profile.whatsapp || '',
-    telegram: profile.telegram || ''
+    telegram: profile.telegram || '',
+    services: (profile.services || []) as string[],
+    languages: profile.languages || [],
+    visitType: profile.visitType || 'both'
   });
   const [isSaved, setIsSaved] = useState(false);
+  const [showServices, setShowServices] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
+
+  const toggleService = (service: string) => {
+    const services = formData.services;
+    if (services.includes(service)) {
+      setFormData({ ...formData, services: services.filter(s => s !== service) });
+    } else {
+      setFormData({ ...formData, services: [...services, service] });
+    }
+    setIsSaved(false);
+  };
+
+  const toggleLanguage = (language: string) => {
+    const languages = formData.languages;
+    if (languages.includes(language)) {
+      setFormData({ ...formData, languages: languages.filter(l => l !== language) });
+    } else {
+      setFormData({ ...formData, languages: [...languages, language] });
+    }
+    setIsSaved(false);
+  };
 
   const handleSave = async () => {
     await supabase
@@ -451,7 +634,10 @@ function ModelSettings({ profile, onUpdate }: { profile: Profile; onUpdate: () =
         district: formData.district,
         phone: formData.phone,
         whatsapp: formData.whatsapp,
-        telegram: formData.telegram
+        telegram: formData.telegram,
+        services: formData.services,
+        languages: formData.languages,
+        visitType: formData.visitType
       })
       .eq('id', profile.id);
     setIsSaved(true);
@@ -470,72 +656,201 @@ function ModelSettings({ profile, onUpdate }: { profile: Profile; onUpdate: () =
       </div>
 
       <div className="space-y-6 max-w-2xl">
+        {/* Basic Info */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Name</label>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('name')}</label>
             <input
               type="text"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => { setFormData({ ...formData, name: e.target.value }); setIsSaved(false); }}
               className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Age</label>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('age')}</label>
             <input
               type="number"
               value={formData.age}
-              onChange={e => setFormData({ ...formData, age: Number(e.target.value) })}
+              onChange={e => { setFormData({ ...formData, age: Number(e.target.value) }); setIsSaved(false); }}
               className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
             />
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Hourly Rate (€)</label>
-          <input
-            type="number"
-            value={formData.priceStart}
-            onChange={e => setFormData({ ...formData, priceStart: Number(e.target.value) })}
-            className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('hourly_rate')}</label>
+            <input
+              type="number"
+              value={formData.priceStart}
+              onChange={e => { setFormData({ ...formData, priceStart: Number(e.target.value) }); setIsSaved(false); }}
+              className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('district')}</label>
+            <select
+              value={formData.district}
+              onChange={e => { setFormData({ ...formData, district: e.target.value as District }); setIsSaved(false); }}
+              className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
+            >
+              {Object.values(District).map(d => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">About</label>
+          <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('about')}</label>
           <textarea
             value={formData.description}
-            onChange={e => setFormData({ ...formData, description: e.target.value })}
+            onChange={e => { setFormData({ ...formData, description: e.target.value }); setIsSaved(false); }}
             rows={5}
             className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none resize-none"
           />
         </div>
 
+        {/* Visit Type */}
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('visit_type')}</label>
+          <div className="flex gap-3">
+            {(['incall', 'outcall', 'both'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => { setFormData({ ...formData, visitType: type }); setIsSaved(false); }}
+                className={`flex-1 py-3 px-4 rounded-sm border text-sm transition-all ${
+                  formData.visitType === type
+                    ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                    : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                }`}
+              >
+                {type === 'incall' ? 'My Place' : type === 'outcall' ? 'Your Place' : 'Both'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Languages Section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs uppercase tracking-widest text-neutral-500">{t('select_languages')}</label>
+            <button
+              onClick={() => setShowLanguages(!showLanguages)}
+              className="text-luxury-gold text-xs hover:underline flex items-center gap-1"
+            >
+              <Globe size={12} />
+              {showLanguages ? 'Hide' : 'Edit'}
+            </button>
+          </div>
+          <p className="text-neutral-500 text-xs mb-3">{t('languages_hint')}</p>
+
+          {/* Selected Languages */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.languages.length > 0 ? (
+              formData.languages.map(lang => (
+                <span key={lang} className="bg-luxury-gold/20 text-luxury-gold text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                  {lang}
+                  <button onClick={() => toggleLanguage(lang)} className="hover:text-white">
+                    <X size={12} />
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-neutral-500 text-sm">No languages selected</span>
+            )}
+          </div>
+
+          {showLanguages && (
+            <div className="bg-neutral-950 border border-neutral-800 p-4 rounded-sm">
+              <div className="grid grid-cols-3 gap-2">
+                {AVAILABLE_LANGUAGES.map(lang => (
+                  <label key={lang} className="flex items-center gap-2 cursor-pointer hover:text-white text-sm text-neutral-400">
+                    <input
+                      type="checkbox"
+                      checked={formData.languages.includes(lang)}
+                      onChange={() => toggleLanguage(lang)}
+                      className="w-4 h-4 accent-luxury-gold"
+                    />
+                    {lang}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Services Section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs uppercase tracking-widest text-neutral-500">{t('select_services')}</label>
+            <button
+              onClick={() => setShowServices(!showServices)}
+              className="text-luxury-gold text-xs hover:underline"
+            >
+              {showServices ? 'Hide Services' : 'Edit Services'}
+            </button>
+          </div>
+          <p className="text-neutral-500 text-xs mb-3">{t('services_hint')}</p>
+
+          {/* Selected Services Count */}
+          <div className="text-neutral-400 text-sm mb-3">
+            {formData.services.length} services selected
+          </div>
+
+          {showServices && (
+            <div className="bg-neutral-950 border border-neutral-800 p-4 rounded-sm space-y-6 max-h-[400px] overflow-y-auto">
+              {Object.entries(SERVICE_CATEGORIES).map(([category, services]) => (
+                <div key={category}>
+                  <h4 className="text-luxury-gold text-xs uppercase tracking-widest font-bold mb-3 border-b border-neutral-800 pb-2">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {services.map(service => (
+                      <label key={service} className="flex items-center gap-2 cursor-pointer hover:text-white text-sm text-neutral-400">
+                        <input
+                          type="checkbox"
+                          checked={formData.services.includes(service)}
+                          onChange={() => toggleService(service)}
+                          className="w-4 h-4 accent-luxury-gold"
+                        />
+                        <span className="truncate">{service}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Contact Info */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Phone</label>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('phone')}</label>
             <input
               type="text"
               value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              onChange={e => { setFormData({ ...formData, phone: e.target.value }); setIsSaved(false); }}
               className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">WhatsApp</label>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('whatsapp')}</label>
             <input
               type="text"
               value={formData.whatsapp}
-              onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+              onChange={e => { setFormData({ ...formData, whatsapp: e.target.value }); setIsSaved(false); }}
               className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">Telegram</label>
+            <label className="block text-xs uppercase tracking-widest text-neutral-500 mb-2">{t('telegram')}</label>
             <input
               type="text"
               value={formData.telegram}
-              onChange={e => setFormData({ ...formData, telegram: e.target.value })}
+              onChange={e => { setFormData({ ...formData, telegram: e.target.value }); setIsSaved(false); }}
               className="w-full bg-neutral-900 border border-neutral-700 text-white p-3 rounded-sm focus:border-luxury-gold focus:outline-none"
             />
           </div>
