@@ -97,7 +97,7 @@ const DEFAULT_FORM_DATA: FormData = {
 };
 
 export default function RegisterPage() {
-  const { register, isLoggingIn, isAuthenticated } = useAuth();
+  const { register, isLoggingIn, isAuthenticated, isRegistering } = useAuth();
   const t = useTranslations();
   const router = useRouter();
 
@@ -109,9 +109,9 @@ export default function RegisterPage() {
 
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM_DATA);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but NOT during registration process)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isRegistering && !isLoggingIn) {
       // Clear registration state when already logged in
       try {
         sessionStorage.removeItem(STORAGE_KEY);
@@ -120,7 +120,7 @@ export default function RegisterPage() {
       }
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, isRegistering, isLoggingIn, router]);
 
   // Load saved state from sessionStorage on mount
   useEffect(() => {

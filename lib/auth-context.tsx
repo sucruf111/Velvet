@@ -59,6 +59,7 @@ interface AuthContextType {
   isFavorite: (profileId: string) => boolean;
   isAuthenticated: boolean;
   isLoggingIn: boolean;
+  isRegistering: boolean;
   resetPassword: (email: string) => Promise<void>;
   canAdvertise: boolean;
 }
@@ -146,6 +147,7 @@ function transformSupabaseUser(user: SupabaseUser, isVerified?: boolean): User {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const supabase = createClient();
 
@@ -270,12 +272,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const register = async (data: RegistrationData, role: UserRole) => {
     // Prevent duplicate registrations
-    if (isLoggingIn) {
+    if (isLoggingIn || isRegistering) {
       console.warn('Registration already in progress');
       return;
     }
 
     setIsLoggingIn(true);
+    setIsRegistering(true);
     try {
       validateProfileData(data);
 
@@ -438,6 +441,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(transformSupabaseUser(authData.user));
     } finally {
       setIsLoggingIn(false);
+      setIsRegistering(false);
     }
   };
 
@@ -507,6 +511,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       isFavorite,
       isAuthenticated: !!user,
       isLoggingIn,
+      isRegistering,
       resetPassword,
       canAdvertise
     }}>
