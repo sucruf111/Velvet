@@ -166,7 +166,32 @@
     "and": "und",
     "customer": "Kunde",
     "required": "Pflichtfeld",
-    "optional": "Optional"
+    "optional": "Optional",
+    "anonymous": "Anonym",
+    "coming_soon": "Demnächst verfügbar",
+    "back_home": "Zurück zur Startseite"
+  },
+  "checkout": {
+    "title": "Kasse",
+    "coming_soon_title": "Kasse demnächst verfügbar",
+    "coming_soon_desc": "Wir arbeiten daran, Ihnen ein nahtloses Bezahlerlebnis zu bieten. Bleiben Sie dran!"
+  },
+  "payment": {
+    "success_title": "Zahlung erfolgreich",
+    "success_coming_soon": "Zahlungsbestätigungsseite demnächst verfügbar.",
+    "cancel_title": "Zahlung abgebrochen",
+    "cancel_coming_soon": "Seite für abgebrochene Zahlungen demnächst verfügbar."
+  },
+  "agency": {
+    "models": "Models",
+    "model": "Model",
+    "reviews": "Bewertungen",
+    "contact": "Kontaktinformationen",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "website": "Webseite",
+    "our_models": "Unsere Models",
+    "no_models": "Derzeit sind keine Models für diese Agentur gelistet."
   },
   "visit": {
     "title": "Service-Ort",

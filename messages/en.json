@@ -166,7 +166,32 @@
     "and": "and",
     "customer": "Customer",
     "required": "indicates required field",
-    "optional": "Optional"
+    "optional": "Optional",
+    "anonymous": "Anonymous",
+    "coming_soon": "Coming Soon",
+    "back_home": "Back to Home"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "coming_soon_title": "Checkout Coming Soon",
+    "coming_soon_desc": "We're working hard to bring you a seamless checkout experience. Stay tuned!"
+  },
+  "payment": {
+    "success_title": "Payment Successful",
+    "success_coming_soon": "Payment confirmation page coming soon.",
+    "cancel_title": "Payment Cancelled",
+    "cancel_coming_soon": "Payment cancellation page coming soon."
+  },
+  "agency": {
+    "models": "Models",
+    "model": "Model",
+    "reviews": "Reviews",
+    "contact": "Contact Information",
+    "phone": "Phone",
+    "email": "Email",
+    "website": "Website",
+    "our_models": "Our Models",
+    "no_models": "No models currently listed for this agency."
   },
   "visit": {
     "title": "Service Location",
