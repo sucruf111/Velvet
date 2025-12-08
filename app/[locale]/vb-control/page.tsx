@@ -1,16 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { createBrowserClient } from '@supabase/ssr';
 import {
-  Users, Building2, BarChart3, CheckCircle,
-  Trash2, Eye, Shield, TrendingUp, Clock
+  Users, Building2, BarChart3, CheckCircle, Trash2, Eye, Shield, TrendingUp,
+  AlertTriangle, Search, Download, RefreshCw, DollarSign,
+  Activity, Flag, Ban, Phone, Image as ImageIcon, MapPin,
+  ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings
 } from 'lucide-react';
 import { Profile, Agency } from '@/lib/types';
 
-type Tab = 'profiles' | 'agencies' | 'analytics';
+type Tab = 'overview' | 'profiles' | 'fraud' | 'agencies' | 'users' | 'revenue' | 'activity';
+
+interface FraudIndicator {
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  points: number;
+}
+
+interface FraudAnalysis {
+  score: number;
+  level: 'safe' | 'low' | 'medium' | 'high' | 'critical';
+  indicators: FraudIndicator[];
+}
+
+// User data interface for future user management
+// interface UserData {
+//   id: string;
+//   email: string;
+//   created_at: string;
+//   user_metadata: {
+//     username?: string;
+//     role?: string;
+//     profile_id?: string;
+//   };
+// }
 
 function createClient() {
   return createBrowserClient(
@@ -19,20 +46,229 @@ function createClient() {
   );
 }
 
+// Anti-Fraud Detection System
+function analyzeFraudRisk(profile: Profile): FraudAnalysis {
+  const indicators: FraudIndicator[] = [];
+  let score = 0;
+
+  // 1. Image Analysis
+  if (!profile.images || profile.images.length === 0) {
+    indicators.push({
+      type: 'no_images',
+      severity: 'critical',
+      description: 'No profile images uploaded',
+      points: 30
+    });
+    score += 30;
+  } else if (profile.images.length === 1) {
+    indicators.push({
+      type: 'single_image',
+      severity: 'medium',
+      description: 'Only one image uploaded - possible fake profile',
+      points: 15
+    });
+    score += 15;
+  }
+
+  // 2. Stock Photo Detection (check for common stock photo patterns in URLs)
+  const stockPatterns = ['shutterstock', 'istock', 'gettyimages', 'stock', 'depositphotos', 'pexels', 'unsplash'];
+  if (profile.images?.some(img => stockPatterns.some(p => img.toLowerCase().includes(p)))) {
+    indicators.push({
+      type: 'stock_photos',
+      severity: 'critical',
+      description: 'Possible stock photos detected in profile images',
+      points: 40
+    });
+    score += 40;
+  }
+
+  // 3. Contact Information Analysis
+  const hasPhone = !!profile.phone;
+  const hasWhatsapp = !!profile.whatsapp;
+  const hasTelegram = !!profile.telegram;
+  const contactMethods = [hasPhone, hasWhatsapp, hasTelegram].filter(Boolean).length;
+
+  if (contactMethods === 0) {
+    indicators.push({
+      type: 'no_contact',
+      severity: 'high',
+      description: 'No contact information provided',
+      points: 25
+    });
+    score += 25;
+  }
+
+  // 4. Description Analysis
+  if (!profile.description || profile.description.length < 50) {
+    indicators.push({
+      type: 'short_description',
+      severity: 'medium',
+      description: 'Profile description is too short or missing',
+      points: 10
+    });
+    score += 10;
+  }
+
+  // Check for suspicious keywords in description
+  const suspiciousKeywords = ['bitcoin', 'crypto', 'western union', 'wire transfer', 'gift card', 'advance payment', 'deposit first'];
+  const descLower = profile.description?.toLowerCase() || '';
+  if (suspiciousKeywords.some(k => descLower.includes(k))) {
+    indicators.push({
+      type: 'suspicious_keywords',
+      severity: 'critical',
+      description: 'Suspicious payment keywords detected in description',
+      points: 35
+    });
+    score += 35;
+  }
+
+  // 5. Price Analysis
+  if (profile.priceStart < 50) {
+    indicators.push({
+      type: 'unrealistic_price',
+      severity: 'high',
+      description: 'Unrealistically low price - likely scam',
+      points: 25
+    });
+    score += 25;
+  } else if (profile.priceStart > 1000) {
+    indicators.push({
+      type: 'high_price',
+      severity: 'low',
+      description: 'Very high price - verify legitimacy',
+      points: 5
+    });
+    score += 5;
+  }
+
+  // 6. Age Analysis
+  if (profile.age < 18) {
+    indicators.push({
+      type: 'underage',
+      severity: 'critical',
+      description: 'Age below 18 - ILLEGAL',
+      points: 100
+    });
+    score += 100;
+  } else if (profile.age > 65) {
+    indicators.push({
+      type: 'unusual_age',
+      severity: 'low',
+      description: 'Unusual age for profile',
+      points: 5
+    });
+    score += 5;
+  }
+
+  // 7. Activity Analysis
+  if (!profile.lastActive) {
+    indicators.push({
+      type: 'never_active',
+      severity: 'medium',
+      description: 'Profile has never been active',
+      points: 10
+    });
+    score += 10;
+  } else {
+    const lastActive = new Date(profile.lastActive);
+    const daysSinceActive = (Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceActive > 30) {
+      indicators.push({
+        type: 'inactive',
+        severity: 'low',
+        description: `Profile inactive for ${Math.floor(daysSinceActive)} days`,
+        points: 5
+      });
+      score += 5;
+    }
+  }
+
+  // 8. Profile Completeness
+  const requiredFields = ['name', 'age', 'district', 'description', 'priceStart'];
+  const missingFields = requiredFields.filter(field => !profile[field as keyof Profile]);
+  if (missingFields.length > 0) {
+    indicators.push({
+      type: 'incomplete_profile',
+      severity: 'medium',
+      description: `Missing required fields: ${missingFields.join(', ')}`,
+      points: missingFields.length * 5
+    });
+    score += missingFields.length * 5;
+  }
+
+  // 9. Services Analysis
+  if (!profile.services || profile.services.length === 0) {
+    indicators.push({
+      type: 'no_services',
+      severity: 'medium',
+      description: 'No services listed',
+      points: 10
+    });
+    score += 10;
+  }
+
+  // 10. Duplicate Detection Patterns
+  const nameParts = profile.name?.toLowerCase().split(' ') || [];
+  if (nameParts.some(part => /^[a-z]+\d{2,}$/.test(part))) {
+    indicators.push({
+      type: 'generated_name',
+      severity: 'high',
+      description: 'Name appears to be auto-generated (contains numbers)',
+      points: 20
+    });
+    score += 20;
+  }
+
+  // Determine risk level
+  let level: FraudAnalysis['level'] = 'safe';
+  if (score >= 80) level = 'critical';
+  else if (score >= 50) level = 'high';
+  else if (score >= 30) level = 'medium';
+  else if (score >= 10) level = 'low';
+
+  return { score, level, indicators };
+}
+
+// Format date helper
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Format currency
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
+}
+
 export default function VBControlPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('profiles');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified' | 'premium' | 'disabled' | 'flagged'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'clicks' | 'fraud'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedProfiles, setSelectedProfiles] = useState<Set<string>>(new Set());
+  const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalProfiles: 0,
     verifiedProfiles: 0,
     premiumProfiles: 0,
     totalAgencies: 0,
     totalClicks: 0,
-    newThisWeek: 0
+    newThisWeek: 0,
+    flaggedProfiles: 0,
+    totalUsers: 0,
+    totalRevenue: 0,
+    activeSubscriptions: 0
   });
 
   const supabase = createClient();
@@ -44,7 +280,7 @@ export default function VBControlPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  // Fetch data
+  // Fetch all data
   useEffect(() => {
     if (user?.role === 'admin') {
       fetchData();
@@ -66,6 +302,17 @@ export default function VBControlPage() {
         .select('*')
         .order('name', { ascending: true });
 
+      // Fetch subscriptions for revenue
+      const { data: subscriptionsData } = await supabase
+        .from('subscriptions')
+        .select('*');
+
+      // Fetch transactions
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('status', 'completed');
+
       if (profilesData) {
         setProfiles(profilesData);
 
@@ -73,19 +320,39 @@ export default function VBControlPage() {
         const now = new Date();
         const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+        // Count flagged profiles (fraud score >= 50)
+        const flaggedCount = profilesData.filter(p => {
+          const analysis = analyzeFraudRisk(p);
+          return analysis.score >= 50;
+        }).length;
+
+        const totalRevenue = transactionsData?.reduce((sum, t) => {
+          if (t.type === 'new_sale' || t.type === 'renewal') {
+            return sum + (t.amount || 0);
+          }
+          return sum;
+        }, 0) || 0;
+
+        const activeSubscriptions = subscriptionsData?.filter(s => s.status === 'active').length || 0;
+
         setStats({
           totalProfiles: profilesData.length,
           verifiedProfiles: profilesData.filter(p => p.isVerified).length,
           premiumProfiles: profilesData.filter(p => p.isPremium).length,
           totalAgencies: agenciesData?.length || 0,
           totalClicks: profilesData.reduce((sum, p) => sum + (p.clicks || 0), 0),
-          newThisWeek: profilesData.filter(p => new Date(p.createdAt) > weekAgo).length
+          newThisWeek: profilesData.filter(p => new Date(p.createdAt) > weekAgo).length,
+          flaggedProfiles: flaggedCount,
+          totalUsers: 0, // Will be updated if we can fetch users
+          totalRevenue,
+          activeSubscriptions
         });
       }
 
       if (agenciesData) {
         setAgencies(agenciesData);
       }
+
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -93,6 +360,72 @@ export default function VBControlPage() {
     }
   };
 
+  // Computed: Profiles with fraud analysis
+  const profilesWithFraud = useMemo(() => {
+    return profiles.map(profile => ({
+      ...profile,
+      fraudAnalysis: analyzeFraudRisk(profile)
+    }));
+  }, [profiles]);
+
+  // Filtered and sorted profiles
+  const filteredProfiles = useMemo(() => {
+    let result = profilesWithFraud;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p =>
+        p.name?.toLowerCase().includes(query) ||
+        p.district?.toLowerCase().includes(query) ||
+        p.phone?.includes(query) ||
+        p.whatsapp?.includes(query)
+      );
+    }
+
+    // Status filter
+    switch (filterStatus) {
+      case 'verified':
+        result = result.filter(p => p.isVerified);
+        break;
+      case 'unverified':
+        result = result.filter(p => !p.isVerified);
+        break;
+      case 'premium':
+        result = result.filter(p => p.isPremium);
+        break;
+      case 'disabled':
+        result = result.filter(p => p.isDisabled);
+        break;
+      case 'flagged':
+        result = result.filter(p => p.fraudAnalysis.level === 'high' || p.fraudAnalysis.level === 'critical');
+        break;
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'date':
+          comparison = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          break;
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'clicks':
+          comparison = (b.clicks || 0) - (a.clicks || 0);
+          break;
+        case 'fraud':
+          comparison = b.fraudAnalysis.score - a.fraudAnalysis.score;
+          break;
+      }
+      return sortOrder === 'asc' ? -comparison : comparison;
+    });
+
+    return result;
+  }, [profilesWithFraud, searchQuery, filterStatus, sortBy, sortOrder]);
+
+  // Actions
   const toggleVerified = async (profileId: string, currentValue: boolean) => {
     const { error } = await supabase
       .from('profiles')
@@ -159,23 +492,37 @@ export default function VBControlPage() {
     }
   };
 
-  const deleteAgency = async (agencyId: string) => {
-    if (!confirm('Are you sure you want to delete this agency? This cannot be undone.')) {
-      return;
+  const bulkAction = async (action: 'verify' | 'unverify' | 'disable' | 'delete') => {
+    if (selectedProfiles.size === 0) return;
+
+    const confirmMsg = action === 'delete'
+      ? `Are you sure you want to delete ${selectedProfiles.size} profiles? This cannot be undone.`
+      : `Apply ${action} to ${selectedProfiles.size} profiles?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const ids = Array.from(selectedProfiles);
+
+    switch (action) {
+      case 'verify':
+        await supabase.from('profiles').update({ isVerified: true }).in('id', ids);
+        setProfiles(profiles.map(p => ids.includes(p.id) ? { ...p, isVerified: true } : p));
+        break;
+      case 'unverify':
+        await supabase.from('profiles').update({ isVerified: false }).in('id', ids);
+        setProfiles(profiles.map(p => ids.includes(p.id) ? { ...p, isVerified: false } : p));
+        break;
+      case 'disable':
+        await supabase.from('profiles').update({ isDisabled: true }).in('id', ids);
+        setProfiles(profiles.map(p => ids.includes(p.id) ? { ...p, isDisabled: true } : p));
+        break;
+      case 'delete':
+        await supabase.from('profiles').delete().in('id', ids);
+        setProfiles(profiles.filter(p => !ids.includes(p.id)));
+        break;
     }
 
-    const { error } = await supabase
-      .from('agencies')
-      .delete()
-      .eq('id', agencyId);
-
-    if (!error) {
-      setAgencies(agencies.filter(a => a.id !== agencyId));
-      setStats(prev => ({
-        ...prev,
-        totalAgencies: prev.totalAgencies - 1
-      }));
-    }
+    setSelectedProfiles(new Set());
   };
 
   const toggleAgencyFeatured = async (agencyId: string, currentValue: boolean) => {
@@ -191,6 +538,66 @@ export default function VBControlPage() {
     }
   };
 
+  const deleteAgency = async (agencyId: string) => {
+    if (!confirm('Are you sure you want to delete this agency?')) return;
+
+    const { error } = await supabase
+      .from('agencies')
+      .delete()
+      .eq('id', agencyId);
+
+    if (!error) {
+      setAgencies(agencies.filter(a => a.id !== agencyId));
+      setStats(prev => ({ ...prev, totalAgencies: prev.totalAgencies - 1 }));
+    }
+  };
+
+  const exportData = () => {
+    const data = filteredProfiles.map(p => ({
+      name: p.name,
+      age: p.age,
+      district: p.district,
+      priceStart: p.priceStart,
+      isVerified: p.isVerified,
+      isPremium: p.isPremium,
+      clicks: p.clicks,
+      fraudScore: p.fraudAnalysis.score,
+      fraudLevel: p.fraudAnalysis.level,
+      createdAt: p.createdAt
+    }));
+
+    const csv = [
+      Object.keys(data[0] || {}).join(','),
+      ...data.map(row => Object.values(row).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `profiles-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  // Risk badge component
+  const FraudBadge = ({ analysis }: { analysis: FraudAnalysis }) => {
+    const colors = {
+      safe: 'bg-green-500/20 text-green-400 border-green-500/30',
+      low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      high: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+      critical: 'bg-red-500/20 text-red-400 border-red-500/30'
+    };
+
+    return (
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${colors[analysis.level]}`}>
+        {analysis.level === 'critical' && <AlertTriangle size={12} />}
+        {analysis.level === 'high' && <Flag size={12} />}
+        {analysis.score} pts
+      </div>
+    );
+  };
+
   // Show loading or redirect if not admin
   if (!isAuthenticated || user?.role !== 'admin') {
     return (
@@ -202,203 +609,644 @@ export default function VBControlPage() {
 
   return (
     <div className="min-h-screen bg-luxury-black pt-24 pb-12 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[1600px] mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-serif text-3xl text-white mb-2">VB Control Panel</h1>
-          <p className="text-neutral-500">Manage profiles, agencies, and view analytics</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="font-serif text-3xl text-white mb-2">VB Control Panel</h1>
+            <p className="text-neutral-500">Advanced admin dashboard with fraud detection</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm transition-colors"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+            <button
+              onClick={exportData}
+              className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm transition-colors"
+            >
+              <Download size={16} />
+              Export
+            </button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-blue-600/20 to-blue-900/20 border border-blue-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-blue-400 text-xs mb-2">
               <Users size={14} />
               Total Profiles
             </div>
-            <div className="text-2xl font-bold text-white">{stats.totalProfiles}</div>
+            <div className="text-3xl font-bold text-white">{stats.totalProfiles}</div>
+            <div className="text-xs text-blue-400 mt-1">+{stats.newThisWeek} this week</div>
           </div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+
+          <div className="bg-gradient-to-br from-green-600/20 to-green-900/20 border border-green-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-green-400 text-xs mb-2">
               <CheckCircle size={14} />
               Verified
             </div>
-            <div className="text-2xl font-bold text-green-500">{stats.verifiedProfiles}</div>
+            <div className="text-3xl font-bold text-white">{stats.verifiedProfiles}</div>
+            <div className="text-xs text-green-400 mt-1">
+              {stats.totalProfiles > 0 ? Math.round((stats.verifiedProfiles / stats.totalProfiles) * 100) : 0}% rate
+            </div>
           </div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
-              <Shield size={14} />
+
+          <div className="bg-gradient-to-br from-yellow-600/20 to-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-yellow-400 text-xs mb-2">
+              <Star size={14} />
               Premium
             </div>
-            <div className="text-2xl font-bold text-luxury-gold">{stats.premiumProfiles}</div>
+            <div className="text-3xl font-bold text-white">{stats.premiumProfiles}</div>
+            <div className="text-xs text-yellow-400 mt-1">{stats.activeSubscriptions} active subs</div>
           </div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
-              <Building2 size={14} />
-              Agencies
+
+          <div className="bg-gradient-to-br from-red-600/20 to-red-900/20 border border-red-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-red-400 text-xs mb-2">
+              <AlertTriangle size={14} />
+              Flagged
             </div>
-            <div className="text-2xl font-bold text-white">{stats.totalAgencies}</div>
+            <div className="text-3xl font-bold text-white">{stats.flaggedProfiles}</div>
+            <div className="text-xs text-red-400 mt-1">Requires review</div>
           </div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
-              <TrendingUp size={14} />
-              Total Clicks
+
+          <div className="bg-gradient-to-br from-purple-600/20 to-purple-900/20 border border-purple-500/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-purple-400 text-xs mb-2">
+              <DollarSign size={14} />
+              Revenue
             </div>
-            <div className="text-2xl font-bold text-white">{stats.totalClicks.toLocaleString()}</div>
-          </div>
-          <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
-              <Clock size={14} />
-              New This Week
-            </div>
-            <div className="text-2xl font-bold text-blue-500">{stats.newThisWeek}</div>
+            <div className="text-3xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</div>
+            <div className="text-xs text-purple-400 mt-1">All time</div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-neutral-800 pb-4">
-          <button
-            onClick={() => setActiveTab('profiles')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'profiles'
-                ? 'bg-luxury-gold text-black'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-            }`}
-          >
-            <Users size={16} />
-            Profiles
-          </button>
-          <button
-            onClick={() => setActiveTab('agencies')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'agencies'
-                ? 'bg-luxury-gold text-black'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-            }`}
-          >
-            <Building2 size={16} />
-            Agencies
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'analytics'
-                ? 'bg-luxury-gold text-black'
-                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-            }`}
-          >
-            <BarChart3 size={16} />
-            Analytics
-          </button>
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-neutral-800 pb-4">
+          {[
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'profiles', label: 'Profiles', icon: Users },
+            { id: 'fraud', label: 'Fraud Detection', icon: AlertTriangle },
+            { id: 'agencies', label: 'Agencies', icon: Building2 },
+            { id: 'revenue', label: 'Revenue', icon: DollarSign },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as Tab)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-luxury-gold text-black'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+              }`}
+            >
+              <tab.icon size={16} />
+              {tab.label}
+              {tab.id === 'fraud' && stats.flaggedProfiles > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                  {stats.flaggedProfiles}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Content */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center py-20">
+            <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Recent Activity */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <Activity size={18} className="text-luxury-gold" />
+                    Recent Profiles
+                  </h3>
+                  <div className="space-y-3">
+                    {profiles.slice(0, 8).map(profile => {
+                      const fraud = analyzeFraudRisk(profile);
+                      return (
+                        <div key={profile.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-800/50 transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-neutral-800 overflow-hidden flex-shrink-0">
+                            {profile.images?.[0] && (
+                              <img src={profile.images[0]} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium truncate">{profile.name}</span>
+                              {profile.isVerified && <CheckCircle size={14} className="text-green-500 flex-shrink-0" />}
+                              {(fraud.level === 'high' || fraud.level === 'critical') && (
+                                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                              )}
+                            </div>
+                            <div className="text-xs text-neutral-500">
+                              {profile.district} • {formatDate(profile.createdAt)}
+                            </div>
+                          </div>
+                          <FraudBadge analysis={fraud} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Fraud Overview */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <Shield size={18} className="text-luxury-gold" />
+                    Fraud Risk Distribution
+                  </h3>
+                  <div className="space-y-4">
+                    {['safe', 'low', 'medium', 'high', 'critical'].map(level => {
+                      const count = profilesWithFraud.filter(p => p.fraudAnalysis.level === level).length;
+                      const percentage = profiles.length > 0 ? (count / profiles.length) * 100 : 0;
+                      const colors: Record<string, string> = {
+                        safe: 'bg-green-500',
+                        low: 'bg-blue-500',
+                        medium: 'bg-yellow-500',
+                        high: 'bg-orange-500',
+                        critical: 'bg-red-500'
+                      };
+                      return (
+                        <div key={level}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-neutral-400 capitalize">{level}</span>
+                            <span className="text-white">{count} ({percentage.toFixed(1)}%)</span>
+                          </div>
+                          <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${colors[level]} transition-all duration-500`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Top Performers */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <TrendingUp size={18} className="text-luxury-gold" />
+                    Top Performers
+                  </h3>
+                  <div className="space-y-3">
+                    {profiles
+                      .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
+                      .slice(0, 5)
+                      .map((profile, idx) => (
+                        <div key={profile.id} className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-luxury-gold/20 flex items-center justify-center text-luxury-gold font-bold text-sm">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-white font-medium">{profile.name}</div>
+                            <div className="text-xs text-neutral-500">{profile.district}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-white font-medium">{(profile.clicks || 0).toLocaleString()}</div>
+                            <div className="text-xs text-neutral-500">clicks</div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* District Distribution */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <MapPin size={18} className="text-luxury-gold" />
+                    By District
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(
+                      profiles.reduce((acc, p) => {
+                        acc[p.district] = (acc[p.district] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>)
+                    )
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([district, count]) => (
+                        <div key={district} className="flex items-center justify-between p-3 bg-neutral-800/30 rounded-lg">
+                          <span className="text-neutral-400 text-sm">{district}</span>
+                          <span className="text-white font-medium">{count}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Profiles Tab */}
             {activeTab === 'profiles' && (
-              <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-neutral-900">
-                      <tr>
-                        <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Profile</th>
-                        <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">District</th>
-                        <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Clicks</th>
-                        <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Verified</th>
-                        <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Premium</th>
-                        <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Status</th>
-                        <th className="text-right p-4 text-xs font-medium text-neutral-500 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800">
-                      {profiles.map(profile => (
-                        <tr key={profile.id} className={`hover:bg-neutral-800/30 ${profile.isDisabled ? 'opacity-50' : ''}`}>
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-neutral-800 overflow-hidden">
-                                {profile.images?.[0] && (
-                                  <img
-                                    src={profile.images[0]}
-                                    alt={profile.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                )}
-                              </div>
-                              <div>
-                                <div className="text-white font-medium">{profile.name}</div>
-                                <div className="text-neutral-500 text-xs">{profile.age} years</div>
+              <div className="space-y-4">
+                {/* Toolbar */}
+                <div className="flex flex-wrap items-center gap-4 p-4 bg-neutral-900/50 border border-neutral-800 rounded-xl">
+                  {/* Search */}
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="Search profiles..."
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Filter */}
+                  <select
+                    value={filterStatus}
+                    onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
+                    className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                  >
+                    <option value="all">All Profiles</option>
+                    <option value="verified">Verified Only</option>
+                    <option value="unverified">Unverified</option>
+                    <option value="premium">Premium</option>
+                    <option value="disabled">Disabled</option>
+                    <option value="flagged">Flagged (High Risk)</option>
+                  </select>
+
+                  {/* Sort */}
+                  <select
+                    value={sortBy}
+                    onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                    className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                  >
+                    <option value="date">Sort by Date</option>
+                    <option value="name">Sort by Name</option>
+                    <option value="clicks">Sort by Clicks</option>
+                    <option value="fraud">Sort by Fraud Score</option>
+                  </select>
+
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-white transition-colors"
+                  >
+                    {sortOrder === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+
+                  {/* Bulk Actions */}
+                  {selectedProfiles.size > 0 && (
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="text-sm text-neutral-400">{selectedProfiles.size} selected</span>
+                      <button
+                        onClick={() => bulkAction('verify')}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded text-xs"
+                      >
+                        Verify
+                      </button>
+                      <button
+                        onClick={() => bulkAction('disable')}
+                        className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs"
+                      >
+                        Disable
+                      </button>
+                      <button
+                        onClick={() => bulkAction('delete')}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profiles Table */}
+                <div className="bg-neutral-900/30 border border-neutral-800 rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-neutral-900">
+                        <tr>
+                          <th className="w-10 p-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedProfiles.size === filteredProfiles.length && filteredProfiles.length > 0}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setSelectedProfiles(new Set(filteredProfiles.map(p => p.id)));
+                                } else {
+                                  setSelectedProfiles(new Set());
+                                }
+                              }}
+                              className="rounded border-neutral-600 bg-neutral-800 text-luxury-gold focus:ring-luxury-gold"
+                            />
+                          </th>
+                          <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Profile</th>
+                          <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">District</th>
+                          <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Contact</th>
+                          <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Fraud</th>
+                          <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Status</th>
+                          <th className="text-right p-4 text-xs font-medium text-neutral-500 uppercase">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-800">
+                        {filteredProfiles.map(profile => (
+                          <>
+                            <tr key={profile.id} className={`hover:bg-neutral-800/30 ${profile.isDisabled ? 'opacity-50' : ''}`}>
+                              <td className="p-4">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedProfiles.has(profile.id)}
+                                  onChange={e => {
+                                    const newSet = new Set(selectedProfiles);
+                                    if (e.target.checked) {
+                                      newSet.add(profile.id);
+                                    } else {
+                                      newSet.delete(profile.id);
+                                    }
+                                    setSelectedProfiles(newSet);
+                                  }}
+                                  className="rounded border-neutral-600 bg-neutral-800 text-luxury-gold focus:ring-luxury-gold"
+                                />
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden flex-shrink-0">
+                                    {profile.images?.[0] ? (
+                                      <img src={profile.images[0]} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                                        <ImageIcon size={20} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-white font-medium">{profile.name}</span>
+                                      {profile.isVerified && <CheckCircle size={14} className="text-green-500" />}
+                                      {profile.isPremium && <Star size={14} className="text-luxury-gold" />}
+                                    </div>
+                                    <div className="text-neutral-500 text-xs">
+                                      {profile.age}y • {formatCurrency(profile.priceStart)}/h • {profile.clicks || 0} clicks
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4 text-neutral-400 text-sm">{profile.district}</td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  {profile.phone && <Phone size={14} className="text-green-500" />}
+                                  {profile.whatsapp && <span className="text-green-500 text-xs">WA</span>}
+                                  {profile.telegram && <span className="text-blue-500 text-xs">TG</span>}
+                                  {!profile.phone && !profile.whatsapp && !profile.telegram && (
+                                    <span className="text-red-400 text-xs">None</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => setExpandedProfile(expandedProfile === profile.id ? null : profile.id)}
+                                  className="hover:opacity-80 transition-opacity"
+                                >
+                                  <FraudBadge analysis={profile.fraudAnalysis} />
+                                </button>
+                              </td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => toggleDisabled(profile.id, profile.isDisabled || false)}
+                                  className={`px-2 py-1 rounded text-xs font-medium ${
+                                    profile.isDisabled
+                                      ? 'bg-red-500/20 text-red-400'
+                                      : 'bg-green-500/20 text-green-400'
+                                  }`}
+                                >
+                                  {profile.isDisabled ? 'Disabled' : 'Active'}
+                                </button>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => toggleVerified(profile.id, profile.isVerified)}
+                                    className={`p-1.5 rounded hover:bg-neutral-700 transition-colors ${
+                                      profile.isVerified ? 'text-green-500' : 'text-neutral-600'
+                                    }`}
+                                    title={profile.isVerified ? 'Remove verification' : 'Verify'}
+                                  >
+                                    <CheckCircle size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => togglePremium(profile.id, profile.isPremium)}
+                                    className={`p-1.5 rounded hover:bg-neutral-700 transition-colors ${
+                                      profile.isPremium ? 'text-luxury-gold' : 'text-neutral-600'
+                                    }`}
+                                    title={profile.isPremium ? 'Remove premium' : 'Make premium'}
+                                  >
+                                    <Star size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => window.open(`/profile/${profile.id}`, '_blank')}
+                                    className="p-1.5 rounded text-neutral-500 hover:text-white hover:bg-neutral-700 transition-colors"
+                                    title="View profile"
+                                  >
+                                    <ExternalLink size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteProfile(profile.id)}
+                                    className="p-1.5 rounded text-neutral-500 hover:text-red-500 hover:bg-neutral-700 transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Expanded Fraud Details */}
+                            {expandedProfile === profile.id && (
+                              <tr className="bg-neutral-900/50">
+                                <td colSpan={7} className="p-4">
+                                  <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                      <h4 className="text-sm font-medium text-white mb-2">Fraud Indicators</h4>
+                                      {profile.fraudAnalysis.indicators.length > 0 ? (
+                                        <div className="space-y-2">
+                                          {profile.fraudAnalysis.indicators.map((indicator, idx) => (
+                                            <div
+                                              key={idx}
+                                              className={`p-2 rounded text-xs ${
+                                                indicator.severity === 'critical' ? 'bg-red-500/20 text-red-300' :
+                                                indicator.severity === 'high' ? 'bg-orange-500/20 text-orange-300' :
+                                                indicator.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                                                'bg-blue-500/20 text-blue-300'
+                                              }`}
+                                            >
+                                              <div className="flex justify-between">
+                                                <span className="font-medium">{indicator.type.replace(/_/g, ' ')}</span>
+                                                <span>+{indicator.points} pts</span>
+                                              </div>
+                                              <p className="mt-1 opacity-80">{indicator.description}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-green-400 text-sm">No fraud indicators detected</p>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-medium text-white mb-2">Profile Details</h4>
+                                      <div className="space-y-1 text-xs text-neutral-400">
+                                        <p><span className="text-neutral-500">Created:</span> {formatDate(profile.createdAt)}</p>
+                                        <p><span className="text-neutral-500">Last Active:</span> {profile.lastActive ? formatDate(profile.lastActive) : 'Never'}</p>
+                                        <p><span className="text-neutral-500">Images:</span> {profile.images?.length || 0}</p>
+                                        <p><span className="text-neutral-500">Services:</span> {profile.services?.length || 0}</p>
+                                        <p><span className="text-neutral-500">Description:</span> {profile.description?.length || 0} chars</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {filteredProfiles.length === 0 && (
+                    <div className="text-center py-12 text-neutral-500">
+                      No profiles found matching your criteria
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Fraud Detection Tab */}
+            {activeTab === 'fraud' && (
+              <div className="space-y-6">
+                {/* Critical Alerts */}
+                {profilesWithFraud.filter(p => p.fraudAnalysis.level === 'critical').length > 0 && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                    <h3 className="text-lg font-medium text-red-400 mb-4 flex items-center gap-2">
+                      <AlertTriangle size={20} />
+                      Critical Alerts - Immediate Action Required
+                    </h3>
+                    <div className="space-y-3">
+                      {profilesWithFraud
+                        .filter(p => p.fraudAnalysis.level === 'critical')
+                        .map(profile => (
+                          <div key={profile.id} className="flex items-center gap-4 p-4 bg-red-500/5 rounded-lg">
+                            <div className="w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden">
+                              {profile.images?.[0] && (
+                                <img src={profile.images[0]} alt="" className="w-full h-full object-cover" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-white font-medium">{profile.name}</div>
+                              <div className="text-red-400 text-sm">
+                                {profile.fraudAnalysis.indicators.map(i => i.type.replace(/_/g, ' ')).join(', ')}
                               </div>
                             </div>
-                          </td>
-                          <td className="p-4 text-neutral-400 text-sm">{profile.district}</td>
-                          <td className="p-4 text-neutral-400 text-sm">{profile.clicks || 0}</td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => toggleVerified(profile.id, profile.isVerified)}
-                              className={`p-1 rounded ${profile.isVerified ? 'text-green-500' : 'text-neutral-600'}`}
-                            >
-                              <CheckCircle size={20} />
-                            </button>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => togglePremium(profile.id, profile.isPremium)}
-                              className={`p-1 rounded ${profile.isPremium ? 'text-luxury-gold' : 'text-neutral-600'}`}
-                            >
-                              <Shield size={20} />
-                            </button>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => toggleDisabled(profile.id, profile.isDisabled || false)}
-                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                profile.isDisabled
-                                  ? 'bg-red-500/20 text-red-400'
-                                  : 'bg-green-500/20 text-green-400'
-                              }`}
-                            >
-                              {profile.isDisabled ? 'Disabled' : 'Active'}
-                            </button>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center gap-2">
+                              <FraudBadge analysis={profile.fraudAnalysis} />
                               <button
-                                onClick={() => window.open(`/profile/${profile.id}`, '_blank')}
-                                className="p-2 text-neutral-500 hover:text-white transition-colors"
-                                title="View"
+                                onClick={() => toggleDisabled(profile.id, false)}
+                                className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-sm"
                               >
-                                <Eye size={16} />
+                                <Ban size={14} className="inline mr-1" />
+                                Disable
                               </button>
                               <button
                                 onClick={() => deleteProfile(profile.id)}
-                                className="p-2 text-neutral-500 hover:text-red-500 transition-colors"
-                                title="Delete"
+                                className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-sm"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} className="inline mr-1" />
+                                Delete
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {profiles.length === 0 && (
-                  <div className="text-center py-12 text-neutral-500">
-                    No profiles found
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 )}
+
+                {/* High Risk */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-orange-400 mb-4 flex items-center gap-2">
+                    <Flag size={20} />
+                    High Risk Profiles ({profilesWithFraud.filter(p => p.fraudAnalysis.level === 'high').length})
+                  </h3>
+                  <div className="space-y-3">
+                    {profilesWithFraud
+                      .filter(p => p.fraudAnalysis.level === 'high')
+                      .slice(0, 10)
+                      .map(profile => (
+                        <div key={profile.id} className="flex items-center gap-4 p-3 bg-neutral-800/30 rounded-lg">
+                          <div className="w-10 h-10 rounded-lg bg-neutral-800 overflow-hidden">
+                            {profile.images?.[0] && (
+                              <img src={profile.images[0]} alt="" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-white font-medium">{profile.name}</div>
+                            <div className="text-neutral-500 text-xs">
+                              {profile.fraudAnalysis.indicators.slice(0, 2).map(i => i.description).join(' • ')}
+                            </div>
+                          </div>
+                          <FraudBadge analysis={profile.fraudAnalysis} />
+                          <button
+                            onClick={() => setExpandedProfile(expandedProfile === profile.id ? null : profile.id)}
+                            className="p-2 text-neutral-400 hover:text-white"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Fraud Detection Rules */}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <Settings size={20} className="text-luxury-gold" />
+                    Detection Rules Active
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { name: 'No Images', severity: 'critical', points: 30 },
+                      { name: 'Stock Photo Detection', severity: 'critical', points: 40 },
+                      { name: 'Suspicious Keywords', severity: 'critical', points: 35 },
+                      { name: 'Unrealistic Price', severity: 'high', points: 25 },
+                      { name: 'No Contact Info', severity: 'high', points: 25 },
+                      { name: 'Generated Name', severity: 'high', points: 20 },
+                      { name: 'Single Image', severity: 'medium', points: 15 },
+                      { name: 'Short Description', severity: 'medium', points: 10 },
+                      { name: 'Profile Incomplete', severity: 'medium', points: 'variable' },
+                      { name: 'No Services', severity: 'medium', points: 10 },
+                      { name: 'Inactive Account', severity: 'low', points: 5 },
+                    ].map(rule => (
+                      <div key={rule.name} className="p-3 bg-neutral-800/30 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-white text-sm font-medium">{rule.name}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            rule.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                            rule.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            rule.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-blue-500/20 text-blue-400'
+                          }`}>
+                            {rule.severity}
+                          </span>
+                        </div>
+                        <div className="text-neutral-500 text-xs">+{rule.points} points</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Agencies Tab */}
             {activeTab === 'agencies' && (
-              <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg overflow-hidden">
+              <div className="bg-neutral-900/30 border border-neutral-800 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-neutral-900">
@@ -415,41 +1263,44 @@ export default function VBControlPage() {
                         <tr key={agency.id} className="hover:bg-neutral-800/30">
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded bg-neutral-800 overflow-hidden">
+                              <div className="w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden">
                                 {agency.logo && (
-                                  <img
-                                    src={agency.logo}
-                                    alt={agency.name}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <img src={agency.logo} alt="" className="w-full h-full object-cover" />
                                 )}
                               </div>
-                              <div className="text-white font-medium">{agency.name}</div>
+                              <div>
+                                <div className="text-white font-medium">{agency.name}</div>
+                                <div className="text-neutral-500 text-xs">{agency.email}</div>
+                              </div>
                             </div>
                           </td>
                           <td className="p-4 text-neutral-400 text-sm">{agency.district}</td>
-                          <td className="p-4 text-neutral-400 text-sm">{agency.email}</td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2 text-xs">
+                              {agency.phone && <span className="text-green-400">Phone</span>}
+                              {agency.whatsapp && <span className="text-green-400">WA</span>}
+                              {agency.website && <span className="text-blue-400">Web</span>}
+                            </div>
+                          </td>
                           <td className="p-4 text-center">
                             <button
                               onClick={() => toggleAgencyFeatured(agency.id, agency.isFeatured || false)}
-                              className={`p-1 rounded ${agency.isFeatured ? 'text-luxury-gold' : 'text-neutral-600'}`}
+                              className={`p-1.5 rounded ${agency.isFeatured ? 'text-luxury-gold' : 'text-neutral-600'}`}
                             >
-                              <Shield size={20} />
+                              <Star size={20} />
                             </button>
                           </td>
                           <td className="p-4">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 onClick={() => window.open(`/agency/${agency.id}`, '_blank')}
-                                className="p-2 text-neutral-500 hover:text-white transition-colors"
-                                title="View"
+                                className="p-1.5 text-neutral-500 hover:text-white"
                               >
-                                <Eye size={16} />
+                                <ExternalLink size={16} />
                               </button>
                               <button
                                 onClick={() => deleteAgency(agency.id)}
-                                className="p-2 text-neutral-500 hover:text-red-500 transition-colors"
-                                title="Delete"
+                                className="p-1.5 text-neutral-500 hover:text-red-500"
                               >
                                 <Trash2 size={16} />
                               </button>
@@ -461,96 +1312,57 @@ export default function VBControlPage() {
                   </table>
                 </div>
                 {agencies.length === 0 && (
-                  <div className="text-center py-12 text-neutral-500">
-                    No agencies found
-                  </div>
+                  <div className="text-center py-12 text-neutral-500">No agencies found</div>
                 )}
               </div>
             )}
 
-            {/* Analytics Tab */}
-            {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                {/* Overview */}
-                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-white mb-4">Overview</h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div>
-                      <div className="text-neutral-500 text-sm mb-1">Verification Rate</div>
-                      <div className="text-2xl font-bold text-white">
-                        {stats.totalProfiles > 0
-                          ? Math.round((stats.verifiedProfiles / stats.totalProfiles) * 100)
-                          : 0}%
-                      </div>
+            {/* Revenue Tab */}
+            {activeTab === 'revenue' && (
+              <div className="grid lg:grid-cols-2 gap-6">
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <DollarSign size={18} className="text-luxury-gold" />
+                    Revenue Overview
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-lg">
+                      <span className="text-neutral-400">Total Revenue</span>
+                      <span className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</span>
                     </div>
-                    <div>
-                      <div className="text-neutral-500 text-sm mb-1">Premium Rate</div>
-                      <div className="text-2xl font-bold text-white">
-                        {stats.totalProfiles > 0
-                          ? Math.round((stats.premiumProfiles / stats.totalProfiles) * 100)
-                          : 0}%
-                      </div>
+                    <div className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-lg">
+                      <span className="text-neutral-400">Active Subscriptions</span>
+                      <span className="text-2xl font-bold text-green-400">{stats.activeSubscriptions}</span>
                     </div>
-                    <div>
-                      <div className="text-neutral-500 text-sm mb-1">Avg Clicks/Profile</div>
-                      <div className="text-2xl font-bold text-white">
-                        {stats.totalProfiles > 0
-                          ? Math.round(stats.totalClicks / stats.totalProfiles)
-                          : 0}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-neutral-500 text-sm mb-1">Weekly Growth</div>
-                      <div className="text-2xl font-bold text-green-500">
-                        +{stats.newThisWeek}
-                      </div>
+                    <div className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-lg">
+                      <span className="text-neutral-400">Premium Profiles</span>
+                      <span className="text-2xl font-bold text-luxury-gold">{stats.premiumProfiles}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Top Profiles by Clicks */}
-                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-white mb-4">Top Profiles by Clicks</h3>
-                  <div className="space-y-3">
-                    {profiles
-                      .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
-                      .slice(0, 10)
-                      .map((profile, index) => (
-                        <div key={profile.id} className="flex items-center gap-4">
-                          <div className="text-neutral-600 w-6 text-sm">#{index + 1}</div>
-                          <div className="w-8 h-8 rounded-full bg-neutral-800 overflow-hidden">
-                            {profile.images?.[0] && (
-                              <img
-                                src={profile.images[0]}
-                                alt={profile.name}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-                          </div>
-                          <div className="flex-1 text-white">{profile.name}</div>
-                          <div className="text-neutral-400">{profile.clicks || 0} clicks</div>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Profiles by District */}
-                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
-                  <h3 className="text-lg font-medium text-white mb-4">Profiles by District</h3>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {Object.entries(
-                      profiles.reduce((acc, p) => {
-                        acc[p.district] = (acc[p.district] || 0) + 1;
-                        return acc;
-                      }, {} as Record<string, number>)
-                    )
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([district, count]) => (
-                        <div key={district} className="flex items-center justify-between p-3 bg-neutral-800/30 rounded">
-                          <span className="text-neutral-400">{district}</span>
-                          <span className="text-white font-medium">{count}</span>
-                        </div>
-                      ))}
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-6">
+                  <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                    <CreditCard size={18} className="text-luxury-gold" />
+                    Subscription Stats
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-lg">
+                      <span className="text-neutral-400">Conversion Rate</span>
+                      <span className="text-xl font-bold text-white">
+                        {stats.totalProfiles > 0
+                          ? ((stats.premiumProfiles / stats.totalProfiles) * 100).toFixed(1)
+                          : 0}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-4 bg-neutral-800/30 rounded-lg">
+                      <span className="text-neutral-400">Avg Revenue/User</span>
+                      <span className="text-xl font-bold text-white">
+                        {stats.premiumProfiles > 0
+                          ? formatCurrency(stats.totalRevenue / stats.premiumProfiles)
+                          : formatCurrency(0)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
