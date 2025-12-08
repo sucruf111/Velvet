@@ -107,11 +107,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // For models, check the profiles table
     if (role === 'model') {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('isVerified')
         .eq('id', profileId)
-        .single();
+        .maybeSingle();
+      if (error) {
+        console.warn('Error fetching verification status:', error);
+        return false;
+      }
       return data?.isVerified ?? false;
     }
 
