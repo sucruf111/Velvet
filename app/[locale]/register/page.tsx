@@ -293,6 +293,18 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Only submit on the FINAL step - this is critical!
+    const maxSteps = getMaxSteps();
+    if (step !== maxSteps) {
+      // If not on final step, do nothing (use Next button instead)
+      return;
+    }
+
+    // Prevent double submission
+    if (isLoggingIn) return;
+
     if (!validateStep()) return;
 
     try {
@@ -503,7 +515,16 @@ export default function RegisterPage() {
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            // Prevent Enter key from submitting on non-final steps
+            if (e.key === 'Enter' && step < getMaxSteps()) {
+              e.preventDefault();
+            }
+          }}
+          className="p-6 space-y-6"
+        >
           {/* Customer Registration - Single Step */}
           {registrationType === 'customer' && (
             <>
