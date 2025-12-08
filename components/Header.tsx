@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { Menu, X, Search } from 'lucide-react';
+import { Menu, X, Search, LogOut } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useAuth } from '@/lib/auth-context';
 
@@ -13,7 +13,26 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations('nav');
-  const { canAdvertise } = useAuth();
+  const { user, isAuthenticated, canAdvertise, logout } = useAuth();
+
+  // Determine dashboard link based on user role
+  const getDashboardLink = () => {
+    if (!user) return '/dashboard';
+    if (user.role === 'admin') return '/vb-control';
+    return '/dashboard';
+  };
+
+  const getDashboardLabel = () => {
+    if (!user) return t('dashboard');
+    if (user.role === 'admin') return t('admin');
+    return t('dashboard');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+    setIsMenuOpen(false);
+  };
 
   const isHome = pathname === '/';
 
@@ -39,9 +58,25 @@ export function Header() {
               {t('escorts')}
             </Link>
 
-            <Link href="/login" className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase">
-              {t('login')}
-            </Link>
+            {/* Show Dashboard or Login based on auth state */}
+            {isAuthenticated ? (
+              <>
+                <Link href={getDashboardLink()} className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase">
+                  {getDashboardLabel()}
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase flex items-center gap-1"
+                >
+                  <LogOut size={14} />
+                  {t('logout')}
+                </button>
+              </>
+            ) : (
+              <Link href="/login" className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase">
+                {t('login')}
+              </Link>
+            )}
 
             {/* Header Search Bar */}
             <div className="relative group">
@@ -97,9 +132,26 @@ export function Header() {
           <Link href="/search" className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
             {t('escorts')}
           </Link>
-          <Link href="/login" className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
-            {t('login')}
-          </Link>
+
+          {/* Show Dashboard or Login based on auth state */}
+          {isAuthenticated ? (
+            <>
+              <Link href={getDashboardLink()} className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
+                {getDashboardLabel()}
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-xl font-serif text-white text-left flex items-center gap-2"
+              >
+                <LogOut size={20} />
+                {t('logout')}
+              </button>
+            </>
+          ) : (
+            <Link href="/login" className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
+              {t('login')}
+            </Link>
+          )}
 
           {/* Advertise - Subtle placement at bottom - Only visible to verified models and agencies */}
           {canAdvertise && (

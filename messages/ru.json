@@ -4,6 +4,8 @@
     "escorts": "Эскорт",
     "advertise": "Реклама",
     "login": "Войти",
+    "dashboard": "Панель",
+    "admin": "Админ",
     "search_placeholder": "Поиск...",
     "logout": "Выход"
   },
