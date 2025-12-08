@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
@@ -52,6 +52,14 @@ interface FormData {
   services: string[];
 }
 
+interface StoredRegistrationState {
+  registrationType: RegistrationType;
+  step: number;
+  formData: FormData;
+}
+
+const STORAGE_KEY = 'velvet_registration_state';
+
 const DISTRICTS = [
   'Mitte', 'Charlottenburg', 'Kreuzberg', 'Prenzlauer Berg',
   'Friedrichshain', 'Schöneberg', 'Neukölln', 'Tempelhof',
@@ -63,6 +71,31 @@ const SERVICES = [
   'Overnight', 'Massage', 'Roleplay', 'Duo', 'Couples'
 ];
 
+const DEFAULT_FORM_DATA: FormData = {
+  authMethod: 'email',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
+  username: '',
+  displayName: '',
+  agencyName: '',
+  district: 'Mitte',
+  age: '',
+  priceStart: '',
+  description: '',
+  contactPhone: '',
+  whatsapp: '',
+  telegram: '',
+  website: '',
+  height: '',
+  dressSize: '',
+  shoeSize: '',
+  braSize: '',
+  visitType: 'both',
+  services: []
+};
+
 export default function RegisterPage() {
   const { register, isLoggingIn } = useAuth();
   const t = useTranslations();
@@ -72,31 +105,55 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const [formData, setFormData] = useState<FormData>({
-    authMethod: 'email',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    username: '',
-    displayName: '',
-    agencyName: '',
-    district: 'Mitte',
-    age: '',
-    priceStart: '',
-    description: '',
-    contactPhone: '',
-    whatsapp: '',
-    telegram: '',
-    website: '',
-    height: '',
-    dressSize: '',
-    shoeSize: '',
-    braSize: '',
-    visitType: 'both',
-    services: []
-  });
+  const [formData, setFormData] = useState<FormData>(DEFAULT_FORM_DATA);
+
+  // Load saved state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed: StoredRegistrationState = JSON.parse(saved);
+        if (parsed.registrationType) {
+          setRegistrationType(parsed.registrationType);
+          setStep(parsed.step || 1);
+          setFormData(parsed.formData || DEFAULT_FORM_DATA);
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Save state to sessionStorage whenever it changes
+  const saveState = useCallback(() => {
+    if (!isInitialized) return;
+    try {
+      const state: StoredRegistrationState = {
+        registrationType,
+        step,
+        formData
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [registrationType, step, formData, isInitialized]);
+
+  useEffect(() => {
+    saveState();
+  }, [saveState]);
+
+  // Clear saved state on successful registration
+  const clearSavedState = () => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore errors
+    }
+  };
 
   const updateForm = (field: keyof FormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -202,6 +259,7 @@ export default function RegisterPage() {
 
   const handleNext = () => {
     if (validateStep()) {
+      setError(''); // Clear any previous errors when advancing
       setStep(prev => prev + 1);
     }
   };
@@ -209,6 +267,8 @@ export default function RegisterPage() {
   const handleBack = () => {
     if (step === 1) {
       setRegistrationType(null);
+      // Clear saved state when going back to role selection
+      clearSavedState();
     } else {
       setStep(prev => prev - 1);
     }
@@ -249,6 +309,8 @@ export default function RegisterPage() {
         visitType: formData.visitType
       }, role);
 
+      // Clear saved state on successful registration
+      clearSavedState();
       router.push('/dashboard');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('register.error_generic'));
@@ -261,6 +323,15 @@ export default function RegisterPage() {
     if (registrationType === 'agency') return 2;
     return 1;
   };
+
+  // Loading state while hydrating from storage
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-luxury-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // Role Selection Screen
   if (!registrationType) {

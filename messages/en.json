@@ -15,8 +15,8 @@
     "title_highlight": "Connect.",
     "title_suffix": "Enjoy.",
     "filter_all": "Explore All",
-    "filter_outcall": "Outcall",
-    "filter_incall": "Incall",
+    "filter_outcall": "Your Place",
+    "filter_incall": "My Place",
     "filter_massage": "Sensual Massage",
     "premium_title": "Featured Listings",
     "new_title": "New & Verified",
@@ -195,12 +195,12 @@
   },
   "visit": {
     "title": "Service Location",
-    "incall": "Incall",
+    "incall": "My Place",
     "incall_desc": "Clients visit me",
-    "outcall": "Outcall",
+    "outcall": "Your Place",
     "outcall_desc": "I visit clients",
     "both": "Both",
-    "both_desc": "Incall & Outcall"
+    "both_desc": "My Place & Your Place"
   },
   "dashboard": {
     "overview": "Overview",

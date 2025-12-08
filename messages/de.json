@@ -15,8 +15,8 @@
     "title_highlight": "Verbinden.",
     "title_suffix": "Genießen.",
     "filter_all": "Alle entdecken",
-    "filter_outcall": "Outcall",
-    "filter_incall": "Incall",
+    "filter_outcall": "Bei dir",
+    "filter_incall": "Bei mir",
     "filter_massage": "Erotik Massage",
     "premium_title": "Empfohlene Anzeigen",
     "new_title": "Neu & Verifiziert",
@@ -195,12 +195,12 @@
   },
   "visit": {
     "title": "Service-Ort",
-    "incall": "Incall",
+    "incall": "Bei mir",
     "incall_desc": "Kunden besuchen mich",
-    "outcall": "Outcall",
+    "outcall": "Bei dir",
     "outcall_desc": "Ich besuche Kunden",
     "both": "Beides",
-    "both_desc": "Incall & Outcall"
+    "both_desc": "Bei mir & Bei dir"
   },
   "dashboard": {
     "overview": "Übersicht",
