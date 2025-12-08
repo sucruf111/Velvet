@@ -337,10 +337,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       let profileId: string | undefined;
 
       if (role === 'model' && data.displayName) {
-        const now = new Date().toISOString();
-        const { data: newProfile, error: profileError } = await supabase
+        // Check if profile already exists for this user (prevent duplicates)
+        const { data: existingProfile } = await supabase
           .from('profiles')
-          .insert({
+          .select('id')
+          .eq('userId', authData.user.id)
+          .single();
+
+        if (existingProfile) {
+          profileId = existingProfile.id;
+        } else {
+          const now = new Date().toISOString();
+          const { data: newProfile, error: profileError } = await supabase
+            .from('profiles')
+            .insert({
             id: crypto.randomUUID(),
             userId: authData.user.id,
             name: sanitizeString(data.displayName),
@@ -374,34 +384,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .select()
           .single();
 
-        if (profileError) throw profileError;
-        profileId = newProfile?.id;
+          if (profileError) throw profileError;
+          profileId = newProfile?.id;
+        }
       } else if (role === 'agency' && data.agencyName) {
-        const sanitizedAgencyName = sanitizeString(data.agencyName);
-        const { data: newAgency, error: agencyError } = await supabase
+        // Check if agency already exists for this user (prevent duplicates)
+        const { data: existingAgency } = await supabase
           .from('agencies')
-          .insert({
-            id: crypto.randomUUID(),
-            userId: authData.user.id,
-            name: sanitizedAgencyName,
-            description: sanitizeString(data.description) || 'Welcome to our agency.',
-            logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
-            banner: '',
-            image: '',
-            website: sanitizeString(data.website),
-            phone: sanitizeString(data.contactPhone),
-            whatsapp: sanitizeString(data.whatsapp),
-            telegram: sanitizeString(data.telegram),
-            email: sanitizeString(data.email),
-            district: (data.district || 'Mitte') as District,
-            isFeatured: false,
-            reviews: []
-          })
-          .select()
+          .select('id')
+          .eq('userId', authData.user.id)
           .single();
 
-        if (agencyError) throw agencyError;
-        profileId = newAgency?.id;
+        if (existingAgency) {
+          profileId = existingAgency.id;
+        } else {
+          const sanitizedAgencyName = sanitizeString(data.agencyName);
+          const { data: newAgency, error: agencyError } = await supabase
+            .from('agencies')
+            .insert({
+              id: crypto.randomUUID(),
+              userId: authData.user.id,
+              name: sanitizedAgencyName,
+              description: sanitizeString(data.description) || 'Welcome to our agency.',
+              logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(sanitizedAgencyName)}&background=000&color=d4af37&size=200`,
+              banner: '',
+              image: '',
+              website: sanitizeString(data.website),
+              phone: sanitizeString(data.contactPhone),
+              whatsapp: sanitizeString(data.whatsapp),
+              telegram: sanitizeString(data.telegram),
+              email: sanitizeString(data.email),
+              district: (data.district || 'Mitte') as District,
+              isFeatured: false,
+              reviews: []
+            })
+            .select()
+            .single();
+
+          if (agencyError) throw agencyError;
+          profileId = newAgency?.id;
+        }
       }
 
       // Update user metadata with the profile_id
