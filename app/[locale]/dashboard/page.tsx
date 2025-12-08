@@ -98,19 +98,15 @@ export default function DashboardPage() {
         if (fetchError) throw fetchError;
         setMyProfile(data);
 
-        // Fetch verification application if exists (non-blocking)
-        try {
-          const { data: verApp } = await supabase
-            .from('verification_applications')
-            .select('*')
-            .eq('profileId', user.profileId)
-            .order('createdAt', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (verApp) setVerificationApp(verApp);
-        } catch (verError) {
-          console.warn('Verification data unavailable:', verError);
-        }
+        // Fetch verification application if exists (non-blocking, silently ignore errors)
+        const { data: verApp, error: verError } = await supabase
+          .from('verification_applications')
+          .select('*')
+          .eq('profileId', user.profileId)
+          .order('createdAt', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!verError && verApp) setVerificationApp(verApp);
       } else if (user.role === 'agency') {
         // Fetch agency by userId
         const { data: agency, error: fetchError } = await supabase
