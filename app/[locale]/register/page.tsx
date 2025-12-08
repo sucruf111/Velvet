@@ -291,6 +291,8 @@ export default function RegisterPage() {
     setError('');
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async () => {
     // Only submit on the FINAL step - this is critical!
     const maxSteps = getMaxSteps();
@@ -300,9 +302,12 @@ export default function RegisterPage() {
     }
 
     // Prevent double submission
-    if (isLoggingIn) return;
+    if (isLoggingIn || isSubmitting) return;
 
     if (!validateStep()) return;
+
+    setIsSubmitting(true);
+    setError('');
 
     try {
       const role: UserRole = registrationType as UserRole;
@@ -336,9 +341,12 @@ export default function RegisterPage() {
 
       // Clear saved state on successful registration
       clearSavedState();
-      router.push('/dashboard');
+
+      // Force redirect to dashboard
+      window.location.href = '/dashboard';
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('register.error_generic'));
+      setIsSubmitting(false);
     }
   };
 
@@ -1093,8 +1101,8 @@ export default function RegisterPage() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button type="button" onClick={handleSubmit} fullWidth={step === 1} disabled={isLoggingIn}>
-                {isLoggingIn ? (
+              <Button type="button" onClick={handleSubmit} fullWidth={step === 1} disabled={isLoggingIn || isSubmitting}>
+                {(isLoggingIn || isSubmitting) ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
