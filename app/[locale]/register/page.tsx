@@ -20,13 +20,17 @@ import {
   Phone,
   MessageCircle,
   Globe,
-  Sparkles
+  Sparkles,
+  Mail
 } from 'lucide-react';
 
 type RegistrationType = 'customer' | 'model' | 'agency' | null;
+type AuthMethod = 'email' | 'phone';
 
 interface FormData {
+  authMethod: AuthMethod;
   email: string;
+  phone: string;
   password: string;
   confirmPassword: string;
   username: string;
@@ -36,7 +40,7 @@ interface FormData {
   age: string;
   priceStart: string;
   description: string;
-  phone: string;
+  contactPhone: string;
   whatsapp: string;
   telegram: string;
   website: string;
@@ -70,7 +74,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
+    authMethod: 'email',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     username: '',
@@ -80,7 +86,7 @@ export default function RegisterPage() {
     age: '',
     priceStart: '',
     description: '',
-    phone: '',
+    contactPhone: '',
     whatsapp: '',
     telegram: '',
     website: '',
@@ -125,9 +131,16 @@ export default function RegisterPage() {
 
     if (registrationType === 'model') {
       if (step === 1) {
-        if (!formData.email || !formData.email.includes('@')) {
-          setError(t('register.error_email_invalid'));
-          return false;
+        if (formData.authMethod === 'email') {
+          if (!formData.email || !formData.email.includes('@')) {
+            setError(t('register.error_email_invalid'));
+            return false;
+          }
+        } else {
+          if (!formData.phone || formData.phone.length < 6) {
+            setError(t('auth.error_phone_invalid'));
+            return false;
+          }
         }
         if (!formData.password || formData.password.length < 6) {
           setError(t('register.error_password_short'));
@@ -147,7 +160,7 @@ export default function RegisterPage() {
           setError(t('register.error_age_invalid'));
           return false;
         }
-        if (!formData.phone && !formData.whatsapp && !formData.telegram) {
+        if (!formData.contactPhone && !formData.whatsapp && !formData.telegram) {
           setError(t('register.error_contact_required'));
           return false;
         }
@@ -156,9 +169,16 @@ export default function RegisterPage() {
 
     if (registrationType === 'agency') {
       if (step === 1) {
-        if (!formData.email || !formData.email.includes('@')) {
-          setError(t('register.error_email_invalid'));
-          return false;
+        if (formData.authMethod === 'email') {
+          if (!formData.email || !formData.email.includes('@')) {
+            setError(t('register.error_email_invalid'));
+            return false;
+          }
+        } else {
+          if (!formData.phone || formData.phone.length < 6) {
+            setError(t('auth.error_phone_invalid'));
+            return false;
+          }
         }
         if (!formData.password || formData.password.length < 6) {
           setError(t('register.error_password_short'));
@@ -203,9 +223,12 @@ export default function RegisterPage() {
       const role: UserRole = registrationType as UserRole;
 
       await register({
-        email: registrationType === 'customer'
-          ? `${formData.username.toLowerCase()}@velvet-guest.com`
-          : formData.email,
+        email: formData.authMethod === 'email'
+          ? (registrationType === 'customer'
+            ? `${formData.username.toLowerCase()}@velvet-guest.com`
+            : formData.email)
+          : undefined,
+        phone: formData.authMethod === 'phone' ? formData.phone : undefined,
         password: formData.password,
         username: formData.username || formData.displayName || formData.agencyName,
         displayName: formData.displayName,
@@ -214,7 +237,7 @@ export default function RegisterPage() {
         age: formData.age,
         priceStart: formData.priceStart ? parseFloat(formData.priceStart) : undefined,
         description: formData.description,
-        phone: formData.phone,
+        contactPhone: formData.contactPhone,
         whatsapp: formData.whatsapp,
         telegram: formData.telegram,
         website: formData.website,
@@ -461,18 +484,61 @@ export default function RegisterPage() {
                 <p className="text-neutral-500 text-sm">{t('register.step1_desc')}</p>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
-                  {t('login.email')} *
-                </label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => updateForm('email', e.target.value)}
-                  placeholder="email@example.com"
-                  error={!!error}
-                />
+              {/* Auth Method Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => updateForm('authMethod', 'email')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                    formData.authMethod === 'email'
+                      ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                      : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm">{t('auth.with_email')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateForm('authMethod', 'phone')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                    formData.authMethod === 'phone'
+                      ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                      : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  <span className="text-sm">{t('auth.with_phone')}</span>
+                </button>
               </div>
+
+              {formData.authMethod === 'email' ? (
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                    {t('login.email')} *
+                  </label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => updateForm('email', e.target.value)}
+                    placeholder="email@example.com"
+                    error={!!error}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                    {t('auth.phone_number')} *
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateForm('phone', e.target.value)}
+                    placeholder="+49 123 456789"
+                    error={!!error}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
@@ -574,8 +640,8 @@ export default function RegisterPage() {
                     <Phone className="w-4 h-4 text-neutral-500" />
                     <Input
                       type="tel"
-                      value={formData.phone}
-                      onChange={(e) => updateForm('phone', e.target.value)}
+                      value={formData.contactPhone}
+                      onChange={(e) => updateForm('contactPhone', e.target.value)}
                       placeholder={t('register.phone_placeholder')}
                       className="flex-1"
                     />
@@ -655,7 +721,7 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
-                    {t('attr.hourly_rate')} (€)
+                    {t('attr.hourly_rate')} (EUR)
                   </label>
                   <Input
                     type="number"
@@ -736,18 +802,61 @@ export default function RegisterPage() {
                 <p className="text-neutral-500 text-sm">{t('register.agency_step1_desc')}</p>
               </div>
 
-              <div>
-                <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
-                  {t('login.email')} *
-                </label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => updateForm('email', e.target.value)}
-                  placeholder="agency@example.com"
-                  error={!!error}
-                />
+              {/* Auth Method Toggle */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => updateForm('authMethod', 'email')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                    formData.authMethod === 'email'
+                      ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                      : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  <span className="text-sm">{t('auth.with_email')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateForm('authMethod', 'phone')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                    formData.authMethod === 'phone'
+                      ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                      : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                  }`}
+                >
+                  <Phone className="w-4 h-4" />
+                  <span className="text-sm">{t('auth.with_phone')}</span>
+                </button>
               </div>
+
+              {formData.authMethod === 'email' ? (
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                    {t('login.email')} *
+                  </label>
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => updateForm('email', e.target.value)}
+                    placeholder="agency@example.com"
+                    error={!!error}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                    {t('auth.phone_number')} *
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateForm('phone', e.target.value)}
+                    placeholder="+49 123 456789"
+                    error={!!error}
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
@@ -832,8 +941,8 @@ export default function RegisterPage() {
                     <Phone className="w-4 h-4 text-neutral-500" />
                     <Input
                       type="tel"
-                      value={formData.phone}
-                      onChange={(e) => updateForm('phone', e.target.value)}
+                      value={formData.contactPhone}
+                      onChange={(e) => updateForm('contactPhone', e.target.value)}
                       placeholder={t('register.phone_placeholder')}
                       className="flex-1"
                     />

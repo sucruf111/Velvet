@@ -27,7 +27,8 @@ interface UserMetadata {
 }
 
 interface RegistrationData {
-  email: string;
+  email?: string;
+  phone?: string;
   password: string;
   username?: string;
   displayName?: string;
@@ -36,7 +37,7 @@ interface RegistrationData {
   age?: string;
   priceStart?: number;
   description?: string;
-  phone?: string;
+  contactPhone?: string;
   whatsapp?: string;
   telegram?: string;
   website?: string;
@@ -51,6 +52,7 @@ interface RegistrationData {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithPhone: (phone: string, password: string) => Promise<void>;
   register: (data: RegistrationData, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   toggleFavorite: (profileId: string) => void;
@@ -231,6 +233,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const loginWithPhone = async (phone: string, password: string) => {
+    setIsLoggingIn(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        phone,
+        password
+      });
+
+      if (error) throw error;
+      if (!data.user) throw new Error('Sign in failed: No user returned');
+
+      const metadata = data.user.user_metadata as UserMetadata;
+      const isVerified = await fetchVerificationStatus(
+        data.user.id,
+        metadata?.role || 'customer',
+        metadata?.profile_id
+      );
+      setUser(transformSupabaseUser(data.user, isVerified));
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   const register = async (data: RegistrationData, role: UserRole) => {
     setIsLoggingIn(true);
     try {
@@ -258,7 +283,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             isVerified: false,
             isVelvetChoice: false,
             clicks: 0,
-            phone: sanitizeString(data.phone),
+            phone: sanitizeString(data.contactPhone),
             whatsapp: sanitizeString(data.whatsapp),
             telegram: sanitizeString(data.telegram),
             height: Math.min(220, Math.max(100, Number(data.height) || 170)),
@@ -290,7 +315,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             banner: '',
             image: '',
             website: sanitizeString(data.website),
-            phone: sanitizeString(data.phone),
+            phone: sanitizeString(data.contactPhone),
             whatsapp: sanitizeString(data.whatsapp),
             telegram: sanitizeString(data.telegram),
             email: sanitizeString(data.email),
@@ -305,21 +330,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profileId = newAgency?.id;
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            username,
-            role: role as 'customer' | 'model' | 'agency' | 'admin',
-            profile_id: profileId,
-            favorites: []
+      // Support both email and phone registration
+      const userMetadata = {
+        username,
+        role: role as 'customer' | 'model' | 'agency' | 'admin',
+        profile_id: profileId,
+        favorites: [] as string[]
+      };
+
+      let authData;
+      let authError;
+
+      // Use phone if provided, otherwise use email
+      if (data.phone) {
+        const result = await supabase.auth.signUp({
+          phone: data.phone,
+          password: data.password,
+          options: {
+            data: userMetadata
           }
-        }
-      });
+        });
+        authData = result.data;
+        authError = result.error;
+      } else if (data.email) {
+        const result = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: userMetadata
+          }
+        });
+        authData = result.data;
+        authError = result.error;
+      } else {
+        throw new Error('Email or phone number is required');
+      }
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error('Signup failed: No user returned');
+      if (!authData?.user) throw new Error('Signup failed: No user returned');
 
       setUser(transformSupabaseUser(authData.user));
     } finally {
@@ -386,6 +434,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider value={{
       user,
       login,
+      loginWithPhone,
       register,
       logout,
       toggleFavorite,

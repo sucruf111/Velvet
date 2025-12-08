@@ -6,12 +6,17 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
+import { Mail, Phone } from 'lucide-react';
+
+type LoginMethod = 'email' | 'phone';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithPhone } = useAuth();
   const t = useTranslations();
   const router = useRouter();
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,10 +27,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      if (loginMethod === 'email') {
+        await login(email, password);
+      } else {
+        await loginWithPhone(phone, password);
+      }
       router.push('/dashboard');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('auth.login_failed'));
     } finally {
       setLoading(false);
     }
@@ -41,26 +50,83 @@ export default function LoginPage() {
             <p className="text-neutral-500 text-sm">{t('login.subtitle')}</p>
           </div>
 
+          {/* Login Method Toggle */}
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => setLoginMethod('email')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                loginMethod === 'email'
+                  ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              <span className="text-sm">{t('auth.with_email')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('phone')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border transition-all ${
+                loginMethod === 'phone'
+                  ? 'border-luxury-gold bg-luxury-gold/10 text-luxury-gold'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-600'
+              }`}
+            >
+              <Phone className="w-4 h-4" />
+              <span className="text-sm">{t('auth.with_phone')}</span>
+            </button>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-6">
+            {loginMethod === 'email' ? (
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                  {t('login.email')}
+                </label>
+                <Input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  error={!!error}
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
+                  {t('auth.phone_number')}
+                </label>
+                <Input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+49 123 456789"
+                  error={!!error}
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">{t('login.email')}</label>
-              <Input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                error={!!error}
-              />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">{t('login.password')}</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs uppercase tracking-widest text-neutral-400">
+                  {t('login.password')}
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-luxury-gold hover:underline"
+                >
+                  {t('auth.forgot_password')}
+                </Link>
+              </div>
               <Input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('auth.enter_password')}
                 error={!!error}
               />
             </div>
@@ -78,7 +144,7 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Logging in...
+                  {t('auth.logging_in')}
                 </span>
               ) : t('login.button')}
             </Button>
