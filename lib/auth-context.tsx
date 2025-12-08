@@ -338,11 +338,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (role === 'model' && data.displayName) {
         // Check if profile already exists for this user (prevent duplicates)
-        const { data: existingProfile } = await supabase
+        const { data: existingProfiles } = await supabase
           .from('profiles')
           .select('id')
-          .eq('userId', authData.user.id)
-          .single();
+          .filter('userId', 'eq', authData.user.id);
+
+        const existingProfile = existingProfiles?.[0];
 
         if (existingProfile) {
           profileId = existingProfile.id;
@@ -389,11 +390,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       } else if (role === 'agency' && data.agencyName) {
         // Check if agency already exists for this user (prevent duplicates)
-        const { data: existingAgency } = await supabase
+        const { data: existingAgencies } = await supabase
           .from('agencies')
           .select('id')
-          .eq('userId', authData.user.id)
-          .single();
+          .filter('userId', 'eq', authData.user.id);
+
+        const existingAgency = existingAgencies?.[0];
 
         if (existingAgency) {
           profileId = existingAgency.id;
