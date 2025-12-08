@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-function getSupabaseAdmin() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
+import { writeFile, mkdir, unlink } from 'fs/promises';
+import { existsSync } from 'fs';
+import path from 'path';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function getAuthenticatedUser(_request: NextRequest) {
+// Directory where uploads will be stored (inside public folder for serving)
+const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'profile-images');
+
+async function getAuthenticatedUser() {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -45,11 +38,19 @@ async function getAuthenticatedUser(_request: NextRequest) {
   return user;
 }
 
+// Ensure upload directory exists
+async function ensureUploadDir(userId: string) {
+  const userDir = path.join(UPLOAD_DIR, userId);
+  if (!existsSync(userDir)) {
+    await mkdir(userDir, { recursive: true });
+  }
+  return userDir;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
     // Verify authentication
-    const user = await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No files provided' }, { status: 400 });
       }
     }
+
+    // Ensure user's upload directory exists
+    const userDir = await ensureUploadDir(user.id);
 
     const uploadedUrls: string[] = [];
     const errors: string[] = [];
@@ -86,33 +90,23 @@ export async function POST(request: NextRequest) {
       // Generate unique filename
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 15);
-      const extension = file.name.split('.').pop() || 'jpg';
-      const filename = `${user.id}/${timestamp}-${randomString}.${extension}`;
+      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filename = `${timestamp}-${randomString}.${extension}`;
+      const filePath = path.join(userDir, filename);
 
-      // Convert File to ArrayBuffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = new Uint8Array(arrayBuffer);
+      try {
+        // Convert File to Buffer and save
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        await writeFile(filePath, buffer);
 
-      // Upload to Supabase Storage
-      const { error } = await supabaseAdmin.storage
-        .from('profile-images')
-        .upload(filename, buffer, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        errors.push(`${file.name}: Upload failed - ${error.message}`);
-        continue;
+        // Generate public URL (relative to public folder)
+        const publicUrl = `/uploads/profile-images/${user.id}/${filename}`;
+        uploadedUrls.push(publicUrl);
+      } catch (writeError) {
+        console.error('Write error:', writeError);
+        errors.push(`${file.name}: Failed to save file`);
       }
-
-      // Get public URL
-      const { data: urlData } = supabaseAdmin.storage
-        .from('profile-images')
-        .getPublicUrl(filename);
-
-      uploadedUrls.push(urlData.publicUrl);
     }
 
     if (uploadedUrls.length === 0 && errors.length > 0) {
@@ -133,8 +127,7 @@ export async function POST(request: NextRequest) {
 // Delete images
 export async function DELETE(request: NextRequest) {
   try {
-    const supabaseAdmin = getSupabaseAdmin();
-    const user = await getAuthenticatedUser(request);
+    const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -148,27 +141,35 @@ export async function DELETE(request: NextRequest) {
     const errors: string[] = [];
 
     for (const url of urls) {
-      // Extract path from URL
-      const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/profile-images/');
-      if (pathParts.length < 2) {
-        errors.push(`Invalid URL format: ${url}`);
-        continue;
-      }
+      try {
+        // Extract path from URL (e.g., /uploads/profile-images/user-id/filename.jpg)
+        const urlPath = url.startsWith('/') ? url : new URL(url).pathname;
+        const pathParts = urlPath.split('/uploads/profile-images/');
 
-      const filePath = pathParts[1];
+        if (pathParts.length < 2) {
+          errors.push(`Invalid URL format: ${url}`);
+          continue;
+        }
 
-      // Verify user owns the file (path starts with user ID)
-      if (!filePath.startsWith(user.id)) {
-        errors.push(`Unauthorized to delete: ${url}`);
-        continue;
-      }
+        const relativePath = pathParts[1]; // user-id/filename.jpg
 
-      const { error } = await supabaseAdmin.storage
-        .from('profile-images')
-        .remove([filePath]);
+        // Verify user owns the file (path starts with user ID)
+        if (!relativePath.startsWith(user.id)) {
+          errors.push(`Unauthorized to delete: ${url}`);
+          continue;
+        }
 
-      if (error) {
+        // Construct full file path
+        const filePath = path.join(UPLOAD_DIR, relativePath);
+
+        // Check if file exists and delete
+        if (existsSync(filePath)) {
+          await unlink(filePath);
+        } else {
+          errors.push(`File not found: ${url}`);
+        }
+      } catch (deleteError) {
+        console.error('Delete error:', deleteError);
         errors.push(`Failed to delete: ${url}`);
       }
     }
