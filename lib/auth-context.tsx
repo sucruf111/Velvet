@@ -121,18 +121,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const { data: { user: currentUser }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Auth init error:', error);
+        }
         if (currentUser) {
           const metadata = currentUser.user_metadata as UserMetadata;
-          const isVerified = await fetchVerificationStatus(
-            currentUser.id,
-            metadata?.role || 'customer',
-            metadata?.profile_id
-          );
+          // Don't block initialization on verification status
+          let isVerified = false;
+          try {
+            isVerified = await fetchVerificationStatus(
+              currentUser.id,
+              metadata?.role || 'customer',
+              metadata?.profile_id
+            );
+          } catch (e) {
+            console.error('Verification check error:', e);
+          }
           setUser(transformSupabaseUser(currentUser, isVerified));
         }
-      } catch {
-        // User not logged in
+      } catch (e) {
+        console.error('Auth init failed:', e);
       } finally {
         setIsInitialized(true);
       }

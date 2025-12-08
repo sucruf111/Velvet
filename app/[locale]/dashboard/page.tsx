@@ -98,6 +98,7 @@ export default function DashboardPage() {
     router.push('/');
   };
 
+  // Show loading while checking auth, redirect happens in useEffect
   if (!isAuthenticated || !user) {
     return (
       <div className="min-h-screen bg-luxury-black flex items-center justify-center">
