@@ -313,6 +313,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (authError) throw authError;
       if (!authData?.user) throw new Error('Signup failed: No user returned');
 
+      // After signup, we need to sign in to establish the session for RLS
+      // This is needed because signUp doesn't always create an active session
+      if (data.phone) {
+        await supabase.auth.signInWithPassword({
+          phone: data.phone,
+          password: data.password
+        });
+      } else if (data.email) {
+        await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: data.password
+        });
+      }
+
       // Now create the profile/agency after user is authenticated
       let profileId: string | undefined;
 
