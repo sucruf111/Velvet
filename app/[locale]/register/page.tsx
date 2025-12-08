@@ -291,10 +291,7 @@ export default function RegisterPage() {
     setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleSubmit = async () => {
     // Only submit on the FINAL step - this is critical!
     const maxSteps = getMaxSteps();
     if (step !== maxSteps) {
@@ -514,17 +511,8 @@ export default function RegisterPage() {
           )}
         </div>
 
-        {/* Form Content */}
-        <form
-          onSubmit={handleSubmit}
-          onKeyDown={(e) => {
-            // Prevent Enter key from submitting on non-final steps
-            if (e.key === 'Enter' && step < getMaxSteps()) {
-              e.preventDefault();
-            }
-          }}
-          className="p-6 space-y-6"
-        >
+        {/* Form Content - Using div instead of form to prevent auto-submit */}
+        <div className="p-6 space-y-6">
           {/* Customer Registration - Single Step */}
           {registrationType === 'customer' && (
             <>
@@ -1105,7 +1093,7 @@ export default function RegisterPage() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button type="submit" fullWidth={step === 1} disabled={isLoggingIn}>
+              <Button type="button" onClick={handleSubmit} fullWidth={step === 1} disabled={isLoggingIn}>
                 {isLoggingIn ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -1131,7 +1119,7 @@ export default function RegisterPage() {
             {' '}{t('common.and')}{' '}
             <Link href="/privacy" className="text-luxury-gold hover:underline">{t('footer.privacy')}</Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   );
