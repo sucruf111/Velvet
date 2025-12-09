@@ -483,52 +483,67 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                 <>
                   <div className="fixed bottom-0 left-0 w-full p-4 bg-black/95 backdrop-blur-xl border-t border-luxury-gold/20 z-50 lg:relative lg:p-0 lg:bg-transparent lg:border-none lg:backdrop-blur-none">
                     <div className="flex flex-col md:flex-row gap-3 max-w-7xl mx-auto lg:mx-0">
-                      {profile.phone && (
-                        <button
-                          onClick={() => {
-                            if (!showPhone) trackContact();
-                            setShowPhone(!showPhone);
-                          }}
-                          className="w-full md:w-auto md:flex-1 bg-luxury-gold-gradient hover:bg-luxury-gold-gradient-hover text-black font-black py-4 px-6 uppercase tracking-[0.15em] text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] rounded-sm order-1"
-                        >
-                          <Smartphone strokeWidth={2.5} size={20} />
-                          <span>{showPhone ? profile.phone : 'SHOW NUMBER'}</span>
-                        </button>
-                      )}
+                      {/* For free tier, only show primary contact. For premium/elite, show all */}
+                      {(() => {
+                        const isFree = profile.tier === 'free';
+                        const primary = profile.primaryContact || 'phone';
 
-                      {(profile.whatsapp || profile.telegram) && (
-                        <div className="flex gap-3 w-full md:w-auto md:flex-initial order-2">
-                          {profile.whatsapp && (
-                            <a
-                              href={`https://wa.me/${profile.whatsapp.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex-1 md:flex-none"
-                              onClick={trackContact}
-                            >
-                              <button className="w-full md:w-auto md:px-8 h-full border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#25D366]/5 hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] uppercase">
-                                <MessageCircle size={20} strokeWidth={2.5} />
-                                <span>WhatsApp</span>
-                              </button>
-                            </a>
-                          )}
+                        // Determine which contacts to show
+                        const showPhoneContact = isFree ? (primary === 'phone' && profile.phone) : profile.phone;
+                        const showWhatsApp = isFree ? (primary === 'whatsapp' && profile.whatsapp) : profile.whatsapp;
+                        const showTelegram = isFree ? (primary === 'telegram' && profile.telegram) : profile.telegram;
 
-                          {profile.telegram && (
-                            <a
-                              href={`https://t.me/${profile.telegram.replace('@', '')}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex-1 md:flex-none"
-                              onClick={trackContact}
-                            >
-                              <button className="w-full md:w-auto md:px-8 h-full border border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#0088cc]/5 hover:shadow-[0_0_20px_rgba(0,136,204,0.4)] uppercase">
-                                <Send size={20} strokeWidth={2.5} />
-                                <span>Telegram</span>
+                        return (
+                          <>
+                            {showPhoneContact && (
+                              <button
+                                onClick={() => {
+                                  if (!showPhone) trackContact();
+                                  setShowPhone(!showPhone);
+                                }}
+                                className="w-full md:w-auto md:flex-1 bg-luxury-gold-gradient hover:bg-luxury-gold-gradient-hover text-black font-black py-4 px-6 uppercase tracking-[0.15em] text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] rounded-sm order-1"
+                              >
+                                <Smartphone strokeWidth={2.5} size={20} />
+                                <span>{showPhone ? profile.phone : 'SHOW NUMBER'}</span>
                               </button>
-                            </a>
-                          )}
-                        </div>
-                      )}
+                            )}
+
+                            {(showWhatsApp || showTelegram) && (
+                              <div className="flex gap-3 w-full md:w-auto md:flex-initial order-2">
+                                {showWhatsApp && (
+                                  <a
+                                    href={`https://wa.me/${profile.whatsapp!.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 md:flex-none"
+                                    onClick={trackContact}
+                                  >
+                                    <button className="w-full md:w-auto md:px-8 h-full border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#25D366]/5 hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] uppercase">
+                                      <MessageCircle size={20} strokeWidth={2.5} />
+                                      <span>WhatsApp</span>
+                                    </button>
+                                  </a>
+                                )}
+
+                                {showTelegram && (
+                                  <a
+                                    href={`https://t.me/${profile.telegram!.replace('@', '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 md:flex-none"
+                                    onClick={trackContact}
+                                  >
+                                    <button className="w-full md:w-auto md:px-8 h-full border border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#0088cc]/5 hover:shadow-[0_0_20px_rgba(0,136,204,0.4)] uppercase">
+                                      <Send size={20} strokeWidth={2.5} />
+                                      <span>Telegram</span>
+                                    </button>
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <p className="text-center text-[10px] uppercase tracking-widest text-neutral-500 mt-3 lg:hidden">

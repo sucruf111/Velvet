@@ -231,6 +231,7 @@
   },
   "dashboard": {
     "overview": "Übersicht",
+    "schedule": "Zeitplan",
     "photos": "Fotos",
     "services": "Services",
     "settings": "Profil-Einstellungen",

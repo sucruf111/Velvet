@@ -5,18 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/lib/auth-context';
-import { Profile, District, Agency } from '@/lib/types';
+import { Profile, District, Agency, isProfileBoosted } from '@/lib/types';
 import { Button } from '@/components/ui';
 import { ProfileCard } from '@/components/ProfileCard';
 import {
   BarChart3, Image as ImageIcon, CreditCard, Heart, LogOut,
   Save, Check, Eye, EyeOff, Trash2, AlertCircle, Upload,
   Phone, MessageCircle, User, Euro, Sparkles, Building2, Users, Globe, Plus,
-  ShieldCheck, Camera, Clock, X
+  ShieldCheck, Camera, Clock, X, Zap, Lock, Crown, Star, Calendar, Send
 } from 'lucide-react';
-import { VerificationApplication } from '@/lib/types';
+import { VerificationApplication, ModelTier } from '@/lib/types';
+import {
+  getPhotoLimit, getServiceLimit, canBoost,
+  canUseSchedule, canSeeStatistics
+} from '@/lib/packages';
 
-type DashboardTab = 'overview' | 'profile' | 'billing' | 'account' | 'verify';
+type DashboardTab = 'overview' | 'profile' | 'schedule' | 'billing' | 'account' | 'verify';
 type AgencyTab = 'overview' | 'agency' | 'models' | 'billing';
 
 const AVAILABLE_LANGUAGES = [
@@ -294,9 +298,16 @@ export default function DashboardPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-1 mb-8 bg-neutral-900/50 p-1 rounded-lg w-fit">
+        <div className="flex gap-1 mb-8 bg-neutral-900/50 p-1 rounded-lg w-fit flex-wrap">
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<BarChart3 size={16} />} label={t('overview')} />
           <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User size={16} />} label={t('edit_profile')} />
+          <TabButton
+            active={activeTab === 'schedule'}
+            onClick={() => setActiveTab('schedule')}
+            icon={canUseSchedule(myProfile?.tier || 'free') ? <Calendar size={16} /> : <Lock size={16} />}
+            label={t('schedule')}
+            locked={!canUseSchedule(myProfile?.tier || 'free')}
+          />
           {!myProfile?.isVerified && (
             <TabButton active={activeTab === 'verify'} onClick={() => setActiveTab('verify')} icon={<ShieldCheck size={16} />} label={t('verification')} />
           )}
@@ -322,8 +333,9 @@ export default function DashboardPage() {
             </div>
           ) : (
             <>
-              {activeTab === 'overview' && <OverviewTab profile={myProfile} setActiveTab={setActiveTab} />}
+              {activeTab === 'overview' && <OverviewTab profile={myProfile} setActiveTab={setActiveTab} onUpdate={fetchUserData} />}
               {activeTab === 'profile' && <ProfileEditor profile={myProfile} onUpdate={fetchUserData} />}
+              {activeTab === 'schedule' && <ScheduleTab profile={myProfile} onUpdate={fetchUserData} />}
               {activeTab === 'verify' && <VerificationTab profile={myProfile} application={verificationApp} onUpdate={fetchUserData} />}
               {activeTab === 'billing' && <BillingTab profile={myProfile} />}
               {activeTab === 'account' && <AccountTab profile={myProfile} onUpdate={fetchUserData} />}
@@ -335,26 +347,36 @@ export default function DashboardPage() {
   );
 }
 
-function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
+function TabButton({ active, onClick, icon, label, locked }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; locked?: boolean }) {
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
         active
           ? 'bg-luxury-gold text-black'
+          : locked
+          ? 'text-neutral-600 hover:text-neutral-400 hover:bg-neutral-800/50'
           : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
       }`}
     >
-      {icon} {label}
+      {icon} {label} {locked && <span className="text-[10px] ml-1 text-amber-500">PRO</span>}
     </button>
   );
 }
 
 // Overview Tab
-function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab: (tab: DashboardTab) => void }) {
+function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; setActiveTab: (tab: DashboardTab) => void; onUpdate: () => void }) {
   const t = useTranslations('dashboard');
+  const router = useRouter();
   const supabase = createClient();
   const [isOnline, setIsOnline] = useState(profile.isOnline || false);
+  const [isBoostLoading, setIsBoostLoading] = useState(false);
+  const [boostError, setBoostError] = useState<string | null>(null);
+
+  const tier = (profile.tier as ModelTier) || 'free';
+  const isBoosted = isProfileBoosted(profile);
+  const canUseBoost = canBoost(tier);
+  const showStats = canSeeStatistics(tier);
 
   const toggleOnlineStatus = async () => {
     const newStatus = !isOnline;
@@ -365,11 +387,34 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
       .eq('id', profile.id);
   };
 
+  const handleBoost = async () => {
+    if (!canUseBoost || isBoosted) return;
+    setIsBoostLoading(true);
+    setBoostError(null);
+    try {
+      const res = await fetch('/api/boost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: profile.id })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBoostError(data.error || 'Failed to activate boost');
+      } else {
+        onUpdate();
+      }
+    } catch {
+      setBoostError('Failed to activate boost');
+    } finally {
+      setIsBoostLoading(false);
+    }
+  };
+
   const metrics = {
     views: profile.clicks || 0,
     contacts: profile.contactClicks || 0,
     searches: profile.searchAppearances || 0,
-    favorites: 0 // TODO: Calculate from users who favorited this profile
+    favorites: 0
   };
 
   const completionItems = [
@@ -379,6 +424,13 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
     { label: 'Contact', done: !!(profile.phone || profile.whatsapp || profile.telegram) },
   ];
   const completionPercent = Math.round((completionItems.filter(i => i.done).length / completionItems.length) * 100);
+
+  const getTierBadge = () => {
+    if (tier === 'elite') return { icon: <Crown size={16} />, label: 'Elite', color: 'bg-purple-500/20 border-purple-500 text-purple-400' };
+    if (tier === 'premium') return { icon: <Star size={16} />, label: 'Premium', color: 'bg-amber-500/20 border-amber-500 text-amber-400' };
+    return { icon: null, label: 'Free', color: 'bg-neutral-800 border-neutral-700 text-neutral-400' };
+  };
+  const tierBadge = getTierBadge();
 
   return (
     <div className="space-y-6">
@@ -411,7 +463,7 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
             </div>
             <span className="text-white font-bold">{completionPercent}%</span>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2 mt-3 flex-wrap">
             {completionItems.map(item => (
               <span key={item.label} className={`text-xs px-2 py-1 rounded ${item.done ? 'bg-green-900/30 text-green-400' : 'bg-neutral-800 text-neutral-500'}`}>
                 {item.label}
@@ -420,52 +472,93 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
           </div>
         </div>
 
-        {/* Package Status */}
-        <div className={`border rounded-lg p-5 ${profile.isVerified ? (profile.isPremium ? 'bg-luxury-gold/10 border-luxury-gold' : 'bg-neutral-900 border-neutral-800') : 'bg-amber-900/10 border-amber-800'}`}>
-          {profile.isVerified ? (
-            <>
-              <p className="text-neutral-400 text-xs uppercase tracking-wider mb-1">Package</p>
-              <p className="text-lg font-semibold text-white">{profile.isPremium ? t('premium_package') : t('standard_package')}</p>
-              <Button
-                variant={profile.isPremium ? 'outline' : 'primary'}
-                className="w-full mt-3 !py-2 !text-xs"
-                onClick={() => setActiveTab('billing')}
-              >
-                {profile.isPremium ? t('extend_package') : t('upgrade_now')}
-              </Button>
-            </>
+        {/* Tier Status */}
+        <div className={`border rounded-lg p-5 ${tier === 'elite' ? 'bg-purple-900/10 border-purple-500/50' : tier === 'premium' ? 'bg-amber-900/10 border-amber-500/50' : 'bg-neutral-900 border-neutral-800'}`}>
+          <p className="text-neutral-400 text-xs uppercase tracking-wider mb-1">Your Plan</p>
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm font-bold ${tierBadge.color}`}>
+              {tierBadge.icon} {tierBadge.label}
+            </span>
+          </div>
+          {tier === 'free' ? (
+            <Button variant="primary" className="w-full !py-2 !text-xs" onClick={() => router.push('/packages')}>
+              <Zap size={14} className="mr-1" /> Upgrade Now
+            </Button>
           ) : (
-            <>
-              <p className="text-amber-400 text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
-                <AlertCircle size={12} /> {t('profile_not_verified')}
-              </p>
-              <p className="text-neutral-400 text-sm mb-3">{t('verification_benefits_short')}</p>
-              <Button
-                variant="primary"
-                className="w-full !py-2 !text-xs"
-                onClick={() => setActiveTab('verify')}
-              >
-                <ShieldCheck size={14} className="mr-1" /> {t('get_verified')}
-              </Button>
-            </>
+            <Button variant="outline" className="w-full !py-2 !text-xs" onClick={() => setActiveTab('billing')}>
+              Manage Subscription
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard label={t('profile_views')} value={metrics.views} emoji="👁️" />
-        <MetricCard label={t('contact_clicks')} value={metrics.contacts} emoji="📞" />
-        <MetricCard label={t('search_appearances')} value={metrics.searches} emoji="🔍" />
-        <MetricCard label={t('favorited_by')} value={metrics.favorites} emoji="❤️" />
+      {/* Boost Section - Only for Premium/Elite */}
+      {canUseBoost && (
+        <div className={`border rounded-lg p-5 ${isBoosted ? 'bg-orange-900/10 border-orange-500/50' : 'bg-neutral-900 border-neutral-800'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-neutral-400 text-xs uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Zap size={12} className="text-orange-400" /> Profile Boost
+              </p>
+              {isBoosted ? (
+                <p className="text-orange-400 font-semibold">
+                  🔥 Boosted until {new Date(profile.boostedUntil!).toLocaleString()}
+                </p>
+              ) : (
+                <p className="text-neutral-300">
+                  Appear at the top of search results for 24 hours
+                </p>
+              )}
+              <p className="text-neutral-500 text-xs mt-1">
+                {tier === 'elite' ? 'Unlimited boosts' : `${profile.boostsRemaining || 0} boosts remaining this month`}
+              </p>
+            </div>
+            <button
+              onClick={handleBoost}
+              disabled={isBoosted || isBoostLoading || (tier !== 'elite' && (profile.boostsRemaining || 0) <= 0)}
+              className={`px-6 py-3 rounded-md font-bold text-sm transition-all flex items-center gap-2 ${
+                isBoosted
+                  ? 'bg-orange-500/20 text-orange-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
+              }`}
+            >
+              <Zap size={16} />
+              {isBoostLoading ? 'Activating...' : isBoosted ? 'Active' : 'Boost Now'}
+            </button>
+          </div>
+          {boostError && <p className="text-red-400 text-sm mt-2">{boostError}</p>}
+        </div>
+      )}
+
+      {/* Stats Section */}
+      <div className="relative">
+        {!showStats && (
+          <div className="absolute inset-0 z-10 bg-neutral-900/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center">
+            <Lock size={32} className="text-neutral-500 mb-3" />
+            <p className="text-white font-semibold mb-1">Statistics Locked</p>
+            <p className="text-neutral-400 text-sm mb-4">Upgrade to Premium to see your analytics</p>
+            <Button onClick={() => router.push('/packages')} className="!py-2 !px-6 !text-xs">
+              <Zap size={14} className="mr-1" /> Upgrade to Premium
+            </Button>
+          </div>
+        )}
+        <div className={!showStats ? 'filter blur-sm pointer-events-none' : ''}>
+          <p className="text-neutral-400 text-xs uppercase tracking-wider mb-3">📊 Your Statistics</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard label={t('profile_views')} value={metrics.views} emoji="👁️" />
+            <MetricCard label={t('contact_clicks')} value={metrics.contacts} emoji="📞" />
+            <MetricCard label={t('search_appearances')} value={metrics.searches} emoji="🔍" />
+            <MetricCard label={t('favorited_by')} value={metrics.favorites} emoji="❤️" />
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <QuickActionCard icon={<User size={20} />} label={t('edit_profile')} onClick={() => setActiveTab('profile')} />
         <QuickActionCard icon={<ImageIcon size={20} />} label={t('add_photos')} onClick={() => setActiveTab('profile')} />
-        <QuickActionCard icon={<Sparkles size={20} />} label={t('update_services')} onClick={() => setActiveTab('profile')} />
-        <QuickActionCard icon={<CreditCard size={20} />} label={t('view_packages')} onClick={() => setActiveTab('billing')} />
+        <QuickActionCard icon={<Calendar size={20} />} label={t('schedule')} onClick={() => setActiveTab('schedule')} locked={!canUseSchedule(tier)} />
+        <QuickActionCard icon={<CreditCard size={20} />} label={t('view_packages')} onClick={() => router.push('/packages')} />
       </div>
     </div>
   );
@@ -481,11 +574,13 @@ function MetricCard({ label, value, emoji }: { label: string; value: number; emo
   );
 }
 
-function QuickActionCard({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+function QuickActionCard({ icon, label, onClick, locked }: { icon: React.ReactNode; label: string; onClick: () => void; locked?: boolean }) {
   return (
-    <button onClick={onClick} className="bg-neutral-900 border border-neutral-800 hover:border-luxury-gold rounded-lg p-4 transition-all group text-left">
-      <div className="text-neutral-400 group-hover:text-luxury-gold mb-2">{icon}</div>
-      <p className="text-sm text-neutral-300 group-hover:text-white">{label}</p>
+    <button onClick={onClick} className={`bg-neutral-900 border rounded-lg p-4 transition-all group text-left ${locked ? 'border-neutral-800 opacity-60' : 'border-neutral-800 hover:border-luxury-gold'}`}>
+      <div className={`mb-2 ${locked ? 'text-neutral-600' : 'text-neutral-400 group-hover:text-luxury-gold'}`}>{icon}</div>
+      <p className={`text-sm ${locked ? 'text-neutral-500' : 'text-neutral-300 group-hover:text-white'}`}>
+        {label} {locked && <span className="text-amber-500 text-[10px] ml-1">PRO</span>}
+      </p>
     </button>
   );
 }
@@ -493,8 +588,14 @@ function QuickActionCard({ icon, label, onClick }: { icon: React.ReactNode; labe
 // Unified Profile Editor Tab
 function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
   const t = useTranslations('dashboard');
+  const router = useRouter();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const tier = (profile.tier as ModelTier) || 'free';
+  const photoLimit = getPhotoLimit(tier);
+  const serviceLimit = getServiceLimit(tier);
+  const isFree = tier === 'free';
 
   const [formData, setFormData] = useState({
     name: profile.name,
@@ -505,6 +606,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
     phone: profile.phone || '',
     whatsapp: profile.whatsapp || '',
     telegram: profile.telegram || '',
+    primaryContact: (profile.primaryContact as 'phone' | 'whatsapp' | 'telegram') || 'phone',
     services: (profile.services || []) as string[],
     languages: profile.languages || [],
     visitType: profile.visitType || 'both',
@@ -523,11 +625,19 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   };
 
   const toggleService = (service: string) => {
-    const newServices = formData.services.includes(service)
+    const isSelected = formData.services.includes(service);
+    if (!isSelected && serviceLimit !== Infinity && formData.services.length >= serviceLimit) {
+      // At limit, don't add more
+      return;
+    }
+    const newServices = isSelected
       ? formData.services.filter(s => s !== service)
       : [...formData.services, service];
     updateField('services', newServices);
   };
+
+  const isAtPhotoLimit = photoLimit !== Infinity && formData.images.length >= photoLimit;
+  const isAtServiceLimit = serviceLimit !== Infinity && formData.services.length >= serviceLimit;
 
   const toggleLanguage = (lang: string) => {
     const newLangs = formData.languages.includes(lang)
@@ -540,12 +650,25 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    // Check photo limit before upload
+    if (isAtPhotoLimit) {
+      setUploadError(`You've reached the ${photoLimit} photo limit. Upgrade to add more photos.`);
+      return;
+    }
+
     setIsUploading(true);
     setUploadError('');
 
     try {
       const uploadFormData = new FormData();
+      const remainingSlots = photoLimit === Infinity ? files.length : photoLimit - formData.images.length;
+      let addedCount = 0;
+
       for (const file of Array.from(files)) {
+        if (addedCount >= remainingSlots) {
+          setUploadError(`Only ${remainingSlots} more photo(s) allowed with your plan.`);
+          break;
+        }
         if (!file.type.startsWith('image/')) {
           setUploadError('Only image files allowed');
           continue;
@@ -555,6 +678,12 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
           continue;
         }
         uploadFormData.append('images', file);
+        addedCount++;
+      }
+
+      if (addedCount === 0) {
+        setIsUploading(false);
+        return;
       }
 
       const response = await fetch('/api/upload', {
@@ -625,6 +754,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
           phone: formData.phone,
           whatsapp: formData.whatsapp,
           telegram: formData.telegram,
+          primary_contact: isFree ? formData.primaryContact : null,
           services: formData.services,
           languages: formData.languages,
           visitType: formData.visitType,
@@ -640,10 +770,13 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
     }
   };
 
+  const photoLimitLabel = photoLimit === Infinity ? '' : `${formData.images.length}/${photoLimit}`;
+  const serviceLimitLabel = serviceLimit === Infinity ? `${formData.services.length}` : `${formData.services.length}/${serviceLimit}`;
+
   const sections = [
     { id: 'basic', label: 'Basic Info', icon: <User size={16} /> },
-    { id: 'photos', label: 'Photos', icon: <ImageIcon size={16} />, count: formData.images.length },
-    { id: 'services', label: 'Services', icon: <Sparkles size={16} />, count: formData.services.length },
+    { id: 'photos', label: 'Photos', icon: <ImageIcon size={16} />, count: photoLimitLabel || formData.images.length },
+    { id: 'services', label: 'Services', icon: <Sparkles size={16} />, count: serviceLimitLabel },
     { id: 'contact', label: 'Contact', icon: <Phone size={16} /> },
   ];
 
@@ -762,25 +895,47 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
         {activeSection === 'photos' && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <ImageIcon size={18} className="text-luxury-gold" /> {t('my_photos')}
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <ImageIcon size={18} className="text-luxury-gold" /> {t('my_photos')}
+                </h3>
+                {photoLimit !== Infinity && (
+                  <p className={`text-sm mt-1 ${isAtPhotoLimit ? 'text-amber-400' : 'text-neutral-500'}`}>
+                    {formData.images.length} / {photoLimit} photos used
+                  </p>
+                )}
+              </div>
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isUploading || isAtPhotoLimit}
                 className="flex items-center gap-2"
               >
                 <Upload size={16} />
-                {isUploading ? 'Uploading...' : t('upload_photos')}
+                {isUploading ? 'Uploading...' : isAtPhotoLimit ? 'Limit Reached' : t('upload_photos')}
               </Button>
             </div>
+
+            {/* Photo Limit Warning */}
+            {isAtPhotoLimit && (
+              <div className="bg-amber-900/20 border border-amber-800 p-4 rounded-md flex items-center justify-between">
+                <div>
+                  <p className="text-amber-400 font-semibold text-sm">Photo limit reached</p>
+                  <p className="text-neutral-400 text-xs mt-1">
+                    {tier === 'free' ? 'Upgrade to Premium for up to 5 photos' : 'Upgrade to Elite for unlimited photos'}
+                  </p>
+                </div>
+                <Button onClick={() => router.push('/packages')} className="!py-2 !px-4 !text-xs">
+                  <Zap size={14} className="mr-1" /> Upgrade
+                </Button>
+              </div>
+            )}
 
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              multiple
+              multiple={!isFree}
               className="hidden"
               onChange={handleImageUpload}
             />
@@ -830,11 +985,33 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
         {activeSection === 'services' && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Sparkles size={18} className="text-luxury-gold" /> {t('select_services')}
-              </h3>
-              <span className="text-luxury-gold text-sm">{formData.services.length} selected</span>
+              <div>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <Sparkles size={18} className="text-luxury-gold" /> {t('select_services')}
+                </h3>
+                {serviceLimit !== Infinity && (
+                  <p className={`text-sm mt-1 ${isAtServiceLimit ? 'text-amber-400' : 'text-neutral-500'}`}>
+                    {formData.services.length} / {serviceLimit} services selected
+                  </p>
+                )}
+              </div>
+              <span className={`text-sm ${isAtServiceLimit ? 'text-amber-400' : 'text-luxury-gold'}`}>
+                {formData.services.length} selected
+              </span>
             </div>
+
+            {/* Service Limit Warning */}
+            {isAtServiceLimit && (
+              <div className="bg-amber-900/20 border border-amber-800 p-4 rounded-md flex items-center justify-between">
+                <div>
+                  <p className="text-amber-400 font-semibold text-sm">Service limit reached</p>
+                  <p className="text-neutral-400 text-xs mt-1">Upgrade to Premium for unlimited services</p>
+                </div>
+                <Button onClick={() => router.push('/packages')} className="!py-2 !px-4 !text-xs">
+                  <Zap size={14} className="mr-1" /> Upgrade
+                </Button>
+              </div>
+            )}
 
             <p className="text-neutral-500 text-sm">{t('services_hint')}</p>
 
@@ -845,26 +1022,33 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
                     {label}
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {services.map(service => (
-                      <label
-                        key={service}
-                        className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all ${
-                          formData.services.includes(service)
-                            ? 'bg-luxury-gold/10 border border-luxury-gold/30'
-                            : 'bg-neutral-950 border border-neutral-800 hover:border-neutral-700'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.services.includes(service)}
-                          onChange={() => toggleService(service)}
-                          className="w-4 h-4 accent-luxury-gold rounded"
-                        />
-                        <span className={`text-sm ${formData.services.includes(service) ? 'text-white' : 'text-neutral-400'}`}>
-                          {service}
-                        </span>
-                      </label>
-                    ))}
+                    {services.map(service => {
+                      const isSelected = formData.services.includes(service);
+                      const isDisabled = !isSelected && isAtServiceLimit;
+                      return (
+                        <label
+                          key={service}
+                          className={`flex items-center gap-3 p-3 rounded-md transition-all ${
+                            isDisabled
+                              ? 'bg-neutral-950 border border-neutral-800 opacity-50 cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-luxury-gold/10 border border-luxury-gold/30 cursor-pointer'
+                              : 'bg-neutral-950 border border-neutral-800 hover:border-neutral-700 cursor-pointer'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleService(service)}
+                            disabled={isDisabled}
+                            className="w-4 h-4 accent-luxury-gold rounded"
+                          />
+                          <span className={`text-sm ${isSelected ? 'text-white' : 'text-neutral-400'}`}>
+                            {service}
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -879,33 +1063,277 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
               <Phone size={18} className="text-luxury-gold" /> Contact Information
             </h3>
 
-            <p className="text-neutral-500 text-sm">At least one contact method is required.</p>
+            {isFree ? (
+              <>
+                {/* Free tier: Single contact selection */}
+                <div className="bg-amber-900/20 border border-amber-800 p-4 rounded-md">
+                  <p className="text-amber-400 font-semibold text-sm flex items-center gap-2">
+                    <AlertCircle size={16} /> Free tier: One contact method only
+                  </p>
+                  <p className="text-neutral-400 text-xs mt-1">
+                    Upgrade to Premium to display all your contact methods
+                  </p>
+                </div>
 
-            <div className="space-y-4">
-              <InputField
-                label={t('phone')}
-                value={formData.phone}
-                onChange={v => updateField('phone', v)}
-                icon={<Phone size={16} />}
-                placeholder="+49 123 456789"
-              />
-              <InputField
-                label={t('whatsapp')}
-                value={formData.whatsapp}
-                onChange={v => updateField('whatsapp', v)}
-                icon={<MessageCircle size={16} />}
-                placeholder="+49 123 456789"
-              />
-              <InputField
-                label={t('telegram')}
-                value={formData.telegram}
-                onChange={v => updateField('telegram', v)}
-                icon={<MessageCircle size={16} />}
-                placeholder="@username"
-              />
-            </div>
+                <p className="text-neutral-400 text-sm">Select your primary contact method:</p>
+
+                <div className="space-y-4">
+                  {/* Phone Option */}
+                  <div className={`p-4 rounded-md border transition-all ${formData.primaryContact === 'phone' ? 'border-luxury-gold bg-luxury-gold/10' : 'border-neutral-700'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="primaryContact"
+                        checked={formData.primaryContact === 'phone'}
+                        onChange={() => updateField('primaryContact', 'phone')}
+                        className="w-4 h-4 accent-luxury-gold"
+                      />
+                      <Phone size={18} className={formData.primaryContact === 'phone' ? 'text-luxury-gold' : 'text-neutral-500'} />
+                      <span className={formData.primaryContact === 'phone' ? 'text-white font-medium' : 'text-neutral-400'}>Phone</span>
+                    </label>
+                    {formData.primaryContact === 'phone' && (
+                      <input
+                        type="text"
+                        value={formData.phone}
+                        onChange={e => updateField('phone', e.target.value)}
+                        placeholder="+49 123 456789"
+                        className="w-full mt-3 bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                      />
+                    )}
+                  </div>
+
+                  {/* WhatsApp Option */}
+                  <div className={`p-4 rounded-md border transition-all ${formData.primaryContact === 'whatsapp' ? 'border-luxury-gold bg-luxury-gold/10' : 'border-neutral-700'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="primaryContact"
+                        checked={formData.primaryContact === 'whatsapp'}
+                        onChange={() => updateField('primaryContact', 'whatsapp')}
+                        className="w-4 h-4 accent-luxury-gold"
+                      />
+                      <MessageCircle size={18} className={formData.primaryContact === 'whatsapp' ? 'text-green-500' : 'text-neutral-500'} />
+                      <span className={formData.primaryContact === 'whatsapp' ? 'text-white font-medium' : 'text-neutral-400'}>WhatsApp</span>
+                    </label>
+                    {formData.primaryContact === 'whatsapp' && (
+                      <input
+                        type="text"
+                        value={formData.whatsapp}
+                        onChange={e => updateField('whatsapp', e.target.value)}
+                        placeholder="+49 123 456789"
+                        className="w-full mt-3 bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                      />
+                    )}
+                  </div>
+
+                  {/* Telegram Option */}
+                  <div className={`p-4 rounded-md border transition-all ${formData.primaryContact === 'telegram' ? 'border-luxury-gold bg-luxury-gold/10' : 'border-neutral-700'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="primaryContact"
+                        checked={formData.primaryContact === 'telegram'}
+                        onChange={() => updateField('primaryContact', 'telegram')}
+                        className="w-4 h-4 accent-luxury-gold"
+                      />
+                      <Send size={18} className={formData.primaryContact === 'telegram' ? 'text-blue-400' : 'text-neutral-500'} />
+                      <span className={formData.primaryContact === 'telegram' ? 'text-white font-medium' : 'text-neutral-400'}>Telegram</span>
+                    </label>
+                    {formData.primaryContact === 'telegram' && (
+                      <input
+                        type="text"
+                        value={formData.telegram}
+                        onChange={e => updateField('telegram', e.target.value)}
+                        placeholder="@username"
+                        className="w-full mt-3 bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <Button onClick={() => router.push('/packages')} variant="outline" className="w-full !py-3">
+                  <Zap size={16} className="mr-2" /> Upgrade to show all contact methods
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Premium/Elite: All contact methods */}
+                <p className="text-neutral-500 text-sm">Add all your contact methods. Clients can reach you on any of these.</p>
+
+                <div className="space-y-4">
+                  <InputField
+                    label={t('phone')}
+                    value={formData.phone}
+                    onChange={v => updateField('phone', v)}
+                    icon={<Phone size={16} />}
+                    placeholder="+49 123 456789"
+                  />
+                  <InputField
+                    label={t('whatsapp')}
+                    value={formData.whatsapp}
+                    onChange={v => updateField('whatsapp', v)}
+                    icon={<MessageCircle size={16} />}
+                    placeholder="+49 123 456789"
+                  />
+                  <InputField
+                    label={t('telegram')}
+                    value={formData.telegram}
+                    onChange={v => updateField('telegram', v)}
+                    icon={<MessageCircle size={16} />}
+                    placeholder="@username"
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Schedule Tab
+function ScheduleTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const tier = (profile.tier as ModelTier) || 'free';
+  const canSchedule = canUseSchedule(tier);
+
+  const [availability, setAvailability] = useState<string[]>(profile.availability || []);
+  const [showSchedule, setShowSchedule] = useState(profile.showSchedule || false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const TIME_SLOTS = ['Morning (8-12)', 'Afternoon (12-18)', 'Evening (18-22)', 'Night (22-8)'];
+
+  const toggleAvailability = (slot: string) => {
+    setAvailability(prev =>
+      prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]
+    );
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await supabase
+        .from('profiles')
+        .update({ availability, showSchedule })
+        .eq('id', profile.id);
+      onUpdate();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Locked state for free tier
+  if (!canSchedule) {
+    return (
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-8">
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock size={32} className="text-neutral-500" />
+          </div>
+          <h3 className="text-xl font-serif text-white mb-2">Weekly Schedule</h3>
+          <p className="text-neutral-400 mb-6 max-w-md mx-auto">
+            Let clients know when you&apos;re available. Upgrade to Premium to enable your weekly schedule.
+          </p>
+          <Button onClick={() => router.push('/packages')}>
+            <Zap size={16} className="mr-2" /> Upgrade to Premium
+          </Button>
+        </div>
+
+        {/* Blurred preview */}
+        <div className="mt-8 filter blur-sm pointer-events-none opacity-50">
+          <div className="grid grid-cols-8 gap-2">
+            <div></div>
+            {DAYS.map(day => (
+              <div key={day} className="text-center text-xs text-neutral-500 font-medium">
+                {day.slice(0, 3)}
+              </div>
+            ))}
+            {TIME_SLOTS.map(slot => (
+              <div key={slot} className="contents">
+                <div className="text-xs text-neutral-500 text-right pr-2">{slot.split(' ')[0]}</div>
+                {DAYS.map(day => (
+                  <div
+                    key={`${day}-${slot}`}
+                    className="h-8 bg-neutral-800 rounded"
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Calendar size={18} className="text-luxury-gold" /> Weekly Schedule
+        </h3>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <span className="text-sm text-neutral-400">Show on profile</span>
+          <button
+            onClick={() => setShowSchedule(!showSchedule)}
+            className={`relative w-12 h-6 rounded-full transition-colors ${showSchedule ? 'bg-luxury-gold' : 'bg-neutral-700'}`}
+          >
+            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${showSchedule ? 'translate-x-6' : ''}`} />
+          </button>
+        </label>
+      </div>
+
+      <p className="text-neutral-500 text-sm">
+        Click on time slots to mark when you&apos;re typically available. This helps clients plan ahead.
+      </p>
+
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-8 gap-2 min-w-[600px]">
+          <div></div>
+          {DAYS.map(day => (
+            <div key={day} className="text-center text-xs text-neutral-400 font-medium pb-2">
+              {day.slice(0, 3)}
+            </div>
+          ))}
+          {TIME_SLOTS.map(slot => (
+            <div key={slot} className="contents">
+              <div className="text-xs text-neutral-500 text-right pr-2 flex items-center justify-end">
+                {slot.split(' ')[0]}
+              </div>
+              {DAYS.map(day => {
+                const key = `${day}-${slot}`;
+                const isSelected = availability.includes(key);
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleAvailability(key)}
+                    className={`h-10 rounded transition-all ${
+                      isSelected
+                        ? 'bg-luxury-gold/30 border border-luxury-gold'
+                        : 'bg-neutral-800 hover:bg-neutral-700 border border-transparent'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
+        <div className="flex items-center gap-4 text-xs text-neutral-500">
+          <span className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-luxury-gold/30 border border-luxury-gold rounded" /> Available
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-4 h-4 bg-neutral-800 rounded" /> Not set
+          </span>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? 'Saving...' : 'Save Schedule'}
+        </Button>
       </div>
     </div>
   );
