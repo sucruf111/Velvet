@@ -16,15 +16,17 @@ function getSupabaseAdmin() {
 }
 
 // Plan mapping from CCBill form IDs to plan types
-const planMapping: Record<string, { type: string; name: string; price: number }> = {
-  // Model plans
-  'model-basic': { type: 'model-basic', name: 'Model Basic', price: 29 },
-  'model-premium': { type: 'model-premium', name: 'Model Premium', price: 59 },
-  'model-vip': { type: 'model-vip', name: 'Model VIP', price: 99 },
+const planMapping: Record<string, { type: string; name: string; price: number; tier: 'free' | 'premium' | 'elite'; boosts: number }> = {
+  // Model plans - New 3-tier system
+  'model-premium': { type: 'model-premium', name: 'Premium', price: 99, tier: 'premium', boosts: 2 },
+  'model-elite': { type: 'model-elite', name: 'Elite', price: 149, tier: 'elite', boosts: 999 },
+  // Legacy plan names (for backwards compatibility)
+  'premium': { type: 'model-premium', name: 'Premium', price: 99, tier: 'premium', boosts: 2 },
+  'elite': { type: 'model-elite', name: 'Elite', price: 149, tier: 'elite', boosts: 999 },
   // Agency plans
-  'agency-starter': { type: 'agency-starter', name: 'Agency Starter', price: 149 },
-  'agency-professional': { type: 'agency-professional', name: 'Agency Professional', price: 299 },
-  'agency-enterprise': { type: 'agency-enterprise', name: 'Agency Enterprise', price: 499 },
+  'agency-starter': { type: 'agency-starter', name: 'Agency Starter', price: 149, tier: 'premium', boosts: 2 },
+  'agency-professional': { type: 'agency-professional', name: 'Agency Professional', price: 299, tier: 'elite', boosts: 999 },
+  'agency-enterprise': { type: 'agency-enterprise', name: 'Agency Enterprise', price: 499, tier: 'elite', boosts: 999 },
 };
 
 function verifySignature(data: Record<string, string>, receivedHash: string): boolean {
@@ -44,7 +46,7 @@ async function handleNewSale(data: Record<string, string>) {
   const supabase = getSupabaseAdmin();
   const { subscriptionId, email, formName, transactionId, initialPrice, recurringPrice } = data;
 
-  const plan = planMapping[formName] || { type: formName, name: formName, price: parseFloat(initialPrice) || 0 };
+  const plan = planMapping[formName] || { type: formName, name: formName, price: parseFloat(initialPrice) || 0, tier: 'free' as const, boosts: 0 };
 
   // Find user by email
   const { data: users } = await supabase
@@ -79,10 +81,15 @@ async function handleNewSale(data: Record<string, string>) {
     onConflict: 'user_id',
   });
 
-  // Update user's subscription status in profiles
+  // Update user's subscription status and tier in profiles
+  const tierToSet = 'tier' in plan ? plan.tier : 'free';
+  const boostsToSet = 'boosts' in plan ? plan.boosts : 0;
+
   await supabase.from('profiles').update({
     subscription_status: 'active',
     subscription_plan: plan.type,
+    tier: tierToSet,
+    boosts_remaining: boostsToSet,
     updated_at: now.toISOString(),
   }).eq('id', userId);
 
@@ -197,13 +204,15 @@ async function handleExpiration(data: Record<string, string>) {
     updated_at: now.toISOString(),
   }).eq('ccbill_subscription_id', subscriptionId);
 
-  // Update user's subscription status
+  // Update user's subscription status and downgrade to free tier
   await supabase.from('profiles').update({
     subscription_status: 'expired',
+    tier: 'free',
+    boosts_remaining: 0,
     updated_at: now.toISOString(),
   }).eq('id', subscription.user_id);
 
-  console.log(`Expiration processed for subscription: ${subscriptionId}`);
+  console.log(`Expiration processed for subscription: ${subscriptionId}, profile downgraded to free tier`);
 }
 
 async function handleChargeback(data: Record<string, string>) {
@@ -229,9 +238,11 @@ async function handleChargeback(data: Record<string, string>) {
     updated_at: now.toISOString(),
   }).eq('ccbill_subscription_id', subscriptionId);
 
-  // Update user's subscription status
+  // Update user's subscription status and downgrade to free tier (chargeback = lose premium)
   await supabase.from('profiles').update({
     subscription_status: 'suspended',
+    tier: 'free',
+    boosts_remaining: 0,
     updated_at: now.toISOString(),
   }).eq('id', subscription.user_id);
 

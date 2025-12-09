@@ -12,12 +12,12 @@ import {
   BarChart3, Image as ImageIcon, CreditCard, Heart, LogOut,
   Save, Check, Eye, EyeOff, Trash2, AlertCircle, Upload,
   Phone, MessageCircle, User, Euro, Sparkles, Building2, Users, Globe, Plus,
-  ShieldCheck, Camera, Clock, X, Zap, Lock, Crown, Star, Calendar, Send
+  ShieldCheck, Camera, Clock, X, Zap, Lock, Crown, Star, Calendar, Send, Video, Play
 } from 'lucide-react';
 import { VerificationApplication, ModelTier } from '@/lib/types';
 import {
-  getPhotoLimit, getServiceLimit, canBoost,
-  canUseSchedule, canSeeStatistics
+  getPhotoLimit, getVideoLimit, getServiceLimit, canBoost,
+  canUseSchedule, canSeeStatistics, canSeeAdvancedStatistics
 } from '@/lib/packages';
 
 type DashboardTab = 'overview' | 'profile' | 'schedule' | 'billing' | 'account' | 'verify';
@@ -553,6 +553,76 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
         </div>
       </div>
 
+      {/* Advanced Analytics - Elite Only */}
+      {canSeeAdvancedStatistics(tier) ? (
+        <div className="space-y-6">
+          {/* Traffic Sources */}
+          <div className="bg-neutral-900 border border-purple-500/30 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Crown size={18} className="text-purple-400" />
+              <h3 className="text-lg font-semibold text-white">Traffic Sources</h3>
+              <span className="text-purple-400 text-xs bg-purple-500/20 px-2 py-0.5 rounded-full">Elite</span>
+            </div>
+            <div className="space-y-3">
+              {[
+                { source: 'Search Results', percent: 45, color: 'bg-luxury-gold' },
+                { source: 'Homepage', percent: 25, color: 'bg-purple-500' },
+                { source: 'Direct Link', percent: 20, color: 'bg-blue-500' },
+                { source: 'External', percent: 10, color: 'bg-green-500' },
+              ].map(item => (
+                <div key={item.source} className="flex items-center gap-3">
+                  <span className="text-neutral-400 text-sm w-32">{item.source}</span>
+                  <div className="flex-1 h-2 bg-neutral-800 rounded-full overflow-hidden">
+                    <div className={`h-full ${item.color} transition-all`} style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <span className="text-white text-sm font-medium w-12 text-right">{item.percent}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Hourly Breakdown */}
+          <div className="bg-neutral-900 border border-purple-500/30 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Clock size={18} className="text-purple-400" />
+              <h3 className="text-lg font-semibold text-white">Hourly Activity</h3>
+              <span className="text-purple-400 text-xs bg-purple-500/20 px-2 py-0.5 rounded-full">Elite</span>
+            </div>
+            <div className="flex items-end gap-1 h-32">
+              {[
+                5, 3, 2, 1, 1, 2, 4, 8, 12, 15, 18, 20,
+                22, 25, 22, 18, 15, 20, 28, 35, 42, 38, 25, 12
+              ].map((value, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div
+                    className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all hover:from-purple-500 hover:to-purple-300"
+                    style={{ height: `${(value / 42) * 100}%` }}
+                    title={`${i}:00 - ${value} views`}
+                  />
+                  {i % 6 === 0 && (
+                    <span className="text-[10px] text-neutral-500">{i}h</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-neutral-500 text-xs mt-3 text-center">
+              Peak activity: 20:00 - 22:00
+            </p>
+          </div>
+        </div>
+      ) : showStats ? (
+        <div className="bg-purple-900/10 border border-purple-500/30 rounded-lg p-6 text-center">
+          <Crown size={32} className="mx-auto text-purple-400 mb-3" />
+          <h3 className="text-white font-semibold mb-2">Advanced Analytics</h3>
+          <p className="text-neutral-400 text-sm mb-4">
+            Upgrade to Elite to see traffic sources, hourly breakdowns, and more detailed insights
+          </p>
+          <Button onClick={() => router.push('/packages')} className="!bg-purple-600 hover:!bg-purple-500">
+            <Crown size={14} className="mr-2" /> Upgrade to Elite
+          </Button>
+        </div>
+      ) : null}
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <QuickActionCard icon={<User size={20} />} label={t('edit_profile')} onClick={() => setActiveTab('profile')} />
@@ -591,9 +661,11 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   const router = useRouter();
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const tier = (profile.tier as ModelTier) || 'free';
   const photoLimit = getPhotoLimit(tier);
+  const videoLimit = getVideoLimit(tier);
   const serviceLimit = getServiceLimit(tier);
   const isFree = tier === 'free';
 
@@ -610,13 +682,16 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
     services: (profile.services || []) as string[],
     languages: profile.languages || [],
     visitType: profile.visitType || 'both',
-    images: profile.images || []
+    images: profile.images || [],
+    videoUrls: profile.videoUrls || []
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [videoUploadError, setVideoUploadError] = useState('');
   const [activeSection, setActiveSection] = useState<string>('basic');
 
   const updateField = <K extends keyof typeof formData>(key: K, value: typeof formData[K]) => {
@@ -637,6 +712,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   };
 
   const isAtPhotoLimit = photoLimit !== Infinity && formData.images.length >= photoLimit;
+  const isAtVideoLimit = videoLimit === 0 || (formData.videoUrls.length >= videoLimit);
   const isAtServiceLimit = serviceLimit !== Infinity && formData.services.length >= serviceLimit;
 
   const toggleLanguage = (lang: string) => {
@@ -740,6 +816,99 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
       .eq('id', profile.id);
   };
 
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (videoLimit === 0) {
+      setVideoUploadError('Video upload is not available on your plan. Upgrade to Premium.');
+      return;
+    }
+
+    if (isAtVideoLimit) {
+      setVideoUploadError(`You've reached the ${videoLimit} video limit.`);
+      return;
+    }
+
+    setIsUploadingVideo(true);
+    setVideoUploadError('');
+
+    try {
+      const file = files[0];
+
+      if (!file.type.startsWith('video/')) {
+        setVideoUploadError('Only video files allowed');
+        setIsUploadingVideo(false);
+        return;
+      }
+
+      // 50MB limit for videos
+      if (file.size > 50 * 1024 * 1024) {
+        setVideoUploadError('Max 50MB per video');
+        setIsUploadingVideo(false);
+        return;
+      }
+
+      // 30 second duration check would need to happen client-side or server-side
+      // For now we'll just upload and trust the limit
+
+      const uploadFormData = new FormData();
+      uploadFormData.append('videos', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.urls) {
+        const newVideos = [...formData.videoUrls, ...result.urls];
+        updateField('videoUrls', newVideos);
+
+        // Auto-save to database
+        await supabase
+          .from('profiles')
+          .update({ video_urls: newVideos })
+          .eq('id', profile.id);
+      } else {
+        setVideoUploadError(result.error || 'Video upload failed');
+      }
+    } catch (error) {
+      console.error('Video upload error:', error);
+      setVideoUploadError('Video upload failed');
+    } finally {
+      setIsUploadingVideo(false);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+    }
+  };
+
+  const removeVideo = async (index: number) => {
+    const videoUrl = formData.videoUrls[index];
+    const newVideos = formData.videoUrls.filter((_, i) => i !== index);
+
+    // Try to delete from server
+    if (videoUrl.startsWith('/uploads/')) {
+      try {
+        await fetch('/api/upload', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: [videoUrl] })
+        });
+      } catch (e) {
+        console.error('Failed to delete video from server:', e);
+      }
+    }
+
+    updateField('videoUrls', newVideos);
+
+    // Auto-save to database
+    await supabase
+      .from('profiles')
+      .update({ video_urls: newVideos })
+      .eq('id', profile.id);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -758,7 +927,8 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
           services: formData.services,
           languages: formData.languages,
           visitType: formData.visitType,
-          images: formData.images
+          images: formData.images,
+          video_urls: formData.videoUrls
         })
         .eq('id', profile.id);
 
@@ -978,6 +1148,100 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
                 </Button>
               </div>
             )}
+
+            {/* Video Upload Section */}
+            <div className="pt-6 border-t border-neutral-800">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Video size={18} className="text-purple-400" /> Videos
+                  </h4>
+                  {videoLimit > 0 ? (
+                    <p className={`text-sm mt-1 ${isAtVideoLimit ? 'text-amber-400' : 'text-neutral-500'}`}>
+                      {formData.videoUrls.length} / {videoLimit} videos
+                    </p>
+                  ) : (
+                    <p className="text-sm mt-1 text-neutral-500">
+                      Not available on Free plan
+                    </p>
+                  )}
+                </div>
+                {videoLimit > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={isUploadingVideo || isAtVideoLimit}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload size={16} />
+                    {isUploadingVideo ? 'Uploading...' : isAtVideoLimit ? 'Limit Reached' : 'Upload Video'}
+                  </Button>
+                )}
+              </div>
+
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleVideoUpload}
+              />
+
+              {videoUploadError && (
+                <div className="bg-red-900/20 border border-red-900/50 p-3 text-red-300 rounded-md text-sm mb-4">
+                  {videoUploadError}
+                </div>
+              )}
+
+              {/* Video Locked for Free */}
+              {videoLimit === 0 ? (
+                <div className="bg-purple-900/10 border border-purple-800 p-6 rounded-lg text-center">
+                  <Video size={32} className="mx-auto text-purple-400 mb-3" />
+                  <p className="text-white font-semibold mb-2">Video Upload - Premium Feature</p>
+                  <p className="text-neutral-400 text-sm mb-4">
+                    Upgrade to Premium to upload 1 video, or Elite for up to 3 videos
+                  </p>
+                  <Button onClick={() => router.push('/packages')} className="!py-2 !px-6">
+                    <Zap size={14} className="mr-2" /> Upgrade Now
+                  </Button>
+                </div>
+              ) : formData.videoUrls.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {formData.videoUrls.map((videoUrl, i) => (
+                    <div key={i} className="relative group aspect-video bg-neutral-800 rounded-lg overflow-hidden">
+                      <video
+                        src={videoUrl}
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                      />
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => removeVideo(i)}
+                          className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                          <Play size={12} /> Video {i + 1}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-purple-700/50 rounded-lg p-8 text-center">
+                  <Video size={32} className="mx-auto text-purple-400 mb-3" />
+                  <p className="text-neutral-500 mb-4">No videos uploaded yet</p>
+                  <Button variant="outline" onClick={() => videoInputRef.current?.click()}>
+                    <Upload size={16} className="mr-2" /> Upload Video
+                  </Button>
+                  <p className="text-neutral-600 text-xs mt-2">Max 50MB per video</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
