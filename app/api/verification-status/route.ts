@@ -58,11 +58,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch verification application using admin client (bypasses RLS)
+    // Note: Table uses snake_case column names (profile_id, not profileId)
     const { data: verApp, error } = await supabaseAdmin
       .from('verification_applications')
       .select('*')
-      .eq('profileId', profileId)
-      .order('createdAt', { ascending: false })
+      .eq('profile_id', profileId)
+      .order('"createdAt"', { ascending: false })
       .limit(1)
       .maybeSingle();
 
