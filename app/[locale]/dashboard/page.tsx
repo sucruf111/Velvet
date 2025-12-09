@@ -350,9 +350,9 @@ function OverviewTab({ profile, setActiveTab }: { profile: Profile; setActiveTab
 
   const metrics = {
     views: profile.clicks || 0,
-    contacts: Math.floor((profile.clicks || 0) / 15),
-    searches: (profile.clicks || 0) * 8,
-    favorites: Math.floor((profile.clicks || 0) / 30)
+    contacts: profile.contactClicks || 0,
+    searches: profile.searchAppearances || 0,
+    favorites: 0 // TODO: Calculate from users who favorited this profile
   };
 
   const completionItems = [

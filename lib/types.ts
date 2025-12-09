@@ -105,6 +105,8 @@ export interface Profile {
   isVerified: boolean;
   isVelvetChoice: boolean;
   clicks: number;
+  contactClicks: number;
+  searchAppearances: number;
   phone?: string;
   whatsapp?: string;
   telegram?: string;

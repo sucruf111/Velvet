@@ -29,6 +29,18 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
   const [showPhone, setShowPhone] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  const trackContact = () => {
+    if (profile?.id) {
+      fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: profile.id, type: 'contact' })
+      }).catch(() => {
+        // Silently ignore tracking errors
+      });
+    }
+  };
+
   const isTop = profile.clicks > 2000;
   const isUnavailable = profile.isOnline === false;
   const isAvailableNow = profile.isOnline !== false && isProfileActive(profile);
@@ -37,6 +49,17 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
   useEffect(() => {
     if (profile) setActiveImage(profile.images[0]);
     window.scrollTo(0, 0);
+
+    // Track profile view
+    if (profile?.id) {
+      fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: profile.id, type: 'view' })
+      }).catch(() => {
+        // Silently ignore tracking errors
+      });
+    }
   }, [profile]);
 
   useEffect(() => {
@@ -427,7 +450,10 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                     <div className="flex flex-col md:flex-row gap-3 max-w-7xl mx-auto lg:mx-0">
                       {profile.phone && (
                         <button
-                          onClick={() => setShowPhone(!showPhone)}
+                          onClick={() => {
+                            if (!showPhone) trackContact();
+                            setShowPhone(!showPhone);
+                          }}
                           className="w-full md:w-auto md:flex-1 bg-luxury-gold-gradient hover:bg-luxury-gold-gradient-hover text-black font-black py-4 px-6 uppercase tracking-[0.15em] text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] rounded-sm order-1"
                         >
                           <Smartphone strokeWidth={2.5} size={20} />
@@ -443,6 +469,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                               target="_blank"
                               rel="noreferrer"
                               className="flex-1 md:flex-none"
+                              onClick={trackContact}
                             >
                               <button className="w-full md:w-auto md:px-8 h-full border border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-black transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#25D366]/5 hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] uppercase">
                                 <MessageCircle size={20} strokeWidth={2.5} />
@@ -457,6 +484,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                               target="_blank"
                               rel="noreferrer"
                               className="flex-1 md:flex-none"
+                              onClick={trackContact}
                             >
                               <button className="w-full md:w-auto md:px-8 h-full border border-[#0088cc] text-[#0088cc] hover:bg-[#0088cc] hover:text-white transition-all font-black tracking-widest text-xs md:text-sm py-4 flex items-center justify-center gap-2 rounded-sm bg-[#0088cc]/5 hover:shadow-[0_0_20px_rgba(0,136,204,0.4)] uppercase">
                                 <Send size={20} strokeWidth={2.5} />
