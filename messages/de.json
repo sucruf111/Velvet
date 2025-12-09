@@ -40,6 +40,7 @@
     "faq_4_q": "Bieten Sie auch Agentur-Escorts an?",
     "faq_4_a": "Ja, neben unabhängigen Models listen wir auch etablierte Escort-Agenturen in Berlin. Agentur-Profile sind entsprechend gekennzeichnet und bieten oft erweiterte Verfügbarkeit.",
     "districts_title": "Beliebte Bezirke",
+    "escort_prefix": "Escort",
     "load_more": "Mehr laden",
     "remaining": "weitere"
   },
@@ -47,7 +48,9 @@
     "call_now": "Anrufen",
     "available": "Verfügbar",
     "unavailable": "Nicht Verfügbar",
-    "hourly": "Stündlich"
+    "hourly": "Stündlich",
+    "online": "Online",
+    "per_hour": "/h"
   },
   "profile": {
     "verified_content": "Verifizierter Inhalt",
@@ -57,12 +60,24 @@
     "languages": "Sprachen",
     "represented_by": "Vertreten durch",
     "show_phone": "Nummer anzeigen",
+    "show_number": "NUMMER ZEIGEN",
     "mention": "Bitte erwähnen Sie",
     "when_contacting": "wenn Sie kontaktieren",
     "on_request": "Auf Anfrage",
     "off": "Frei",
     "back_home": "Start",
-    "back_escorts": "Escorts"
+    "back_escorts": "Escorts",
+    "image": "Bild",
+    "check_back_later": "Später vorbeischauen",
+    "days": {
+      "mon": "Mo",
+      "tue": "Di",
+      "wed": "Mi",
+      "thu": "Do",
+      "fri": "Fr",
+      "sat": "Sa",
+      "sun": "So"
+    }
   },
   "attr": {
     "age": "Alter",
@@ -84,7 +99,13 @@
     "showing": "Zeige",
     "profiles": "verifizierte Profile",
     "all_districts": "Alle Bezirke",
-    "any_service": "Jeder Service"
+    "any_service": "Jeder Service",
+    "all_profiles": "Alle Profile",
+    "special": "Spezial",
+    "status": "Status",
+    "premium_elite": "Premium & Elite",
+    "elite_only": "Elite",
+    "escorts": "Escorts"
   },
   "footer": {
     "directory": "Verzeichnis",
@@ -94,14 +115,17 @@
     "privacy": "Datenschutz",
     "desc": "Velvet Berlin ist ein unabhängiges Verzeichnis für Escorts, Massage-Künstlerinnen und Agenturen in Berlin. Wir zeigen nur Anzeigen — alle Vereinbarungen treffen Sie direkt mit Ihrer gewählten Begleitung.",
     "disclaimer": "Unabhängiges Verzeichnis. Wir beschäftigen oder vertreten keine gelisteten Personen.",
-    "about": "Über uns"
+    "about": "Über uns",
+    "copyright": "Alle Rechte vorbehalten. 18+ Nur."
   },
   "badge": {
     "premium": "PREMIUM",
+    "elite": "ELITE",
     "new": "NEU",
     "verified": "VERIFIZIERT",
     "top": "TOP MODEL",
-    "choice": "VELVET'S WAHL"
+    "choice": "VELVET'S WAHL",
+    "featured": "EMPFOHLEN"
   },
   "login": {
     "welcome": "Willkommen zurück",

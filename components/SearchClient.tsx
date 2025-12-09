@@ -162,7 +162,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
 
             {/* Special Filters */}
             <div className="space-y-3">
-              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">Special</label>
+              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">{t('search.special')}</label>
               <label className="flex items-center space-x-3 cursor-pointer group">
                 <input
                   type="checkbox"
@@ -176,14 +176,14 @@ export function SearchClient({ profiles }: SearchClientProps) {
 
             {/* Tier Filter */}
             <div>
-              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">Status</label>
+              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">{t('search.status')}</label>
               <Select
                 value={tierFilter}
                 onChange={e => setTierFilter(e.target.value)}
               >
-                <option value="">{t('search.all_profiles') || 'Alle Profile'}</option>
-                <option value="premium">⭐ Premium & Elite</option>
-                <option value="elite">👑 Elite</option>
+                <option value="">{t('search.all_profiles')}</option>
+                <option value="premium">⭐ {t('search.premium_elite')}</option>
+                <option value="elite">👑 {t('search.elite_only')}</option>
               </Select>
             </div>
 
@@ -217,7 +217,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
         <div className="flex-1">
           <div className="mb-6">
             <h1 className="font-serif text-3xl text-white">
-              {selectedDistrict ? `${selectedDistrict} Escorts` : t('search.all_districts')}
+              {selectedDistrict ? `${selectedDistrict} ${t('search.escorts')}` : t('search.all_districts')}
               {serviceFilter && <span className="text-luxury-gold mx-2">• {serviceFilter}</span>}
             </h1>
             <div className="flex items-center gap-2 mt-2">

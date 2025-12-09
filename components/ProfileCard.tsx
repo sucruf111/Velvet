@@ -144,7 +144,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
                 </span>
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider leading-none">Online</span>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider leading-none">{t('online')}</span>
               </div>
             )}
             {isAvailableNow && !isEliteOnline && (
@@ -186,7 +186,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
               {profile.priceStart}€
             </span>
             <span className="text-[9px] text-neutral-400 font-medium uppercase leading-none">
-              /h
+              {t('per_hour')}
             </span>
           </div>
         </div>

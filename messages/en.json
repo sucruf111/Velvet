@@ -40,6 +40,7 @@
     "faq_4_q": "Do you also offer agency escorts?",
     "faq_4_a": "Yes, alongside independent models we also list established escort agencies in Berlin. Agency profiles are clearly marked and often offer extended availability.",
     "districts_title": "Popular Districts",
+    "escort_prefix": "Escort",
     "load_more": "Load More",
     "remaining": "remaining"
   },
@@ -47,7 +48,9 @@
     "call_now": "Call Now",
     "available": "Available Now",
     "unavailable": "Unavailable",
-    "hourly": "Hourly"
+    "hourly": "Hourly",
+    "online": "Online",
+    "per_hour": "/h"
   },
   "profile": {
     "verified_content": "Verified Content",
@@ -57,12 +60,24 @@
     "languages": "Languages",
     "represented_by": "Represented by",
     "show_phone": "Show Phone Number",
+    "show_number": "SHOW NUMBER",
     "mention": "Please mention",
     "when_contacting": "when contacting",
     "on_request": "On Request",
     "off": "Off",
     "back_home": "Home",
-    "back_escorts": "Escorts"
+    "back_escorts": "Escorts",
+    "image": "Image",
+    "check_back_later": "Check back later",
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
   },
   "attr": {
     "age": "Age",
@@ -84,7 +99,13 @@
     "showing": "Showing",
     "profiles": "verified profiles",
     "all_districts": "All Districts",
-    "any_service": "Any Service"
+    "any_service": "Any Service",
+    "all_profiles": "All Profiles",
+    "special": "Special",
+    "status": "Status",
+    "premium_elite": "Premium & Elite",
+    "elite_only": "Elite",
+    "escorts": "Escorts"
   },
   "footer": {
     "directory": "Directory",
@@ -94,14 +115,17 @@
     "privacy": "Privacy Policy",
     "desc": "Velvet Berlin is an independent directory showcasing escorts, massage artists, and agencies across Berlin. We display advertisements only — all arrangements are made directly between you and your chosen companion.",
     "disclaimer": "Independent directory. We do not employ or represent any listed individuals.",
-    "about": "About Us"
+    "about": "About Us",
+    "copyright": "All rights reserved. 18+ Only."
   },
   "badge": {
     "premium": "PREMIUM",
+    "elite": "ELITE",
     "new": "NEW",
     "verified": "VERIFIED",
     "top": "TOP MODEL",
-    "choice": "VELVET'S CHOICE"
+    "choice": "VELVET'S CHOICE",
+    "featured": "FEATURED"
   },
   "login": {
     "welcome": "Welcome Back",

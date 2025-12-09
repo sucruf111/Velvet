@@ -298,7 +298,7 @@ export function HomeClient({ eliteProfiles, premiumProfiles, freeProfiles, agenc
                   href={`/search?district=${district}`}
                   className="px-4 py-2 bg-white/5 hover:bg-luxury-gold/20 border border-white/10 hover:border-luxury-gold/50 rounded text-neutral-400 hover:text-white text-xs transition-all"
                 >
-                  Escort {district}
+                  {t('escort_prefix')} {district}
                 </Link>
               ))}
             </div>

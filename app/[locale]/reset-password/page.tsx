@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button, Input } from '@/components/ui';
 import { createBrowserClient } from '@supabase/ssr';
@@ -10,6 +10,7 @@ import { ArrowLeft, Lock, Check, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -61,7 +62,7 @@ export default function ResetPasswordPage() {
 
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        router.push('/login');
+        router.push(locale === 'de' ? '/login' : `/${locale}/login`);
       }, 3000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('auth.reset_error'));

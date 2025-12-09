@@ -21,13 +21,19 @@
     "premium_title": "Рекомендуемые",
     "new_title": "Новые и Проверенные",
     "agencies_title": "Агентства-Партнеры",
-    "view_all": "Смотреть каталог"
+    "view_all": "Смотреть каталог",
+    "districts_title": "Популярные районы",
+    "escort_prefix": "Эскорт",
+    "load_more": "Загрузить ещё",
+    "remaining": "осталось"
   },
   "card": {
     "call_now": "Позвонить",
     "available": "Доступна",
     "unavailable": "Недоступна",
-    "hourly": "В час"
+    "hourly": "В час",
+    "online": "Онлайн",
+    "per_hour": "/ч"
   },
   "profile": {
     "verified_content": "Проверенный контент",
@@ -37,12 +43,24 @@
     "languages": "Языки",
     "represented_by": "Представлена",
     "show_phone": "Показать номер",
+    "show_number": "ПОКАЗАТЬ НОМЕР",
     "mention": "Пожалуйста, упомяните",
     "when_contacting": "при контакте",
     "on_request": "По запросу",
     "off": "Вых.",
     "back_home": "Главная",
-    "back_escorts": "Эскорт"
+    "back_escorts": "Эскорт",
+    "image": "Фото",
+    "check_back_later": "Проверьте позже",
+    "days": {
+      "mon": "Пн",
+      "tue": "Вт",
+      "wed": "Ср",
+      "thu": "Чт",
+      "fri": "Пт",
+      "sat": "Сб",
+      "sun": "Вс"
+    }
   },
   "attr": {
     "age": "Возраст",
@@ -64,7 +82,13 @@
     "showing": "Показано",
     "profiles": "профилей",
     "all_districts": "Все Районы",
-    "any_service": "Любая Услуга"
+    "any_service": "Любая Услуга",
+    "all_profiles": "Все профили",
+    "special": "Специальное",
+    "status": "Статус",
+    "premium_elite": "Премиум и Элит",
+    "elite_only": "Элит",
+    "escorts": "Эскорт"
   },
   "footer": {
     "directory": "Каталог",
@@ -74,14 +98,17 @@
     "privacy": "Конфиденциальность",
     "desc": "Velvet Berlin — независимый каталог эскорта, массажисток и агентств Берлина. Мы размещаем только объявления — все договорённости вы заключаете напрямую с выбранной спутницей.",
     "disclaimer": "Независимый каталог. Мы не нанимаем и не представляем указанных лиц.",
-    "about": "О нас"
+    "about": "О нас",
+    "copyright": "Все права защищены. Только 18+."
   },
   "badge": {
     "premium": "ПРЕМИУМ",
+    "elite": "ЭЛИТ",
     "new": "НОВАЯ",
     "verified": "ПРОВЕРЕНО",
     "top": "ТОП МОДЕЛЬ",
-    "choice": "ВЫБОР VELVET"
+    "choice": "ВЫБОР VELVET",
+    "featured": "РЕКОМЕНДОВАНО"
   },
   "login": {
     "welcome": "С возвращением",
@@ -209,8 +236,19 @@
     "both": "Оба варианта",
     "both_desc": "У меня и выезд"
   },
+  "time": {
+    "never": "Никогда не была активна",
+    "just_now": "Только что",
+    "mins_ago": "{n} мин назад",
+    "hours_ago": "{n}ч назад",
+    "yesterday": "Вчера",
+    "days_ago": "{n} дней назад",
+    "weeks_ago": "{n} недель назад",
+    "over_month": "Более месяца назад"
+  },
   "dashboard": {
     "overview": "Обзор",
+    "schedule": "Расписание",
     "photos": "Фото",
     "services": "Услуги",
     "settings": "Настройки профиля",

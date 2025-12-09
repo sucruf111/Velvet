@@ -195,7 +195,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
           onClick={(e) => e.stopPropagation()}
         />
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-white/70 font-sans text-xs md:text-sm tracking-widest uppercase bg-black/50 px-4 py-2 rounded-full backdrop-blur-md whitespace-nowrap">
-          Image {lightboxIndex + 1} / {profile.images.length}
+          {t('profile.image')} {lightboxIndex + 1} / {profile.images.length}
         </div>
       </div>
     </div>
@@ -455,9 +455,9 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                     <Calendar size={24} className="text-luxury-gold" strokeWidth={1} /> {t('profile.schedule')}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => (
-                      <div key={day} className="bg-neutral-900/50 border border-neutral-800 p-3 rounded-sm text-center">
-                        <div className="text-luxury-gold text-xs font-bold uppercase tracking-widest mb-1">{day}</div>
+                    {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayKey, idx) => (
+                      <div key={dayKey} className="bg-neutral-900/50 border border-neutral-800 p-3 rounded-sm text-center">
+                        <div className="text-luxury-gold text-xs font-bold uppercase tracking-widest mb-1">{t(`profile.days.${dayKey}`)}</div>
                         <div className={`text-xs ${profile.availability[idx]?.toLowerCase().includes('off') ? 'text-neutral-600' : 'text-white'}`}>
                           {profile.availability[idx] ? profile.availability[idx].split(': ')[1] : t('profile.on_request')}
                         </div>
@@ -475,7 +475,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                   <div className="flex flex-col gap-3 max-w-7xl mx-auto lg:mx-0">
                     <div className="w-full bg-neutral-800/50 border border-neutral-700 text-neutral-400 font-bold py-4 px-6 uppercase tracking-[0.15em] text-sm flex items-center justify-center gap-3 rounded-sm cursor-not-allowed">
                       <Clock size={20} strokeWidth={2.5} />
-                      <span>{t('card.unavailable')} - Check back later</span>
+                      <span>{t('card.unavailable')} - {t('profile.check_back_later')}</span>
                     </div>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                                 className="w-full md:w-auto md:flex-1 bg-luxury-gold-gradient hover:bg-luxury-gold-gradient-hover text-black font-black py-4 px-6 uppercase tracking-[0.15em] text-sm transition-all flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(212,175,55,0.3)] hover:shadow-[0_0_35px_rgba(212,175,55,0.5)] rounded-sm order-1"
                               >
                                 <Smartphone strokeWidth={2.5} size={20} />
-                                <span>{showPhone ? profile.phone : 'SHOW NUMBER'}</span>
+                                <span>{showPhone ? profile.phone : t('profile.show_number')}</span>
                               </button>
                             )}
 

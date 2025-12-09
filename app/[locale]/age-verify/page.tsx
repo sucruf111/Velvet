@@ -2,15 +2,21 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Button } from '@/components/ui';
 
 export default function AgeVerifyPage() {
   const t = useTranslations('ageVerify');
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
 
-  const redirectPath = searchParams.get('redirect') || '/';
+  // Get redirect path with locale awareness
+  const redirectParam = searchParams.get('redirect') || '/';
+  // If redirect doesn't already include locale prefix, add it
+  const redirectPath = redirectParam.startsWith(`/${locale}`) || (locale === 'de' && !redirectParam.startsWith('/en') && !redirectParam.startsWith('/ru'))
+    ? redirectParam
+    : locale === 'de' ? redirectParam : `/${locale}${redirectParam}`;
 
   const handleVerify = () => {
     setIsLoading(true);

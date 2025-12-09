@@ -3,12 +3,14 @@
 import { Link } from '@/i18n/routing';
 import { MapPin } from 'lucide-react';
 import { Agency } from '@/lib/types';
+import { useTranslations } from 'next-intl';
 
 interface AgencyCardProps {
   agency: Agency;
 }
 
 export function AgencyCard({ agency }: AgencyCardProps) {
+  const t = useTranslations('badge');
   return (
     <Link
       href={`/agency/${agency.id}`}
@@ -28,7 +30,7 @@ export function AgencyCard({ agency }: AgencyCardProps) {
       {agency.isFeatured && (
         <div className="absolute top-3 left-3 z-30">
           <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded bg-luxury-gold-gradient text-black">
-            FEATURED
+            {t('featured')}
           </span>
         </div>
       )}

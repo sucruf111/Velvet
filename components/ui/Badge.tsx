@@ -19,8 +19,8 @@ export function Badge({ type }: BadgeProps) {
   };
 
   const labels: Record<string, string> = {
-    premium: 'Premium',
-    elite: 'Elite',
+    premium: t('premium'),
+    elite: t('elite'),
     new: t('new'),
     verified: t('verified'),
     top: t('top'),
@@ -29,7 +29,7 @@ export function Badge({ type }: BadgeProps) {
 
   return (
     <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded ${styles[type]}`}>
-      {type === 'premium' ? '⭐ Premium' : type === 'elite' ? '👑 Elite' : labels[type] || t(type)}
+      {type === 'premium' ? `⭐ ${t('premium')}` : type === 'elite' ? `👑 ${t('elite')}` : labels[type] || t(type)}
     </span>
   );
 }

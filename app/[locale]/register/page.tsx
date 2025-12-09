@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
@@ -99,6 +99,7 @@ const DEFAULT_FORM_DATA: FormData = {
 export default function RegisterPage() {
   const { register, isLoggingIn, isAuthenticated } = useAuth();
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
 
   const [registrationType, setRegistrationType] = useState<RegistrationType>(null);
@@ -118,7 +119,7 @@ export default function RegisterPage() {
       } catch {
         // Ignore errors
       }
-      router.push('/dashboard');
+      router.push(locale === 'de' ? '/dashboard' : `/${locale}/dashboard`);
     }
   }, [isAuthenticated, isLoggingIn, router]);
 
@@ -342,8 +343,8 @@ export default function RegisterPage() {
       // Clear saved state on successful registration
       clearSavedState();
 
-      // Force redirect to dashboard
-      window.location.href = '/dashboard';
+      // Force redirect to dashboard with locale
+      window.location.href = locale === 'de' ? '/dashboard' : `/${locale}/dashboard`;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('register.error_generic'));
       setIsSubmitting(false);

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/lib/auth-context';
@@ -13,6 +13,7 @@ type LoginMethod = 'email' | 'phone';
 export default function LoginPage() {
   const { login, loginWithPhone } = useAuth();
   const t = useTranslations();
+  const locale = useLocale();
   const router = useRouter();
   const [loginMethod, setLoginMethod] = useState<LoginMethod>('email');
   const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ export default function LoginPage() {
       } else {
         await loginWithPhone(phone, password);
       }
-      router.push('/dashboard');
+      router.push(locale === 'de' ? '/dashboard' : `/${locale}/dashboard`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('auth.login_failed'));
     } finally {
