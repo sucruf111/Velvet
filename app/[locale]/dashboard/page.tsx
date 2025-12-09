@@ -1192,6 +1192,22 @@ function VerificationTab({
     );
   }
 
+  // Approved - show success message
+  if (application?.status === 'approved' || profile.isVerified) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-green-900/10 border border-green-800 rounded-lg p-8 text-center">
+          <ShieldCheck className="mx-auto text-green-400 mb-4" size={48} />
+          <h3 className="text-xl font-serif text-white mb-2">{t('verification_approved_title')}</h3>
+          <p className="text-neutral-400 mb-4">{t('verification_approved_desc')}</p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
+            <Check size={16} /> {t('verified_badge')}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Rejected - allow resubmission
   if (application?.status === 'rejected') {
     return (
