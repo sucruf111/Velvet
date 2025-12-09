@@ -476,7 +476,7 @@
   },
   "packages": {
     "hero": {
-      "trust_badge": "Over 500 satisfied customers",
+      "trust_badge": "Trusted Escort Platform in Berlin",
       "title": "Get Visible. Get Booked.",
       "subtitle": "Choose the perfect package for maximum reach and bookings. No hidden fees."
     },
@@ -502,6 +502,28 @@
       "get_started": "Get Started"
     },
     "guarantee": "14-day money-back guarantee",
+    "tiers": {
+      "free": {
+        "highlights": ["1 Photo", "1 Contact method", "Visible in search"],
+        "features": ["Basic profile", "3 services selectable", "Standard search position"]
+      },
+      "premium": {
+        "highlights": ["5 Photos + 1 Video", "Premium Badge ⭐", "Top search placement"],
+        "features": ["All contact methods", "Unlimited services", "Weekly schedule calendar", "Full statistics", "2 Profile boosts/month", "Featured in Premium section"]
+      },
+      "elite": {
+        "highlights": ["Unlimited Photos + 3 Videos", "Elite Badge 👑", "Highest search position"],
+        "features": ["Everything from Premium", "\"Online Now\" indicator", "Unlimited boosts", "Featured carousel on homepage", "Advanced analytics", "Priority verification", "Priority support (4h response)"]
+      },
+      "agency_starter": {
+        "highlights": ["Up to 5 models", "Agency profile page", "Central management"],
+        "features": ["Agency dashboard", "Model management", "Bulk upload", "Standard support"]
+      },
+      "agency_pro": {
+        "highlights": ["Up to 15 models", "Featured agency spot", "Advanced analytics"],
+        "features": ["Everything from Starter", "Priority support", "Bulk upload tools", "Performance reports", "Dedicated account manager"]
+      }
+    },
     "why": {
       "title": "Why Velvet Berlin?",
       "visibility": {
@@ -533,7 +555,7 @@
     },
     "final_cta": {
       "title": "Ready to Get Started?",
-      "desc": "Join over 500 successful models and agencies. Start with Velvet Berlin today.",
+      "desc": "Join successful models and agencies on Berlin's premium escort platform.",
       "button": "Choose Your Package",
       "register": "Register Free First",
       "urgency": "Offer valid this week only"

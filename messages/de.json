@@ -466,7 +466,7 @@
   },
   "packages": {
     "hero": {
-      "trust_badge": "Über 500 zufriedene Kunden",
+      "trust_badge": "Berlins vertrauenswürdige Escort-Plattform",
       "title": "Werde sichtbar. Werde gebucht.",
       "subtitle": "Wähle das perfekte Paket für maximale Reichweite und Buchungen. Keine versteckten Kosten."
     },
@@ -492,6 +492,28 @@
       "get_started": "Jetzt starten"
     },
     "guarantee": "14 Tage Geld-zurück-Garantie",
+    "tiers": {
+      "free": {
+        "highlights": ["1 Foto", "1 Kontaktmethode", "In der Suche sichtbar"],
+        "features": ["Basis-Profil", "3 Services auswählbar", "Standard Suchposition"]
+      },
+      "premium": {
+        "highlights": ["5 Fotos + 1 Video", "Premium-Badge ⭐", "Top-Platzierung in Suche"],
+        "features": ["Alle Kontaktmethoden", "Unbegrenzte Services", "Wochenplan-Kalender", "Vollständige Statistiken", "2 Profil-Boosts/Monat", "Im Premium-Bereich der Startseite"]
+      },
+      "elite": {
+        "highlights": ["Unbegrenzte Fotos + 3 Videos", "Elite-Badge 👑", "Höchste Suchposition"],
+        "features": ["Alles aus Premium", "\"Online Jetzt\" Anzeige", "Unbegrenzte Boosts", "Featured Carousel auf Startseite", "Erweiterte Analytics", "Prioritäts-Verifizierung", "Priority Support (4h Antwort)"]
+      },
+      "agency_starter": {
+        "highlights": ["Bis zu 5 Models", "Agentur-Profilseite", "Zentrale Verwaltung"],
+        "features": ["Agentur-Dashboard", "Model-Verwaltung", "Sammel-Upload", "Standard Support"]
+      },
+      "agency_pro": {
+        "highlights": ["Bis zu 15 Models", "Featured Agentur-Spot", "Erweiterte Analytics"],
+        "features": ["Alles aus Basis", "Prioritäts-Support", "Bulk-Upload Tools", "Performance Reports", "Dedizierter Account Manager"]
+      }
+    },
     "why": {
       "title": "Warum Velvet Berlin?",
       "visibility": {
@@ -523,7 +545,7 @@
     },
     "final_cta": {
       "title": "Bereit durchzustarten?",
-      "desc": "Schließe dich über 500 erfolgreichen Models und Agenturen an. Beginne noch heute mit Velvet Berlin.",
+      "desc": "Werde Teil von Berlins Premium-Escort-Plattform für erfolgreiche Models und Agenturen.",
       "button": "Jetzt Paket wählen",
       "register": "Erst kostenlos registrieren",
       "urgency": "Angebot gilt nur noch diese Woche"

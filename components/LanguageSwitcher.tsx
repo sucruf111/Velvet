@@ -1,7 +1,6 @@
 'use client';
 
 import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from '@/i18n/routing';
 
 interface LanguageSwitcherProps {
   mobile?: boolean;
@@ -9,11 +8,16 @@ interface LanguageSwitcherProps {
 
 export function LanguageSwitcher({ mobile }: LanguageSwitcherProps) {
   const locale = useLocale();
-  const router = useRouter();
-  const pathname = usePathname();
 
   const switchLocale = (newLocale: string) => {
-    router.replace(pathname, { locale: newLocale });
+    // Use window.location for reliable cross-page locale switching
+    // This ensures we stay on the same page when switching languages
+    const currentPath = window.location.pathname;
+    const pathWithoutLocale = currentPath.replace(/^\/(de|en|ru)/, '') || '/';
+    const newPath = newLocale === 'de'
+      ? pathWithoutLocale  // German is default, no prefix needed
+      : `/${newLocale}${pathWithoutLocale}`;
+    window.location.href = newPath + window.location.search;
   };
 
   if (mobile) {

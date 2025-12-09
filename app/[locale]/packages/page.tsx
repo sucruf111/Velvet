@@ -58,9 +58,15 @@ export default function PackagesPage() {
   const { user, canAdvertise, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'model' | 'agency'>('model');
   const [isVisible, setIsVisible] = useState(false);
+  const [profileCount, setProfileCount] = useState<number | null>(null);
 
   useEffect(() => {
     setIsVisible(true);
+    // Fetch real profile count
+    fetch('/api/public/stats')
+      .then(res => res.json())
+      .then(data => setProfileCount(data.activeProfiles))
+      .catch(() => setProfileCount(0));
   }, []);
 
   // Redirect unauthorized users
@@ -90,6 +96,37 @@ export default function PackagesPage() {
   }
 
   const displayedPackages = activeTab === 'model' ? getModelPackages() : getAgencyPackages();
+
+  // Helper to get translation key for package tier
+  const getTierKey = (packageId: string): string => {
+    const tierMap: Record<string, string> = {
+      'model-free': 'free',
+      'model-premium': 'premium',
+      'model-elite': 'elite',
+      'agency-starter': 'agency_starter',
+      'agency-pro': 'agency_pro',
+    };
+    return tierMap[packageId] || 'free';
+  };
+
+  // Get translated highlights and features for a package
+  const getTranslatedHighlights = (packageId: string): string[] => {
+    const tierKey = getTierKey(packageId);
+    try {
+      return t.raw(`tiers.${tierKey}.highlights`) as string[];
+    } catch {
+      return [];
+    }
+  };
+
+  const getTranslatedFeatures = (packageId: string): string[] => {
+    const tierKey = getTierKey(packageId);
+    try {
+      return t.raw(`tiers.${tierKey}.features`) as string[];
+    } catch {
+      return [];
+    }
+  };
 
   const handleSelectPackage = (packageId: string) => {
     if (!user) {
@@ -169,27 +206,17 @@ export default function PackagesPage() {
             </p>
           </div>
 
-          {/* Social Proof Stats - Animated Counters with Stagger */}
-          <div className={`flex flex-wrap justify-center gap-12 md:gap-16 mb-14 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="text-center group cursor-default">
-              <div className="text-4xl md:text-5xl font-bold text-luxury-gold mb-1 group-hover:scale-110 transition-transform">
-                {isVisible && <AnimatedCounter target={500} suffix="+" />}
+          {/* Active Profiles Counter - Real Data */}
+          {profileCount !== null && profileCount > 0 && (
+            <div className={`flex justify-center mb-14 transition-all duration-700 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <div className="text-center group cursor-default">
+                <div className="text-4xl md:text-5xl font-bold text-luxury-gold mb-1 group-hover:scale-110 transition-transform">
+                  {isVisible && <AnimatedCounter target={profileCount} suffix="" />}
+                </div>
+                <div className="text-sm text-neutral-500 uppercase tracking-wider">{t('stats.active_profiles')}</div>
               </div>
-              <div className="text-sm text-neutral-500 uppercase tracking-wider">{t('stats.active_profiles')}</div>
             </div>
-            <div className="text-center group cursor-default">
-              <div className="text-4xl md:text-5xl font-bold text-luxury-gold mb-1 group-hover:scale-110 transition-transform">
-                {isVisible && <AnimatedCounter target={50} suffix="K+" />}
-              </div>
-              <div className="text-sm text-neutral-500 uppercase tracking-wider">{t('stats.monthly_visitors')}</div>
-            </div>
-            <div className="text-center group cursor-default">
-              <div className="text-4xl md:text-5xl font-bold text-luxury-gold mb-1 group-hover:scale-110 transition-transform">
-                {isVisible && <AnimatedCounter target={98} suffix="%" />}
-              </div>
-              <div className="text-sm text-neutral-500 uppercase tracking-wider">{t('stats.satisfaction')}</div>
-            </div>
-          </div>
+          )}
 
           {/* Tab Switcher - Premium Glass Effect */}
           <div className={`flex justify-center transition-all duration-700 delay-400 ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}>
@@ -310,7 +337,7 @@ export default function PackagesPage() {
                 <div className="bg-neutral-800/50 rounded-lg p-4 mb-6">
                   <p className="text-xs uppercase tracking-wider text-neutral-500 mb-3">{t('highlights')}</p>
                   <ul className="space-y-2">
-                    {pkg.highlights.map((highlight, idx) => (
+                    {getTranslatedHighlights(pkg.id).map((highlight, idx) => (
                       <li key={idx} className="flex items-center gap-3 text-white font-medium">
                         <div className="w-5 h-5 rounded-full bg-luxury-gold/20 flex items-center justify-center flex-shrink-0">
                           <Zap size={12} className="text-luxury-gold" />
@@ -323,7 +350,7 @@ export default function PackagesPage() {
 
                 {/* All Features */}
                 <ul className="space-y-3 mb-8">
-                  {pkg.features.map((feature, idx) => (
+                  {getTranslatedFeatures(pkg.id).map((feature, idx) => (
                     <li key={idx} className="flex items-center gap-3 text-sm text-neutral-400">
                       <Check size={16} className="text-green-500 flex-shrink-0" />
                       {feature}
