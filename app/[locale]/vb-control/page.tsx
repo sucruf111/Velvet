@@ -241,6 +241,39 @@ function formatDate(dateString: string): string {
   });
 }
 
+// Transform database snake_case to camelCase for verification applications
+interface DbVerificationApp {
+  id: string;
+  profile_id: string;
+  user_id: string;
+  status: string;
+  id_photo_url: string;
+  selfie_with_id_url: string;
+  notes?: string;
+  admin_notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+}
+
+function transformVerificationApp(dbApp: DbVerificationApp): VerificationApplication {
+  return {
+    id: dbApp.id,
+    profileId: dbApp.profile_id,
+    userId: dbApp.user_id,
+    status: dbApp.status as VerificationApplication['status'],
+    idPhotoUrl: dbApp.id_photo_url,
+    selfieWithIdUrl: dbApp.selfie_with_id_url,
+    notes: dbApp.notes,
+    adminNotes: dbApp.admin_notes,
+    createdAt: dbApp.createdAt,
+    updatedAt: dbApp.updatedAt,
+    reviewedAt: dbApp.reviewed_at,
+    reviewedBy: dbApp.reviewed_by
+  };
+}
+
 // Format currency
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
@@ -361,12 +394,15 @@ export default function VBControlPage() {
           pendingVerifications
         });
 
-        // Set verification apps with profile data
+        // Set verification apps with profile data (transform snake_case to camelCase)
         if (verificationsData) {
-          const appsWithProfiles = verificationsData.map(app => ({
-            ...app,
-            profile: profilesData.find(p => p.id === app.profileId)
-          }));
+          const appsWithProfiles = verificationsData.map((dbApp: DbVerificationApp) => {
+            const app = transformVerificationApp(dbApp);
+            return {
+              ...app,
+              profile: profilesData.find(p => p.id === app.profileId)
+            };
+          });
           setVerificationApps(appsWithProfiles);
         }
       }
