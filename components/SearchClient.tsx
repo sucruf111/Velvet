@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Filter, X } from 'lucide-react';
@@ -25,6 +25,9 @@ export function SearchClient({ profiles }: SearchClientProps) {
   const [serviceFilter, setServiceFilter] = useState<string>(searchParams.get('service') || '');
   const [isNewFilter, setIsNewFilter] = useState(searchParams.get('isNew') === 'true');
   const [isPremiumFilter, setIsPremiumFilter] = useState(searchParams.get('isPremium') === 'true');
+
+  // Track which profiles have already been tracked in this session
+  const trackedProfilesRef = useRef<Set<string>>(new Set());
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter(profile => {
@@ -51,6 +54,34 @@ export function SearchClient({ profiles }: SearchClientProps) {
       return dateB - dateA;
     });
   }, [profiles, searchTerm, selectedDistrict, maxPrice, serviceFilter, isNewFilter, isPremiumFilter]);
+
+  // Track search appearances for displayed profiles (debounced)
+  useEffect(() => {
+    if (filteredProfiles.length === 0) return;
+
+    // Find profiles that haven't been tracked yet in this session
+    const newProfilesToTrack = filteredProfiles
+      .filter(p => !trackedProfilesRef.current.has(p.id))
+      .map(p => p.id);
+
+    if (newProfilesToTrack.length === 0) return;
+
+    // Mark as tracked immediately to prevent duplicate tracking
+    newProfilesToTrack.forEach(id => trackedProfilesRef.current.add(id));
+
+    // Debounce the API call to batch tracking
+    const timeoutId = setTimeout(() => {
+      fetch('/api/track-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileIds: newProfilesToTrack, type: 'search' })
+      }).catch(() => {
+        // Silently ignore errors
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [filteredProfiles]);
 
   const resetFilters = () => {
     setSearchTerm('');
