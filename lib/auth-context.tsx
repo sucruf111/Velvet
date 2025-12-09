@@ -126,8 +126,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initAuth = async () => {
       try {
         const { data: { user: currentUser }, error } = await supabase.auth.getUser();
-        // Only log actual errors, not "no session" which is normal for non-logged-in users
-        if (error && !error.message?.includes('session') && error.code !== 'PGRST116') {
+        // Don't log session-related errors - these are normal for non-logged-in users
+        if (error &&
+            !error.message?.toLowerCase().includes('session') &&
+            !error.name?.includes('AuthSessionMissing') &&
+            error.code !== 'PGRST116') {
           console.error('Auth init error:', error);
         }
         if (currentUser) {
