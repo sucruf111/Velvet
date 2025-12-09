@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing profileId' }, { status: 400 });
     }
 
+    // Check if service role key is configured
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not configured');
+      // Return empty data instead of error - verification status is optional
+      return NextResponse.json({ data: null });
+    }
+
     // Verify the requesting user owns this profile
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -47,11 +54,16 @@ export async function GET(request: NextRequest) {
     const supabaseAdmin = getSupabaseAdmin();
 
     // Check if user owns this profile
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('userId')
       .eq('id', profileId)
       .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      return NextResponse.json({ data: null });
+    }
 
     if (!profile || profile.userId !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -69,12 +81,14 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching verification:', error);
-      return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+      // Return null instead of error - this is not critical
+      return NextResponse.json({ data: null });
     }
 
     return NextResponse.json({ data: verApp });
   } catch (error) {
     console.error('Verification status error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Return null data on error so the page doesn't break
+    return NextResponse.json({ data: null });
   }
 }
