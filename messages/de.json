@@ -39,7 +39,9 @@
     "faq_3_a": "Die Zahlungsmodalitäten werden direkt zwischen Ihnen und der Begleitung vereinbart. Die meisten bevorzugen Barzahlung. Details finden Sie im jeweiligen Profil oder erfragen Sie diese beim Erstkontakt.",
     "faq_4_q": "Bieten Sie auch Agentur-Escorts an?",
     "faq_4_a": "Ja, neben unabhängigen Models listen wir auch etablierte Escort-Agenturen in Berlin. Agentur-Profile sind entsprechend gekennzeichnet und bieten oft erweiterte Verfügbarkeit.",
-    "districts_title": "Beliebte Bezirke"
+    "districts_title": "Beliebte Bezirke",
+    "load_more": "Mehr laden",
+    "remaining": "weitere"
   },
   "card": {
     "call_now": "Anrufen",

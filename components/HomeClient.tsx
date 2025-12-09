@@ -22,9 +22,24 @@ interface HomeClientProps {
   };
 }
 
+const PREMIUM_INITIAL = 12;
+const PREMIUM_LOAD_MORE = 12;
+const STANDARD_INITIAL = 24;
+const STANDARD_LOAD_MORE = 24;
+
 export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts }: HomeClientProps) {
   const router = useRouter();
   const t = useTranslations('home');
+
+  // State for "Load More" functionality
+  const [premiumVisible, setPremiumVisible] = useState(PREMIUM_INITIAL);
+  const [standardVisible, setStandardVisible] = useState(STANDARD_INITIAL);
+
+  const visiblePremiumProfiles = premiumProfiles.slice(0, premiumVisible);
+  const visibleStandardProfiles = standardProfiles.slice(0, standardVisible);
+
+  const hasMorePremium = premiumProfiles.length > premiumVisible;
+  const hasMoreStandard = standardProfiles.length > standardVisible;
 
   return (
     <div className="animate-fade-in bg-luxury-black min-h-screen">
@@ -110,35 +125,57 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
               <div className="flex items-center gap-4 mb-6 px-6 pt-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
                 <span className="text-gold-gradient uppercase tracking-[0.2em] text-sm font-black shadow-gold-glow bg-black/50 px-4 py-1 rounded-full border border-luxury-gold/30">
-                  {t('premium_title')}
+                  {t('premium_title')} ({premiumProfiles.length})
                 </span>
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 mb-10 border-y border-white/5 bg-white/5 w-full">
-                {premiumProfiles.map(profile => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 border-y border-white/5 bg-white/5 w-full">
+                {visiblePremiumProfiles.map(profile => (
                   <ProfileCard key={profile.id} profile={profile} />
                 ))}
               </div>
+
+              {hasMorePremium && (
+                <div className="text-center py-6">
+                  <button
+                    onClick={() => setPremiumVisible(prev => prev + PREMIUM_LOAD_MORE)}
+                    className="px-8 py-3 bg-luxury-gold/10 hover:bg-luxury-gold/20 border border-luxury-gold/30 hover:border-luxury-gold/50 text-luxury-gold text-xs font-bold uppercase tracking-widest transition-all rounded"
+                  >
+                    {t('load_more')} ({premiumProfiles.length - premiumVisible} {t('remaining')})
+                  </button>
+                </div>
+              )}
             </>
           )}
 
           {/* Standard Section */}
           {standardProfiles.length > 0 && (
             <>
-              <div className="flex items-center gap-4 mb-6 px-6">
+              <div className="flex items-center gap-4 mb-6 px-6 mt-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-neutral-700 to-transparent flex-1"></div>
                 <span className="text-neutral-500 uppercase tracking-[0.2em] text-sm font-bold bg-black/50 px-4 py-1 rounded-full border border-neutral-800">
-                  {t('new_title')}
+                  {t('new_title')} ({standardProfiles.length})
                 </span>
                 <div className="h-px bg-gradient-to-r from-transparent via-neutral-700 to-transparent flex-1"></div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 border-y border-white/5 bg-white/5 w-full">
-                {standardProfiles.map(profile => (
+                {visibleStandardProfiles.map(profile => (
                   <ProfileCard key={profile.id} profile={profile} />
                 ))}
               </div>
+
+              {hasMoreStandard && (
+                <div className="text-center py-6">
+                  <button
+                    onClick={() => setStandardVisible(prev => prev + STANDARD_LOAD_MORE)}
+                    className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-neutral-700 hover:border-neutral-600 text-neutral-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-all rounded"
+                  >
+                    {t('load_more')} ({standardProfiles.length - standardVisible} {t('remaining')})
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

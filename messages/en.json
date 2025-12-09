@@ -39,7 +39,9 @@
     "faq_3_a": "Payment arrangements are made directly between you and the companion. Most prefer cash payment. Details can be found in each profile or asked during first contact.",
     "faq_4_q": "Do you also offer agency escorts?",
     "faq_4_a": "Yes, alongside independent models we also list established escort agencies in Berlin. Agency profiles are clearly marked and often offer extended availability.",
-    "districts_title": "Popular Districts"
+    "districts_title": "Popular Districts",
+    "load_more": "Load More",
+    "remaining": "remaining"
   },
   "card": {
     "call_now": "Call Now",
