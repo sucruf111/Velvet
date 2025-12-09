@@ -135,18 +135,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         if (currentUser) {
           const metadata = currentUser.user_metadata as UserMetadata;
-          // Don't block initialization on verification status
-          let isVerified = false;
-          try {
-            isVerified = await fetchVerificationStatus(
-              currentUser.id,
-              metadata?.role || 'customer',
-              metadata?.profile_id
-            );
-          } catch (e) {
-            console.error('Verification check error:', e);
-          }
-          setUser(transformSupabaseUser(currentUser, isVerified));
+          // Set user immediately, fetch verification in background
+          setUser(transformSupabaseUser(currentUser, metadata?.is_verified ?? false));
+
+          // Fetch actual verification status in background (non-blocking)
+          fetchVerificationStatus(
+            currentUser.id,
+            metadata?.role || 'customer',
+            metadata?.profile_id
+          ).then(isVerified => {
+            setUser(prev => prev ? { ...prev, isVerified } : null);
+          }).catch(() => {
+            // Silently ignore verification fetch errors
+          });
         }
       } catch (e) {
         console.error('Auth init failed:', e);
@@ -157,20 +158,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const metadata = session.user.user_metadata as UserMetadata;
-        let isVerified = false;
-        try {
-          isVerified = await fetchVerificationStatus(
-            session.user.id,
-            metadata?.role || 'customer',
-            metadata?.profile_id
-          );
-        } catch (e) {
-          console.error('Verification check error in auth state change:', e);
-        }
-        setUser(transformSupabaseUser(session.user, isVerified));
+        // Set user immediately with cached verification status
+        setUser(transformSupabaseUser(session.user, metadata?.is_verified ?? false));
+
+        // Fetch actual verification status in background (non-blocking)
+        fetchVerificationStatus(
+          session.user.id,
+          metadata?.role || 'customer',
+          metadata?.profile_id
+        ).then(isVerified => {
+          setUser(prev => prev ? { ...prev, isVerified } : null);
+        }).catch(() => {
+          // Silently ignore verification fetch errors
+        });
       } else {
         setUser(null);
       }
