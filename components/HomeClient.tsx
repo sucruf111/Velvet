@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
+import { useRouter, Link } from '@/i18n/routing';
 import { Profile, Agency, ServiceType } from '@/lib/types';
 import { ProfileCard } from './ProfileCard';
 import { AgencyCard } from './AgencyCard';
 import { LuxuryBackground } from './LuxuryBackground';
+import { ChevronDown, MapPin, Shield, Clock } from 'lucide-react';
 
 interface HomeClientProps {
   premiumProfiles: Profile[];
@@ -167,7 +169,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
       )}
 
       {/* View All Button */}
-      <div className="text-center pb-24">
+      <div className="text-center pb-16">
         <button
           onClick={() => router.push('/search')}
           className="px-10 py-4 border border-luxury-gold/50 text-luxury-gold hover:bg-luxury-gold-gradient hover:text-black transition-all uppercase tracking-[0.2em] text-sm font-bold shadow-[0_0_20px_rgba(212,175,55,0.1)] hover:shadow-gold-glow"
@@ -175,6 +177,89 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
           {t('view_all')}
         </button>
       </div>
+
+      {/* SEO Content Section */}
+      <section className="bg-neutral-950 border-t border-white/5 py-16">
+        <div className="max-w-5xl mx-auto px-6">
+          {/* Main SEO Title */}
+          <h2 className="font-serif text-2xl md:text-3xl text-white mb-6 text-center">
+            {t('seo_title')}
+          </h2>
+
+          {/* Intro Text */}
+          <p className="text-neutral-400 text-sm md:text-base leading-relaxed mb-10 text-center max-w-3xl mx-auto">
+            {t('seo_intro')}
+          </p>
+
+          {/* Feature Grid */}
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="text-center p-6 bg-white/5 rounded border border-white/10">
+              <Shield className="w-8 h-8 text-luxury-gold mx-auto mb-4" />
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-2">{t('seo_why_title')}</h3>
+              <p className="text-neutral-500 text-xs leading-relaxed">{t('seo_why_text')}</p>
+            </div>
+            <div className="text-center p-6 bg-white/5 rounded border border-white/10">
+              <Clock className="w-8 h-8 text-luxury-gold mx-auto mb-4" />
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-2">{t('seo_services_title')}</h3>
+              <p className="text-neutral-500 text-xs leading-relaxed">{t('seo_services_text')}</p>
+            </div>
+            <div className="text-center p-6 bg-white/5 rounded border border-white/10">
+              <MapPin className="w-8 h-8 text-luxury-gold mx-auto mb-4" />
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-2">{t('seo_districts_title')}</h3>
+              <p className="text-neutral-500 text-xs leading-relaxed">{t('seo_districts_text')}</p>
+            </div>
+          </div>
+
+          {/* District Links */}
+          <div className="mb-12">
+            <h3 className="text-luxury-gold text-sm font-bold uppercase tracking-widest mb-4 text-center">{t('districts_title')}</h3>
+            <div className="flex flex-wrap justify-center gap-2">
+              {['Mitte', 'Charlottenburg', 'Prenzlauer Berg', 'Kreuzberg', 'Friedrichshain', 'Schöneberg', 'Neukölln', 'Steglitz'].map((district) => (
+                <Link
+                  key={district}
+                  href={`/search?district=${district}`}
+                  className="px-4 py-2 bg-white/5 hover:bg-luxury-gold/20 border border-white/10 hover:border-luxury-gold/50 rounded text-neutral-400 hover:text-white text-xs transition-all"
+                >
+                  Escort {district}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="border-t border-white/10 pt-12">
+            <h3 className="font-serif text-xl text-white mb-8 text-center">{t('faq_title')}</h3>
+            <div className="space-y-4 max-w-3xl mx-auto">
+              <FAQItem question={t('faq_1_q')} answer={t('faq_1_a')} />
+              <FAQItem question={t('faq_2_q')} answer={t('faq_2_a')} />
+              <FAQItem question={t('faq_3_q')} answer={t('faq_3_a')} />
+              <FAQItem question={t('faq_4_q')} answer={t('faq_4_a')} />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// FAQ Accordion Component
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border border-white/10 rounded overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 text-left bg-white/5 hover:bg-white/10 transition-colors"
+      >
+        <span className="text-white text-sm font-medium pr-4">{question}</span>
+        <ChevronDown className={`w-5 h-5 text-luxury-gold flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && (
+        <div className="p-4 bg-neutral-900/50">
+          <p className="text-neutral-400 text-sm leading-relaxed">{answer}</p>
+        </div>
+      )}
     </div>
   );
 }
