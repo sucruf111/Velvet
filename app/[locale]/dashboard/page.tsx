@@ -98,6 +98,21 @@ export default function DashboardPage() {
         if (fetchError) throw fetchError;
         setMyProfile(data);
 
+        // Update lastActive timestamp when model visits dashboard (makes them "Available Now")
+        if (data) {
+          supabase
+            .from('profiles')
+            .update({ lastActive: new Date().toISOString() })
+            .eq('id', user.profileId)
+            .then(() => {
+              // Update local state too
+              setMyProfile(prev => prev ? { ...prev, lastActive: new Date().toISOString() } : null);
+            })
+            .catch(() => {
+              // Silently ignore errors
+            });
+        }
+
         // Fetch verification application via API route (bypasses RLS issues)
         try {
           const response = await fetch(`/api/verification-status?profileId=${user.profileId}`);
