@@ -159,6 +159,7 @@
     "display_name_placeholder": "Your stage name",
     "contact_method": "Contact Method",
     "phone_placeholder": "+49 123 456789",
+    "contact_min_one": "min. 1 required",
     "contact_hint": "At least one contact method required",
     "description_placeholder": "Tell us something about yourself...",
     "agency_step1_title": "Agency Credentials",

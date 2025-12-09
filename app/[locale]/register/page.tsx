@@ -699,7 +699,7 @@ export default function RegisterPage() {
                     value={formData.displayName}
                     onChange={(e) => updateForm('displayName', e.target.value)}
                     placeholder={t('register.display_name_placeholder')}
-                    error={!!error}
+                    error={!!error && error === t('register.error_name_required')}
                   />
                 </div>
 
@@ -714,7 +714,7 @@ export default function RegisterPage() {
                     value={formData.age}
                     onChange={(e) => updateForm('age', e.target.value)}
                     placeholder="25"
-                    error={!!error}
+                    error={!!error && error === t('register.error_age_invalid')}
                   />
                 </div>
 
@@ -736,10 +736,10 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">
-                  {t('register.contact_method')} *
+                <label className={`block text-xs uppercase tracking-widest mb-2 ${error === t('register.error_contact_required') ? 'text-red-400' : 'text-neutral-400'}`}>
+                  {t('register.contact_method')} * <span className="normal-case font-normal">({t('register.contact_min_one')})</span>
                 </label>
-                <div className="space-y-3">
+                <div className={`space-y-3 p-3 rounded-sm border ${error === t('register.error_contact_required') ? 'border-red-500 bg-red-900/10' : 'border-transparent'}`}>
                   <div className="flex items-center gap-3">
                     <Phone className="w-4 h-4 text-neutral-500" />
                     <Input
@@ -748,6 +748,7 @@ export default function RegisterPage() {
                       onChange={(e) => updateForm('contactPhone', e.target.value)}
                       placeholder={t('register.phone_placeholder')}
                       className="flex-1"
+                      error={error === t('register.error_contact_required')}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -758,6 +759,7 @@ export default function RegisterPage() {
                       onChange={(e) => updateForm('whatsapp', e.target.value)}
                       placeholder="WhatsApp"
                       className="flex-1"
+                      error={error === t('register.error_contact_required')}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -770,6 +772,7 @@ export default function RegisterPage() {
                       onChange={(e) => updateForm('telegram', e.target.value)}
                       placeholder="Telegram @username"
                       className="flex-1"
+                      error={error === t('register.error_contact_required')}
                     />
                   </div>
                 </div>

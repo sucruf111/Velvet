@@ -159,6 +159,7 @@
     "display_name_placeholder": "Ihr Künstlername",
     "contact_method": "Kontaktmethode",
     "phone_placeholder": "+49 123 456789",
+    "contact_min_one": "min. 1 erforderlich",
     "contact_hint": "Mindestens eine Kontaktmethode erforderlich",
     "description_placeholder": "Erzählen Sie etwas über sich...",
     "agency_step1_title": "Agentur-Zugangsdaten",

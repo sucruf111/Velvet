@@ -139,6 +139,7 @@
     "display_name_placeholder": "Ваше сценическое имя",
     "contact_method": "Способ связи",
     "phone_placeholder": "+49 123 456789",
+    "contact_min_one": "мин. 1 обязательно",
     "contact_hint": "Требуется хотя бы один способ связи",
     "description_placeholder": "Расскажите о себе...",
     "agency_step1_title": "Данные агентства",
