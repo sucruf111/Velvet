@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 
 interface BadgeProps {
-  type: 'premium' | 'new' | 'verified' | 'top' | 'choice';
+  type: 'premium' | 'elite' | 'new' | 'verified' | 'top' | 'choice';
 }
 
 export function Badge({ type }: BadgeProps) {
@@ -11,15 +11,25 @@ export function Badge({ type }: BadgeProps) {
 
   const styles = {
     premium: 'bg-luxury-gold-gradient text-black',
+    elite: 'bg-gradient-to-r from-purple-600 to-purple-400 text-white',
     new: 'bg-green-500 text-white',
     verified: 'bg-blue-500 text-white',
     top: 'bg-red-500 text-white',
     choice: 'bg-purple-600 text-white'
   };
 
+  const labels: Record<string, string> = {
+    premium: 'Premium',
+    elite: 'Elite',
+    new: t('new'),
+    verified: t('verified'),
+    top: t('top'),
+    choice: t('choice'),
+  };
+
   return (
     <span className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded ${styles[type]}`}>
-      {t(type)}
+      {type === 'premium' ? '⭐ Premium' : type === 'elite' ? '👑 Elite' : labels[type] || t(type)}
     </span>
   );
 }

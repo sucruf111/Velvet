@@ -1,84 +1,203 @@
+// Tier Types
+export type ModelTier = 'free' | 'premium' | 'elite';
+
+// Tier Limits Configuration
+export interface TierLimits {
+  photos: number;
+  videos: number;
+  services: number;
+  contacts: number; // 1 = single contact only, Infinity = all
+  schedule: boolean;
+  statistics: boolean;
+  advancedStatistics: boolean; // Traffic sources, hourly breakdown
+  badge: 'premium' | 'elite' | null;
+  searchPriority: number; // 0 = lowest, 1 = medium, 2 = highest
+  homepage: 'carousel' | 'grid' | false;
+  boostsPerMonth: number;
+  onlineIndicator: boolean;
+  verificationPriority: boolean;
+}
+
+export const TIER_LIMITS: Record<ModelTier, TierLimits> = {
+  free: {
+    photos: 1,
+    videos: 0,
+    services: 3,
+    contacts: 1,
+    schedule: false,
+    statistics: false,
+    advancedStatistics: false,
+    badge: null,
+    searchPriority: 0,
+    homepage: false,
+    boostsPerMonth: 0,
+    onlineIndicator: false,
+    verificationPriority: false,
+  },
+  premium: {
+    photos: 5,
+    videos: 1,
+    services: Infinity,
+    contacts: Infinity,
+    schedule: true,
+    statistics: true,
+    advancedStatistics: false,
+    badge: 'premium',
+    searchPriority: 1,
+    homepage: 'grid',
+    boostsPerMonth: 2,
+    onlineIndicator: false,
+    verificationPriority: false,
+  },
+  elite: {
+    photos: Infinity,
+    videos: 3,
+    services: Infinity,
+    contacts: Infinity,
+    schedule: true,
+    statistics: true,
+    advancedStatistics: true,
+    badge: 'elite',
+    searchPriority: 2,
+    homepage: 'carousel',
+    boostsPerMonth: Infinity,
+    onlineIndicator: true,
+    verificationPriority: true,
+  },
+};
+
+// Helper functions for tier limits
+export function getTierLimits(tier: ModelTier): TierLimits {
+  return TIER_LIMITS[tier] || TIER_LIMITS.free;
+}
+
+export function getPhotoLimit(tier: ModelTier): number {
+  return getTierLimits(tier).photos;
+}
+
+export function getVideoLimit(tier: ModelTier): number {
+  return getTierLimits(tier).videos;
+}
+
+export function getServiceLimit(tier: ModelTier): number {
+  return getTierLimits(tier).services;
+}
+
+export function canUseSchedule(tier: ModelTier): boolean {
+  return getTierLimits(tier).schedule;
+}
+
+export function canSeeStatistics(tier: ModelTier): boolean {
+  return getTierLimits(tier).statistics;
+}
+
+export function canSeeAdvancedStatistics(tier: ModelTier): boolean {
+  return getTierLimits(tier).advancedStatistics;
+}
+
+export function getSearchPriority(tier: ModelTier, isBoosted: boolean = false): number {
+  const basePriority = getTierLimits(tier).searchPriority;
+  return isBoosted && tier !== 'free' ? basePriority + 1 : basePriority;
+}
+
+export function canBoost(tier: ModelTier): boolean {
+  return getTierLimits(tier).boostsPerMonth > 0;
+}
+
+export function hasOnlineIndicator(tier: ModelTier): boolean {
+  return getTierLimits(tier).onlineIndicator;
+}
+
+// Package Interface (for pricing display)
 export interface Package {
   id: string;
   name: string;
+  tier: ModelTier;
   type: 'model' | 'agency';
   price: number;
-  originalPrice?: number; // For showing discounts
+  originalPrice?: number;
   durationDays: number;
   features: string[];
-  highlights: string[]; // Key selling points (shown prominently)
+  highlights: string[];
   isPopular?: boolean;
   isBestValue?: boolean;
   extraModelPrice?: number;
   savings?: string;
 }
 
-export const PACKAGES: Package[] = [
-  // Model Packages
+// Model Packages (3-tier system)
+export const MODEL_PACKAGES: Package[] = [
   {
-    id: 'model-starter',
-    name: 'Starter',
+    id: 'model-free',
+    name: 'Free',
+    tier: 'free',
     type: 'model',
-    price: 99,
-    durationDays: 14,
+    price: 0,
+    durationDays: Infinity,
     highlights: [
-      '5 Profi-Fotos',
-      'Direkter Kundenkontakt',
+      '1 Foto',
+      '1 Kontaktmethode',
+      'In der Suche sichtbar',
     ],
     features: [
-      'Standard Profil',
-      'In der Suche sichtbar',
-      'Telefon & WhatsApp anzeigen',
-      'Grundlegende Statistiken',
+      'Basis-Profil',
+      '3 Services auswählbar',
+      'Standard Suchposition',
     ],
   },
   {
     id: 'model-premium',
     name: 'Premium',
+    tier: 'premium',
     type: 'model',
-    price: 199,
-    originalPrice: 249,
+    price: 99,
     durationDays: 30,
     isPopular: true,
-    savings: '20%',
     highlights: [
-      '15 Fotos + 1 Video',
-      'Premium-Badge',
+      '5 Fotos + 1 Video',
+      'Premium-Badge ⭐',
       'Top-Platzierung in Suche',
     ],
     features: [
-      'Alles aus Starter',
-      'Hervorgehobenes Profil',
+      'Alle Kontaktmethoden',
+      'Unbegrenzte Services',
       'Wochenplan-Kalender',
-      'Erweiterte Statistiken',
-      'Verifiziert-Badge',
+      'Vollständige Statistiken',
+      '2 Profil-Boosts/Monat',
+      'Im Premium-Bereich der Startseite',
     ],
   },
   {
     id: 'model-elite',
     name: 'Elite',
+    tier: 'elite',
     type: 'model',
-    price: 349,
+    price: 149,
     durationDays: 30,
     isBestValue: true,
     highlights: [
-      'Unbegrenzte Fotos & Videos',
-      'Startseiten-Feature',
-      'VIP Support 24/7',
+      'Unbegrenzte Fotos + 3 Videos',
+      'Elite-Badge 👑',
+      'Höchste Suchposition',
     ],
     features: [
       'Alles aus Premium',
-      'Elite-Badge',
-      'Höchste Suchposition',
-      'Social Media Promotion',
-      'Persönlicher Account Manager',
-      'Priorität bei neuen Features',
+      '"Online Jetzt" Anzeige',
+      'Unbegrenzte Boosts',
+      'Featured Carousel auf Startseite',
+      'Erweiterte Analytics',
+      'Prioritäts-Verifizierung',
+      'Priority Support (4h Antwort)',
     ],
   },
-  // Agency Packages
+];
+
+// Agency Packages (unchanged for now)
+export const AGENCY_PACKAGES: Package[] = [
   {
     id: 'agency-starter',
     name: 'Agentur Basis',
+    tier: 'free', // agencies don't use tier system the same way
     type: 'agency',
     price: 499,
     durationDays: 30,
@@ -98,6 +217,7 @@ export const PACKAGES: Package[] = [
   {
     id: 'agency-pro',
     name: 'Agentur Pro',
+    tier: 'premium',
     type: 'agency',
     price: 899,
     originalPrice: 1099,
@@ -120,14 +240,29 @@ export const PACKAGES: Package[] = [
   },
 ];
 
+// Combined packages for backward compatibility
+export const PACKAGES: Package[] = [...MODEL_PACKAGES, ...AGENCY_PACKAGES];
+
+// Helper functions
 export function getPackageById(id: string): Package | undefined {
   return PACKAGES.find(pkg => pkg.id === id);
 }
 
 export function getModelPackages(): Package[] {
-  return PACKAGES.filter(pkg => pkg.type === 'model');
+  return MODEL_PACKAGES;
 }
 
 export function getAgencyPackages(): Package[] {
-  return PACKAGES.filter(pkg => pkg.type === 'agency');
+  return AGENCY_PACKAGES;
+}
+
+export function getPackageByTier(tier: ModelTier): Package | undefined {
+  return MODEL_PACKAGES.find(pkg => pkg.tier === tier);
+}
+
+// Get default boosts for a tier (used when subscription starts/renews)
+export function getDefaultBoosts(tier: ModelTier): number {
+  const limits = getTierLimits(tier);
+  if (limits.boostsPerMonth === Infinity) return 999; // Elite unlimited
+  return limits.boostsPerMonth;
 }

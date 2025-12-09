@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { Filter, X } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
 import { Button, Input, Select } from './ui';
-import { Profile, District, ServiceType, isProfileNew } from '@/lib/types';
+import { Profile, District, ServiceType, isProfileNew, isProfileBoosted } from '@/lib/types';
+import { getSearchPriority } from '@/lib/packages';
 
 interface SearchClientProps {
   profiles: Profile[];
@@ -24,7 +25,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
   const [maxPrice, setMaxPrice] = useState<number>(10000);
   const [serviceFilter, setServiceFilter] = useState<string>(searchParams.get('service') || '');
   const [isNewFilter, setIsNewFilter] = useState(searchParams.get('isNew') === 'true');
-  const [isPremiumFilter, setIsPremiumFilter] = useState(searchParams.get('isPremium') === 'true');
+  const [tierFilter, setTierFilter] = useState<string>(searchParams.get('tier') || ''); // '', 'premium', 'elite'
 
   // Track which profiles have already been tracked in this session
   const trackedProfilesRef = useRef<Set<string>>(new Set());
@@ -39,21 +40,30 @@ export function SearchClient({ profiles }: SearchClientProps) {
       const matchesPrice = profile.priceStart <= maxPrice;
       const matchesService = serviceFilter ? profile.services.includes(serviceFilter as ServiceType) : true;
       const matchesNew = isNewFilter ? isProfileNew(profile) : true;
-      const matchesPremium = isPremiumFilter ? profile.isPremium : true;
+      // Tier filter: if 'premium' selected, show premium and elite; if 'elite' selected, show only elite
+      const matchesTier = !tierFilter ? true :
+        tierFilter === 'elite' ? profile.tier === 'elite' :
+        (profile.tier === 'premium' || profile.tier === 'elite');
 
-      return matchesSearch && matchesDistrict && matchesPrice && matchesService && matchesNew && matchesPremium;
+      return matchesSearch && matchesDistrict && matchesPrice && matchesService && matchesNew && matchesTier;
     }).sort((a, b) => {
+      // 1. Unavailable profiles go to the bottom
       const aUnavailable = a.isOnline === false;
       const bUnavailable = b.isOnline === false;
       if (aUnavailable && !bUnavailable) return 1;
       if (!aUnavailable && bUnavailable) return -1;
-      if (b.isPremium && !a.isPremium) return 1;
-      if (a.isPremium && !b.isPremium) return -1;
+
+      // 2. Sort by tier priority (Elite boosted > Elite > Premium boosted > Premium > Free)
+      const priorityA = getSearchPriority(a.tier || 'free', isProfileBoosted(a));
+      const priorityB = getSearchPriority(b.tier || 'free', isProfileBoosted(b));
+      if (priorityB !== priorityA) return priorityB - priorityA;
+
+      // 3. Within same priority, sort by lastActive (most recent first)
       const dateA = new Date(a.lastActive || 0).getTime();
       const dateB = new Date(b.lastActive || 0).getTime();
       return dateB - dateA;
     });
-  }, [profiles, searchTerm, selectedDistrict, maxPrice, serviceFilter, isNewFilter, isPremiumFilter]);
+  }, [profiles, searchTerm, selectedDistrict, maxPrice, serviceFilter, isNewFilter, tierFilter]);
 
   // Track search appearances for displayed profiles (debounced)
   useEffect(() => {
@@ -88,7 +98,7 @@ export function SearchClient({ profiles }: SearchClientProps) {
     setSelectedDistrict('');
     setServiceFilter('');
     setIsNewFilter(false);
-    setIsPremiumFilter(false);
+    setTierFilter('');
     setMaxPrice(10000);
   };
 
@@ -162,15 +172,19 @@ export function SearchClient({ profiles }: SearchClientProps) {
                 />
                 <span className="text-sm text-neutral-300 group-hover:text-white transition-colors">{t('badge.new')}</span>
               </label>
-              <label className="flex items-center space-x-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={isPremiumFilter}
-                  onChange={e => setIsPremiumFilter(e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-luxury-gold bg-neutral-800 border-neutral-600 rounded focus:ring-luxury-gold focus:ring-offset-neutral-900 accent-luxury-gold"
-                />
-                <span className="text-sm text-neutral-300 group-hover:text-white transition-colors">{t('badge.premium')}</span>
-              </label>
+            </div>
+
+            {/* Tier Filter */}
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-neutral-400 mb-2">Status</label>
+              <Select
+                value={tierFilter}
+                onChange={e => setTierFilter(e.target.value)}
+              >
+                <option value="">{t('search.all_profiles') || 'Alle Profile'}</option>
+                <option value="premium">⭐ Premium & Elite</option>
+                <option value="elite">👑 Elite</option>
+              </Select>
             </div>
 
             {/* Price Range */}
@@ -211,7 +225,8 @@ export function SearchClient({ profiles }: SearchClientProps) {
                 {t('search.showing')} {filteredProfiles.length} {t('search.profiles')}
               </span>
               {isNewFilter && <span className="text-[10px] uppercase font-bold bg-gradient-to-r from-red-600 to-pink-600 text-white px-2 py-0.5 rounded-sm">{t('badge.new')}</span>}
-              {isPremiumFilter && <span className="text-[10px] uppercase font-bold bg-luxury-gold-gradient text-black px-2 py-0.5 rounded-sm">{t('badge.premium')}</span>}
+              {tierFilter === 'premium' && <span className="text-[10px] uppercase font-bold bg-luxury-gold-gradient text-black px-2 py-0.5 rounded-sm">⭐ Premium+</span>}
+              {tierFilter === 'elite' && <span className="text-[10px] uppercase font-bold bg-gradient-to-r from-purple-600 to-purple-400 text-white px-2 py-0.5 rounded-sm">👑 Elite</span>}
             </div>
           </div>
 

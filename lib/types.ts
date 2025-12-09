@@ -89,6 +89,9 @@ export interface Agency {
 
 export type VisitType = 'incall' | 'outcall' | 'both';
 
+// Tier type (imported from packages.ts but also defined here for convenience)
+export type ModelTier = 'free' | 'premium' | 'elite';
+
 export interface Profile {
   id: string;
   name: string;
@@ -100,7 +103,7 @@ export interface Profile {
   services: ServiceType[];
   description: string;
   images: string[];
-  isPremium: boolean;
+  isPremium: boolean; // Legacy - kept for backward compatibility, use tier instead
   isNew: boolean;
   isVerified: boolean;
   isVelvetChoice: boolean;
@@ -122,6 +125,13 @@ export interface Profile {
   createdAt: string;
   visitType?: VisitType;
   isDisabled?: boolean;
+
+  // New tier system fields
+  tier: ModelTier;
+  boostsRemaining: number;
+  boostedUntil?: string; // ISO timestamp when boost expires
+  videoUrls: string[];
+  primaryContact?: 'phone' | 'whatsapp' | 'telegram'; // For free tier single contact
 }
 
 export const isProfileActive = (profile: Profile): boolean => {
@@ -138,6 +148,22 @@ export const isProfileNew = (profile: Profile): boolean => {
   const now = new Date();
   const diffDays = (now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
   return diffDays <= 7;
+};
+
+export const isProfileBoosted = (profile: Profile): boolean => {
+  if (!profile.boostedUntil) return false;
+  const boostedUntil = new Date(profile.boostedUntil);
+  return boostedUntil > new Date();
+};
+
+// Check if elite profile is "online now" (active within 15 minutes)
+export const isEliteOnlineNow = (profile: Profile): boolean => {
+  if (profile.tier !== 'elite') return false;
+  if (!profile.lastActive) return false;
+  const lastActiveDate = new Date(profile.lastActive);
+  const now = new Date();
+  const diffMinutes = (now.getTime() - lastActiveDate.getTime()) / (1000 * 60);
+  return diffMinutes <= 15;
 };
 
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';

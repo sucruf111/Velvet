@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Profile, Agency } from './types';
+import { Profile, Agency, ModelTier } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -11,6 +11,19 @@ function getThirtyDaysAgo(): string {
   const date = new Date();
   date.setDate(date.getDate() - 30);
   return date.toISOString();
+}
+
+// Transform database profile to frontend Profile type with tier defaults
+function transformProfile(dbProfile: Record<string, unknown>): Profile {
+  return {
+    ...dbProfile,
+    // Map snake_case to camelCase for new tier fields
+    tier: (dbProfile.tier as ModelTier) || 'free',
+    boostsRemaining: (dbProfile.boosts_remaining as number) || 0,
+    boostedUntil: dbProfile.boosted_until as string | undefined,
+    videoUrls: (dbProfile.video_urls as string[]) || [],
+    primaryContact: dbProfile.primary_contact as 'phone' | 'whatsapp' | 'telegram' | undefined,
+  } as Profile;
 }
 
 // Server-side data fetching functions
@@ -41,7 +54,8 @@ export async function getProfiles(): Promise<Profile[]> {
     return notDisabled && isActive;
   });
 
-  return filteredData;
+  // Transform all profiles to include tier defaults
+  return filteredData.map(transformProfile);
 }
 
 export async function getProfileById(id: string): Promise<Profile | null> {
@@ -56,7 +70,7 @@ export async function getProfileById(id: string): Promise<Profile | null> {
     return null;
   }
 
-  return data;
+  return data ? transformProfile(data) : null;
 }
 
 export async function getAgencies(): Promise<Agency[]> {

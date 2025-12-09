@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, Clock } from 'lucide-react';
-import { Profile, isProfileActive, isProfileNew } from '@/lib/types';
+import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, Clock, Flame } from 'lucide-react';
+import { Profile, isProfileActive, isProfileNew, isProfileBoosted, isEliteOnlineNow } from '@/lib/types';
 import { Badge } from './ui/Badge';
 
 // Format last active time in a human-readable way
@@ -62,13 +62,27 @@ export function ProfileCard({ profile }: ProfileCardProps) {
   const isUnavailable = profile.isOnline === false;
   const isAvailableNow = profile.isOnline !== false && isProfileActive(profile);
   const showNewBadge = isProfileNew(profile);
+  const isBoosted = isProfileBoosted(profile);
+  const isEliteOnline = isEliteOnlineNow(profile);
+
+  // Tier-based styling
+  const tier = profile.tier || 'free';
+  const isElite = tier === 'elite';
+  const isPremium = tier === 'premium';
 
   // Check visit types
   const hasIncall = profile.visitType === 'incall' || profile.visitType === 'both';
   const hasOutcall = profile.visitType === 'outcall' || profile.visitType === 'both';
 
+  // Card border class based on tier
+  const borderClass = isElite
+    ? 'border-purple-500/50 hover:border-purple-400 shadow-purple-500/10'
+    : isPremium
+    ? 'border-amber-500/40 hover:border-amber-400 shadow-amber-500/10'
+    : 'border-white/5 hover:border-luxury-gold/50';
+
   return (
-    <div className="group relative w-full bg-neutral-900 border border-white/5 hover:border-luxury-gold/50 transition-all duration-500 hover:shadow-[0_0_20px_rgba(212,175,55,0.1)] overflow-hidden rounded-sm">
+    <div className={`group relative w-full bg-neutral-900 border ${borderClass} transition-all duration-500 hover:shadow-[0_0_20px_rgba(212,175,55,0.1)] overflow-hidden rounded-sm ${isElite ? 'ring-1 ring-purple-500/20' : ''}`}>
       <Link href={`/profile/${profile.id}`} className="block relative aspect-[3/4] overflow-hidden bg-neutral-950">
         <img
           src={images[currentImageIndex]}
@@ -111,13 +125,29 @@ export function ProfileCard({ profile }: ProfileCardProps) {
           <div className="flex flex-wrap gap-1 max-w-[70%]">
             {profile.isVelvetChoice && <Badge type="choice" />}
             {isTop && <Badge type="top" />}
-            {profile.isPremium && <Badge type="premium" />}
+            {isElite && <Badge type="elite" />}
+            {isPremium && <Badge type="premium" />}
             {showNewBadge && <Badge type="new" />}
+            {isBoosted && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-sm shadow-lg">
+                <Flame size={10} /> Boost
+              </span>
+            )}
           </div>
 
           {/* Right: Availability Status */}
           <div className="flex-shrink-0">
-            {isAvailableNow && (
+            {/* Elite "Online Now" indicator */}
+            {isEliteOnline && (
+              <div className="inline-flex items-center gap-1.5 bg-purple-900/80 border border-purple-500/50 rounded px-2.5 py-1 backdrop-blur-md shadow-lg mb-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                </span>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider leading-none">Online</span>
+              </div>
+            )}
+            {isAvailableNow && !isEliteOnline && (
               <div className="inline-flex items-center gap-1.5 bg-black/60 border border-green-500/30 rounded px-2.5 py-1 backdrop-blur-md shadow-lg">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
