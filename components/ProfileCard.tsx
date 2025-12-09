@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, RefreshCw, Clock } from 'lucide-react';
+import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, Clock } from 'lucide-react';
 import { Profile, isProfileActive, isProfileNew } from '@/lib/types';
 import { Badge } from './ui/Badge';
 
@@ -170,11 +170,31 @@ export function ProfileCard({ profile }: ProfileCardProps) {
                 <span className="uppercase tracking-widest">{profile.district}</span>
               </div>
               {profile.visitType && (
-                <div className="flex items-center gap-1 text-neutral-500">
-                  {profile.visitType === 'incall' && <Home size={10} />}
-                  {profile.visitType === 'outcall' && <Car size={10} />}
-                  {profile.visitType === 'both' && <RefreshCw size={10} />}
-                  <span className="text-[9px] uppercase tracking-wider">{visitT(profile.visitType)}</span>
+                <div className="flex items-center gap-2 text-neutral-500">
+                  {profile.visitType === 'incall' && (
+                    <div className="flex items-center gap-1">
+                      <Home size={10} />
+                      <span className="text-[9px] uppercase tracking-wider">{visitT('incall')}</span>
+                    </div>
+                  )}
+                  {profile.visitType === 'outcall' && (
+                    <div className="flex items-center gap-1">
+                      <Car size={10} />
+                      <span className="text-[9px] uppercase tracking-wider">{visitT('outcall')}</span>
+                    </div>
+                  )}
+                  {profile.visitType === 'both' && (
+                    <>
+                      <div className="flex items-center gap-1">
+                        <Home size={10} />
+                        <span className="text-[9px] uppercase tracking-wider">{visitT('incall')}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Car size={10} />
+                        <span className="text-[9px] uppercase tracking-wider">{visitT('outcall')}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

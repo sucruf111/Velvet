@@ -7,7 +7,7 @@ import { Link } from '@/i18n/routing';
 import {
   MapPin, ShieldCheck, Crown, Star, Heart, CheckCircle2, Calendar,
   ArrowRight, Building2, X, ChevronLeft, ChevronRight, Maximize2,
-  MessageCircle, Send, Smartphone, Clock, Home, Car, RefreshCw
+  MessageCircle, Send, Smartphone, Clock, Home, Car
 } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import { Profile, Agency, ServiceType, isProfileActive, isProfileNew } from '@/lib/types';
@@ -328,11 +328,31 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                   </span>
                 </div>
                 {profile.visitType && (
-                  <div className="flex items-center gap-2 text-neutral-400 border-l border-neutral-700 pl-4">
-                    {profile.visitType === 'incall' && <Home size={14} className="text-luxury-gold" />}
-                    {profile.visitType === 'outcall' && <Car size={14} className="text-luxury-gold" />}
-                    {profile.visitType === 'both' && <RefreshCw size={14} className="text-luxury-gold" />}
-                    <span className="uppercase tracking-[0.2em] text-xs font-bold">{t(`visit.${profile.visitType}`)}</span>
+                  <div className="flex items-center gap-3 text-neutral-400 border-l border-neutral-700 pl-4">
+                    {profile.visitType === 'incall' && (
+                      <div className="flex items-center gap-2">
+                        <Home size={14} className="text-luxury-gold" />
+                        <span className="uppercase tracking-[0.2em] text-xs font-bold">{t('visit.incall')}</span>
+                      </div>
+                    )}
+                    {profile.visitType === 'outcall' && (
+                      <div className="flex items-center gap-2">
+                        <Car size={14} className="text-luxury-gold" />
+                        <span className="uppercase tracking-[0.2em] text-xs font-bold">{t('visit.outcall')}</span>
+                      </div>
+                    )}
+                    {profile.visitType === 'both' && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Home size={14} className="text-luxury-gold" />
+                          <span className="uppercase tracking-[0.2em] text-xs font-bold">{t('visit.incall')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Car size={14} className="text-luxury-gold" />
+                          <span className="uppercase tracking-[0.2em] text-xs font-bold">{t('visit.outcall')}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
