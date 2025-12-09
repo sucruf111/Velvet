@@ -663,11 +663,14 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const tier = (profile.tier as ModelTier) || 'free';
+  const tier: ModelTier = (['free', 'premium', 'elite'].includes(profile.tier as string) ? profile.tier : 'free') as ModelTier;
   const photoLimit = getPhotoLimit(tier);
   const videoLimit = getVideoLimit(tier);
   const serviceLimit = getServiceLimit(tier);
   const isFree = tier === 'free';
+
+  // Debug: log limits (remove after testing)
+  console.log('ProfileEditor tier:', tier, 'serviceLimit:', serviceLimit);
 
   const [formData, setFormData] = useState({
     name: profile.name,
@@ -700,20 +703,29 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   };
 
   const toggleService = (service: string) => {
-    const isSelected = formData.services.includes(service);
-    if (!isSelected && serviceLimit !== Infinity && formData.services.length >= serviceLimit) {
-      // At limit, don't add more
+    const currentServices = Array.isArray(formData.services) ? formData.services.filter(s => s) : [];
+    const isSelected = currentServices.includes(service);
+    const count = currentServices.length;
+
+    // Only block if trying to add AND at/over limit
+    if (!isSelected && serviceLimit !== Infinity && count >= serviceLimit) {
+      console.log('Service limit blocked:', { count, serviceLimit });
       return;
     }
+
     const newServices = isSelected
-      ? formData.services.filter(s => s !== service)
-      : [...formData.services, service];
+      ? currentServices.filter(s => s !== service)
+      : [...currentServices, service];
     updateField('services', newServices);
   };
 
   const isAtPhotoLimit = photoLimit !== Infinity && formData.images.length >= photoLimit;
   const isAtVideoLimit = videoLimit === 0 || (formData.videoUrls.length >= videoLimit);
-  const isAtServiceLimit = serviceLimit !== Infinity && formData.services.length >= serviceLimit;
+  // Service limit: can add more if under limit (free=3, premium/elite=unlimited)
+  const currentServiceCount = Array.isArray(formData.services) ? formData.services.filter(s => s).length : 0;
+  const isAtServiceLimit = serviceLimit !== Infinity && currentServiceCount >= serviceLimit;
+
+  console.log('Service check:', { currentServiceCount, serviceLimit, isAtServiceLimit });
 
   const toggleLanguage = (lang: string) => {
     const newLangs = formData.languages.includes(lang)
