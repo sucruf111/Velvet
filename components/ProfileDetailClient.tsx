@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import {
@@ -28,6 +29,13 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
   const [activeImage, setActiveImage] = useState<string>(profile.images[0] || '');
   const [showPhone, setShowPhone] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Track if component is mounted for portal rendering
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const trackContact = () => {
     if (profile?.id) {
@@ -65,9 +73,13 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (lightboxIndex === null) return;
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') nextImage();
-      if (e.key === 'ArrowLeft') prevImage();
+      if (e.key === 'Escape') {
+        setLightboxIndex(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null ? (prev + 1) % profile.images.length : 0));
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev !== null ? (prev - 1 + profile.images.length) % profile.images.length : 0));
+      }
     };
 
     if (lightboxIndex !== null) {
@@ -81,7 +93,7 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
     };
-  }, [lightboxIndex]);
+  }, [lightboxIndex, profile.images.length]);
 
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
@@ -148,48 +160,51 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
     return map[lang] || '\u{1F310}';
   };
 
+  // Lightbox content to be rendered in portal
+  const lightboxContent = lightboxIndex !== null ? (
+    <div
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+      onClick={closeLightbox}
+    >
+      <button
+        onClick={closeLightbox}
+        className="absolute top-4 right-4 md:top-6 md:right-6 text-white/50 hover:text-luxury-gold transition-colors z-[110]"
+      >
+        <X size={32} strokeWidth={1} />
+      </button>
+
+      <button
+        onClick={prevImage}
+        className="absolute left-2 md:left-8 text-white/50 hover:text-luxury-gold transition-colors z-[110] p-2 md:p-4 hidden md:block"
+      >
+        <ChevronLeft size={48} strokeWidth={1} />
+      </button>
+
+      <button
+        onClick={nextImage}
+        className="absolute right-2 md:right-8 text-white/50 hover:text-luxury-gold transition-colors z-[110] p-2 md:p-4 hidden md:block"
+      >
+        <ChevronRight size={48} strokeWidth={1} />
+      </button>
+
+      <div className="relative flex items-center justify-center pointer-events-none w-full h-full">
+        <img
+          src={profile.images[lightboxIndex]}
+          alt={profile.name}
+          className="max-h-[85vh] max-w-full md:max-w-5xl object-contain shadow-2xl pointer-events-auto select-none rounded-sm border border-white/10 animate-fade-in"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-white/70 font-sans text-xs md:text-sm tracking-widest uppercase bg-black/50 px-4 py-2 rounded-full backdrop-blur-md whitespace-nowrap">
+          Image {lightboxIndex + 1} / {profile.images.length}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
-      {/* Lightbox Modal */}
-      {lightboxIndex !== null && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
-          onClick={closeLightbox}
-        >
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 md:top-6 md:right-6 text-white/50 hover:text-luxury-gold transition-colors z-[110]"
-          >
-            <X size={32} strokeWidth={1} />
-          </button>
-
-          <button
-            onClick={prevImage}
-            className="absolute left-2 md:left-8 text-white/50 hover:text-luxury-gold transition-colors z-[110] p-2 md:p-4 hidden md:block"
-          >
-            <ChevronLeft size={48} strokeWidth={1} />
-          </button>
-
-          <button
-            onClick={nextImage}
-            className="absolute right-2 md:right-8 text-white/50 hover:text-luxury-gold transition-colors z-[110] p-2 md:p-4 hidden md:block"
-          >
-            <ChevronRight size={48} strokeWidth={1} />
-          </button>
-
-          <div className="relative flex items-center justify-center pointer-events-none w-full h-full">
-            <img
-              src={profile.images[lightboxIndex]}
-              alt={profile.name}
-              className="max-h-[85vh] max-w-full md:max-w-5xl object-contain shadow-2xl pointer-events-auto select-none rounded-sm border border-white/10 animate-fade-in"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-white/70 font-sans text-xs md:text-sm tracking-widest uppercase bg-black/50 px-4 py-2 rounded-full backdrop-blur-md whitespace-nowrap">
-              Image {lightboxIndex + 1} / {profile.images.length}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Lightbox Modal - rendered in portal to avoid DOM hierarchy issues */}
+      {mounted && lightboxContent && createPortal(lightboxContent, document.body)}
 
       <div className="animate-fade-in pb-20 bg-luxury-black text-luxury-gray relative">
         {/* Breadcrumbs */}
