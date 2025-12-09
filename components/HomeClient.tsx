@@ -10,8 +10,9 @@ import { LuxuryBackground } from './LuxuryBackground';
 import { ChevronDown, MapPin, Shield, Clock } from 'lucide-react';
 
 interface HomeClientProps {
+  eliteProfiles: Profile[];
   premiumProfiles: Profile[];
-  standardProfiles: Profile[];
+  freeProfiles: Profile[];
   agencies: Agency[];
   counts: {
     total: number;
@@ -22,24 +23,26 @@ interface HomeClientProps {
   };
 }
 
+const ELITE_VISIBLE = 8; // Elite carousel shows max 8
 const PREMIUM_INITIAL = 12;
 const PREMIUM_LOAD_MORE = 12;
-const STANDARD_INITIAL = 24;
-const STANDARD_LOAD_MORE = 24;
+const FREE_INITIAL = 24;
+const FREE_LOAD_MORE = 24;
 
-export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts }: HomeClientProps) {
+export function HomeClient({ eliteProfiles, premiumProfiles, freeProfiles, agencies, counts }: HomeClientProps) {
   const router = useRouter();
   const t = useTranslations('home');
 
   // State for "Load More" functionality
   const [premiumVisible, setPremiumVisible] = useState(PREMIUM_INITIAL);
-  const [standardVisible, setStandardVisible] = useState(STANDARD_INITIAL);
+  const [freeVisible, setFreeVisible] = useState(FREE_INITIAL);
 
+  const visibleEliteProfiles = eliteProfiles.slice(0, ELITE_VISIBLE);
   const visiblePremiumProfiles = premiumProfiles.slice(0, premiumVisible);
-  const visibleStandardProfiles = standardProfiles.slice(0, standardVisible);
+  const visibleFreeProfiles = freeProfiles.slice(0, freeVisible);
 
   const hasMorePremium = premiumProfiles.length > premiumVisible;
-  const hasMoreStandard = standardProfiles.length > standardVisible;
+  const hasMoreFree = freeProfiles.length > freeVisible;
 
   return (
     <div className="animate-fade-in bg-luxury-black min-h-screen">
@@ -119,13 +122,51 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
       {/* Model Grid Section */}
       <div className="w-full px-0 pb-12 bg-luxury-black relative z-20">
         <div className="max-w-[1920px] mx-auto w-full">
-          {/* Premium Section */}
+          {/* Elite Section - Horizontal Carousel with Purple Styling */}
+          {eliteProfiles.length > 0 && (
+            <section className="relative py-8 bg-gradient-to-b from-purple-950/20 via-black to-black border-b border-purple-500/20">
+              {/* Decorative glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-32 bg-purple-500/10 blur-3xl pointer-events-none"></div>
+
+              <div className="flex items-center gap-4 mb-6 px-6">
+                <div className="h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent flex-1"></div>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-200 uppercase tracking-[0.2em] text-sm font-black bg-black/50 px-4 py-1.5 rounded-full border border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                  👑 Elite ({eliteProfiles.length})
+                </span>
+                <div className="h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent flex-1"></div>
+              </div>
+
+              {/* Horizontal scroll for Elite profiles */}
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-transparent pb-4">
+                <div className="flex gap-4 px-6 min-w-max">
+                  {visibleEliteProfiles.map(profile => (
+                    <div key={profile.id} className="w-[280px] flex-shrink-0">
+                      <ProfileCard profile={profile} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {eliteProfiles.length > ELITE_VISIBLE && (
+                <div className="text-center pt-2">
+                  <button
+                    onClick={() => router.push('/search?tier=elite')}
+                    className="px-6 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 text-xs font-bold uppercase tracking-widest transition-all rounded"
+                  >
+                    {t('view_all')} Elite ({eliteProfiles.length})
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Premium Section - Gold Styled Grid */}
           {premiumProfiles.length > 0 && (
             <>
               <div className="flex items-center gap-4 mb-6 px-6 pt-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
                 <span className="text-gold-gradient uppercase tracking-[0.2em] text-sm font-black shadow-gold-glow bg-black/50 px-4 py-1 rounded-full border border-luxury-gold/30">
-                  {t('premium_title')} ({premiumProfiles.length})
+                  ⭐ Premium ({premiumProfiles.length})
                 </span>
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
               </div>
@@ -149,30 +190,30 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
             </>
           )}
 
-          {/* Standard Section */}
-          {standardProfiles.length > 0 && (
+          {/* Free Profiles Section */}
+          {freeProfiles.length > 0 && (
             <>
               <div className="flex items-center gap-4 mb-6 px-6 mt-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-neutral-700 to-transparent flex-1"></div>
                 <span className="text-neutral-500 uppercase tracking-[0.2em] text-sm font-bold bg-black/50 px-4 py-1 rounded-full border border-neutral-800">
-                  {t('new_title')} ({standardProfiles.length})
+                  {t('new_title')} ({freeProfiles.length})
                 </span>
                 <div className="h-px bg-gradient-to-r from-transparent via-neutral-700 to-transparent flex-1"></div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 border-y border-white/5 bg-white/5 w-full">
-                {visibleStandardProfiles.map(profile => (
+                {visibleFreeProfiles.map(profile => (
                   <ProfileCard key={profile.id} profile={profile} />
                 ))}
               </div>
 
-              {hasMoreStandard && (
+              {hasMoreFree && (
                 <div className="text-center py-6">
                   <button
-                    onClick={() => setStandardVisible(prev => prev + STANDARD_LOAD_MORE)}
+                    onClick={() => setFreeVisible(prev => prev + FREE_LOAD_MORE)}
                     className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-neutral-700 hover:border-neutral-600 text-neutral-400 hover:text-white text-xs font-bold uppercase tracking-widest transition-all rounded"
                   >
-                    {t('load_more')} ({standardProfiles.length - standardVisible} {t('remaining')})
+                    {t('load_more')} ({freeProfiles.length - freeVisible} {t('remaining')})
                   </button>
                 </div>
               )}

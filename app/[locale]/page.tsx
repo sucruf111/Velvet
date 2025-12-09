@@ -1,6 +1,6 @@
 import { getProfiles, getAgencies } from '@/lib/supabase';
 import { HomeClient } from '@/components/HomeClient';
-import { ServiceType, District } from '@/lib/types';
+import { Profile, ServiceType, District, isProfileBoosted } from '@/lib/types';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -12,6 +12,28 @@ function JsonLd({ data }: { data: object }) {
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );
+}
+
+// Helper to sort profiles by availability then lastActive
+function sortProfiles(profiles: Profile[]) {
+  return [...profiles].sort((a, b) => {
+    // Unavailable profiles go last
+    const aUnavailable = a.isOnline === false;
+    const bUnavailable = b.isOnline === false;
+    if (aUnavailable && !bUnavailable) return 1;
+    if (!aUnavailable && bUnavailable) return -1;
+
+    // Boosted profiles first within same tier
+    const aBoosted = isProfileBoosted(a);
+    const bBoosted = isProfileBoosted(b);
+    if (aBoosted && !bBoosted) return -1;
+    if (!aBoosted && bBoosted) return 1;
+
+    // Then by lastActive (most recent first)
+    const dateA = new Date(a.lastActive || 0).getTime();
+    const dateB = new Date(b.lastActive || 0).getTime();
+    return dateB - dateA;
+  });
 }
 
 export default async function HomePage() {
@@ -36,31 +58,20 @@ export default async function HomePage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Sort premium profiles
-  const premiumProfiles = activeProfiles
-    .filter(p => p.isPremium)
-    .sort((a, b) => {
-      const aUnavailable = a.isOnline === false;
-      const bUnavailable = b.isOnline === false;
-      if (aUnavailable && !bUnavailable) return 1;
-      if (!aUnavailable && bUnavailable) return -1;
-      const dateA = new Date(a.lastActive || 0).getTime();
-      const dateB = new Date(b.lastActive || 0).getTime();
-      return dateB - dateA;
-    });
+  // Sort Elite profiles (tier === 'elite')
+  const eliteProfiles = sortProfiles(
+    activeProfiles.filter(p => p.tier === 'elite')
+  );
 
-  // Sort standard profiles
-  const standardProfiles = activeProfiles
-    .filter(p => !p.isPremium)
-    .sort((a, b) => {
-      const aUnavailable = a.isOnline === false;
-      const bUnavailable = b.isOnline === false;
-      if (aUnavailable && !bUnavailable) return 1;
-      if (!aUnavailable && bUnavailable) return -1;
-      const dateA = new Date(a.lastActive || 0).getTime();
-      const dateB = new Date(b.lastActive || 0).getTime();
-      return dateB - dateA;
-    });
+  // Sort Premium profiles (tier === 'premium' OR legacy isPremium without tier)
+  const premiumProfiles = sortProfiles(
+    activeProfiles.filter(p => p.tier === 'premium' || (p.isPremium && (!p.tier || p.tier === 'free')))
+  );
+
+  // Sort Free profiles (tier === 'free' or undefined, and not isPremium)
+  const freeProfiles = sortProfiles(
+    activeProfiles.filter(p => (!p.tier || p.tier === 'free') && !p.isPremium)
+  );
 
   // Structured Data for SEO
   const organizationSchema = {
@@ -132,12 +143,14 @@ export default async function HomePage() {
     ]
   };
 
+  // Use elite profiles first in SEO schema, then premium
+  const featuredProfiles = [...eliteProfiles, ...premiumProfiles].slice(0, 10);
   const itemListSchema = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Premium Escorts in Berlin',
     numberOfItems: totalCount,
-    itemListElement: premiumProfiles.slice(0, 10).map((profile, index) => ({
+    itemListElement: featuredProfiles.map((profile, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       item: {
@@ -156,8 +169,9 @@ export default async function HomePage() {
       <JsonLd data={faqSchema} />
       <JsonLd data={itemListSchema} />
       <HomeClient
+        eliteProfiles={eliteProfiles}
         premiumProfiles={premiumProfiles}
-        standardProfiles={standardProfiles}
+        freeProfiles={freeProfiles}
         agencies={agencies}
         counts={{
           total: totalCount,
