@@ -27,7 +27,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
   return (
     <div className="animate-fade-in bg-luxury-black min-h-screen">
       {/* Hero Section - Compact */}
-      <section className="relative -mt-28 pt-28 pb-10 px-4 overflow-hidden">
+      <section className="relative -mt-28 pt-36 pb-12 px-4 overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 z-0">
           <LuxuryBackground />
