@@ -98,15 +98,16 @@ export default function DashboardPage() {
         if (fetchError) throw fetchError;
         setMyProfile(data);
 
-        // Fetch verification application if exists (non-blocking, silently ignore errors)
-        const { data: verApp, error: verError } = await supabase
-          .from('verification_applications')
-          .select('*')
-          .eq('profileId', user.profileId)
-          .order('createdAt', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!verError && verApp) setVerificationApp(verApp);
+        // Fetch verification application via API route (bypasses RLS issues)
+        try {
+          const response = await fetch(`/api/verification-status?profileId=${user.profileId}`);
+          if (response.ok) {
+            const { data: verApp } = await response.json();
+            if (verApp) setVerificationApp(verApp);
+          }
+        } catch {
+          // Silently ignore - verification status will be fetched later if needed
+        }
       } else if (user.role === 'agency') {
         // Fetch agency by userId
         const { data: agency, error: fetchError } = await supabase
