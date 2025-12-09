@@ -36,7 +36,7 @@ const SERVICE_CATEGORIES: Record<string, { label: string; services: string[] }> 
   positions: { label: 'Positions & Acts', services: ['69 Position', 'Anal', 'Rimming', 'Prostate massage', 'Spanish'] },
   special: { label: 'Special / Fetish', services: ['BDSM', 'BDSM Light', 'Devote Spiele', 'Dominante Spiele', 'Rollen Spiele', 'Golden Shower Aktiv', 'Golden Shower Passiv', 'Kinky / Fetish'] },
   group: { label: 'Group', services: ['Couple', 'Sex with two men', 'Threesome (2 Girls)'] },
-  other: { label: 'Massage & Other', services: ['Erotic Massage', 'Body to Body Massage', 'Striptease'] }
+  other: { label: 'Massage & Other', services: ['Massage', 'Erotic Massage', 'Body to Body Massage', 'Striptease'] }
 };
 
 function createClient() {
@@ -669,9 +669,6 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   const serviceLimit = getServiceLimit(tier);
   const isFree = tier === 'free';
 
-  // Debug: log limits (remove after testing)
-  console.log('ProfileEditor tier:', tier, 'serviceLimit:', serviceLimit);
-
   const [formData, setFormData] = useState({
     name: profile.name,
     age: profile.age,
@@ -709,7 +706,6 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
 
     // Only block if trying to add AND at/over limit
     if (!isSelected && serviceLimit !== Infinity && count >= serviceLimit) {
-      console.log('Service limit blocked:', { count, serviceLimit });
       return;
     }
 
@@ -724,8 +720,6 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   // Service limit: can add more if under limit (free=3, premium/elite=unlimited)
   const currentServiceCount = Array.isArray(formData.services) ? formData.services.filter(s => s).length : 0;
   const isAtServiceLimit = serviceLimit !== Infinity && currentServiceCount >= serviceLimit;
-
-  console.log('Service check:', { currentServiceCount, serviceLimit, isAtServiceLimit });
 
   const toggleLanguage = (lang: string) => {
     const newLangs = formData.languages.includes(lang)
