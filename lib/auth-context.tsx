@@ -216,8 +216,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginWithPhone = async (phone: string, password: string) => {
     setIsLoggingIn(true);
     try {
+      // Phone users are registered with a generated email, so we reconstruct it
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const generatedEmail = `phone_${cleanPhone}@velvet-phone.local`;
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        phone,
+        email: generatedEmail,
         password
       });
 
@@ -246,10 +250,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Simple registration - create user and sign in, profile creation happens in background
     const username = sanitizeString(data.username || data.displayName || data.agencyName).toLowerCase();
 
+    // For phone registration, generate a unique email (phone auth requires Supabase SMS setup)
+    // We store the phone in metadata and use email-based auth internally
+    const phoneNumber = sanitizeString(data.phone);
+    const emailToUse = data.phone
+      ? `phone_${phoneNumber.replace(/[^0-9]/g, '')}@velvet-phone.local`
+      : data.email!;
+
     const initialMetadata = {
       username,
       role: role as 'customer' | 'model' | 'agency' | 'admin',
       favorites: [] as string[],
+      // Store original phone number for login
+      phone: phoneNumber || undefined,
+      authMethod: data.phone ? 'phone' : 'email',
       // Store registration data for profile creation later
       pendingProfile: role !== 'customer' ? {
         displayName: data.displayName,
@@ -271,32 +285,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } : undefined
     };
 
-    // Sign up
-    const signUpResult = data.phone
-      ? await supabase.auth.signUp({
-          phone: data.phone,
-          password: data.password,
-          options: { data: initialMetadata }
-        })
-      : await supabase.auth.signUp({
-          email: data.email!,
-          password: data.password,
-          options: { data: initialMetadata }
-        });
+    // Always use email-based signup (phone stored in metadata)
+    const signUpResult = await supabase.auth.signUp({
+      email: emailToUse,
+      password: data.password,
+      options: { data: initialMetadata }
+    });
 
     if (signUpResult.error) throw signUpResult.error;
     if (!signUpResult.data?.user) throw new Error('Signup failed');
 
-    // Sign in immediately
-    const signInResult = data.phone
-      ? await supabase.auth.signInWithPassword({
-          phone: data.phone,
-          password: data.password
-        })
-      : await supabase.auth.signInWithPassword({
-          email: data.email!,
-          password: data.password
-        });
+    // Sign in immediately using email
+    const signInResult = await supabase.auth.signInWithPassword({
+      email: emailToUse,
+      password: data.password
+    });
 
     if (signInResult.error) {
       // User created but needs email confirmation
@@ -335,7 +338,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isVerified: false,
         isVelvetChoice: false,
         clicks: 0,
-        phone: sanitizeString(data.contactPhone),
+        phone: sanitizeString(data.contactPhone) || sanitizeString(data.phone),
         whatsapp: sanitizeString(data.whatsapp),
         telegram: sanitizeString(data.telegram),
         height: Math.min(220, Math.max(100, Number(data.height) || 170)),
@@ -371,7 +374,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         banner: '',
         image: '',
         website: sanitizeString(data.website),
-        phone: sanitizeString(data.contactPhone),
+        phone: sanitizeString(data.contactPhone) || sanitizeString(data.phone),
         whatsapp: sanitizeString(data.whatsapp),
         telegram: sanitizeString(data.telegram),
         email: sanitizeString(data.email),
