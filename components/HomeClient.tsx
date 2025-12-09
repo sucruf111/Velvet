@@ -26,28 +26,21 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
 
   return (
     <div className="animate-fade-in bg-luxury-black min-h-screen">
-      {/* Hero Section */}
-      <section className="relative -mt-28 pt-32 pb-20 px-4 overflow-hidden min-h-[85vh] flex flex-col justify-center">
+      {/* Hero Section - Compact */}
+      <section className="relative -mt-28 pt-28 pb-10 px-4 overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 z-0">
           <LuxuryBackground />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto text-center">
-          {/* Minimal elegant divider */}
-          <div className="flex items-center justify-center gap-4 mb-8 opacity-60">
-            <div className="w-12 h-px bg-luxury-gold/40"></div>
-            <div className="w-1 h-1 rounded-full bg-luxury-gold"></div>
-            <div className="w-12 h-px bg-luxury-gold/40"></div>
-          </div>
-
           {/* Subtitle */}
-          <p className="text-luxury-gold/80 text-xs md:text-sm mb-8 tracking-[0.35em] uppercase font-medium">
+          <p className="text-luxury-gold/80 text-[10px] md:text-xs mb-4 tracking-[0.35em] uppercase font-medium">
             {t('subtitle')}
           </p>
 
-          {/* Main Title - Clean and Elegant */}
-          <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl text-white mb-10 tracking-wide leading-tight">
+          {/* Main Title - Compact */}
+          <h1 className="font-serif text-3xl md:text-5xl lg:text-6xl text-white mb-6 tracking-wide leading-tight">
             <span className="inline-block opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
               {t('title_prefix')}
             </span>{' '}
@@ -60,34 +53,34 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
           </h1>
 
           {/* Simple divider */}
-          <div className="w-16 h-px bg-luxury-gold/30 mx-auto mb-12"></div>
+          <div className="w-12 h-px bg-luxury-gold/30 mx-auto mb-6"></div>
 
-          {/* Filter Cloud */}
-          <div className="flex flex-wrap justify-center gap-3 md:gap-4 max-w-5xl mx-auto">
+          {/* Filter Cloud - Compact */}
+          <div className="flex flex-wrap justify-center gap-2 md:gap-3 max-w-5xl mx-auto">
             <button
               onClick={() => router.push('/search')}
-              className="group relative px-6 py-3 rounded-full bg-luxury-gold-gradient text-black font-black text-sm md:text-base border border-white/20 hover:scale-105 transition-all shadow-[0_0_20px_rgba(212,175,55,0.4)]"
+              className="group relative px-4 py-2 rounded-full bg-luxury-gold-gradient text-black font-bold text-xs md:text-sm border border-white/20 hover:scale-105 transition-all shadow-[0_0_15px_rgba(212,175,55,0.3)]"
             >
               {t('filter_all')} ({counts.total})
             </button>
 
             <button
               onClick={() => router.push(`/search?service=${ServiceType.OUTCALL}`)}
-              className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-md text-white font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all shadow-lg"
+              className="px-4 py-2 rounded-full bg-white/5 backdrop-blur-md text-white text-xs md:text-sm font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all"
             >
               {t('filter_outcall')} ({counts.outcall})
             </button>
 
             <button
               onClick={() => router.push(`/search?service=${ServiceType.INCALL}`)}
-              className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-md text-white font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all shadow-lg"
+              className="px-4 py-2 rounded-full bg-white/5 backdrop-blur-md text-white text-xs md:text-sm font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all"
             >
               {t('filter_incall')} ({counts.incall})
             </button>
 
             <button
               onClick={() => router.push(`/search?service=${ServiceType.MASSAGE}`)}
-              className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-md text-white font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all shadow-lg"
+              className="px-4 py-2 rounded-full bg-white/5 backdrop-blur-md text-white text-xs md:text-sm font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all"
             >
               {t('filter_massage')} ({counts.massage})
             </button>
@@ -97,7 +90,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
               <button
                 key={district}
                 onClick={() => router.push(`/search?district=${district}`)}
-                className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-md text-neutral-300 font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all shadow-lg"
+                className="px-4 py-2 rounded-full bg-white/5 backdrop-blur-md text-neutral-300 text-xs md:text-sm font-medium border border-neutral-700 hover:border-luxury-gold hover:text-luxury-gold hover:bg-black/50 transition-all"
               >
                 {district} ({count})
               </button>
@@ -112,7 +105,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
           {/* Premium Section */}
           {premiumProfiles.length > 0 && (
             <>
-              <div className="flex items-center gap-6 mb-10 px-6 pt-10">
+              <div className="flex items-center gap-4 mb-6 px-6 pt-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
                 <span className="text-gold-gradient uppercase tracking-[0.2em] text-sm font-black shadow-gold-glow bg-black/50 px-4 py-1 rounded-full border border-luxury-gold/30">
                   {t('premium_title')}
@@ -120,7 +113,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
                 <div className="h-px bg-gradient-to-r from-transparent via-luxury-gold/50 to-transparent flex-1 opacity-30"></div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 mb-16 border-y border-white/5 bg-white/5 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6 gap-0.5 mb-10 border-y border-white/5 bg-white/5 w-full">
                 {premiumProfiles.map(profile => (
                   <ProfileCard key={profile.id} profile={profile} />
                 ))}
@@ -131,7 +124,7 @@ export function HomeClient({ premiumProfiles, standardProfiles, agencies, counts
           {/* Standard Section */}
           {standardProfiles.length > 0 && (
             <>
-              <div className="flex items-center gap-6 mb-10 px-6">
+              <div className="flex items-center gap-4 mb-6 px-6">
                 <div className="h-px bg-gradient-to-r from-transparent via-neutral-700 to-transparent flex-1"></div>
                 <span className="text-neutral-500 uppercase tracking-[0.2em] text-sm font-bold bg-black/50 px-4 py-1 rounded-full border border-neutral-800">
                   {t('new_title')}
