@@ -100,17 +100,18 @@ export default function DashboardPage() {
 
         // Update lastActive timestamp when model visits dashboard (makes them "Available Now")
         if (data) {
-          supabase
-            .from('profiles')
-            .update({ lastActive: new Date().toISOString() })
-            .eq('id', user.profileId)
-            .then(() => {
+          (async () => {
+            try {
+              await supabase
+                .from('profiles')
+                .update({ lastActive: new Date().toISOString() })
+                .eq('id', user.profileId);
               // Update local state too
               setMyProfile(prev => prev ? { ...prev, lastActive: new Date().toISOString() } : null);
-            })
-            .catch(() => {
+            } catch {
               // Silently ignore errors
-            });
+            }
+          })();
         }
 
         // Fetch verification application via API route (bypasses RLS issues)

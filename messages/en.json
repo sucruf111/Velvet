@@ -208,6 +208,16 @@
     "both": "Both",
     "both_desc": "My Place & Your Place"
   },
+  "time": {
+    "never": "Never active",
+    "just_now": "Just now",
+    "mins_ago": "{n} min ago",
+    "hours_ago": "{n}h ago",
+    "yesterday": "Yesterday",
+    "days_ago": "{n} days ago",
+    "weeks_ago": "{n} weeks ago",
+    "over_month": "Over a month ago"
+  },
   "dashboard": {
     "overview": "Overview",
     "photos": "Photos",

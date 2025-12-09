@@ -3,9 +3,30 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, RefreshCw } from 'lucide-react';
+import { Phone, MapPin, CheckCircle2, ChevronLeft, ChevronRight, Home, Car, RefreshCw, Clock } from 'lucide-react';
 import { Profile, isProfileActive, isProfileNew } from '@/lib/types';
 import { Badge } from './ui/Badge';
+
+// Format last active time in a human-readable way
+function formatLastActive(lastActive: string | undefined, t: (key: string) => string): string {
+  if (!lastActive) return t('never');
+
+  const lastDate = new Date(lastActive);
+  const now = new Date();
+  const diffMs = now.getTime() - lastDate.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 5) return t('just_now');
+  if (diffMins < 60) return t('mins_ago').replace('{n}', String(diffMins));
+  if (diffHours < 24) return t('hours_ago').replace('{n}', String(diffHours));
+  if (diffDays === 1) return t('yesterday');
+  if (diffDays < 7) return t('days_ago').replace('{n}', String(diffDays));
+  if (diffDays < 30) return t('weeks_ago').replace('{n}', String(Math.floor(diffDays / 7)));
+
+  return t('over_month');
+}
 
 interface ProfileCardProps {
   profile: Profile;
@@ -18,6 +39,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const t = useTranslations('card');
   const visitT = useTranslations('visit');
+  const timeT = useTranslations('time');
 
   // Use placeholder if no images
   const images = profile.images && profile.images.length > 0
@@ -156,6 +178,13 @@ export function ProfileCard({ profile }: ProfileCardProps) {
                 </div>
               )}
             </div>
+            {/* Last Active - show only if not currently available */}
+            {!isAvailableNow && profile.lastActive && (
+              <div className="flex items-center gap-1 text-neutral-500 text-[10px] mt-1">
+                <Clock size={10} />
+                <span>{formatLastActive(profile.lastActive, timeT)}</span>
+              </div>
+            )}
           </div>
 
           <button className="w-full pointer-events-auto backdrop-blur-sm bg-white/5 hover:bg-luxury-gold border border-white/20 hover:border-luxury-gold text-white hover:text-black font-bold py-3 uppercase tracking-[0.2em] text-[10px] transition-all duration-300 flex items-center justify-center gap-2 rounded-sm group/btn">

@@ -521,6 +521,16 @@
     "section_6_title": "6. Haftungsbeschränkung",
     "section_6_content": "Velvet Berlin haftet nicht für direkte, indirekte, zufällige, besondere oder Folgeschäden, die aus der Nutzung oder Unmöglichkeit der Nutzung unserer Dienste entstehen."
   },
+  "time": {
+    "never": "Nie aktiv",
+    "just_now": "Gerade eben",
+    "mins_ago": "Vor {n} Min",
+    "hours_ago": "Vor {n}h",
+    "yesterday": "Gestern",
+    "days_ago": "Vor {n} Tagen",
+    "weeks_ago": "Vor {n} Wochen",
+    "over_month": "Vor über einem Monat"
+  },
   "privacy": {
     "back": "Zurück",
     "title": "Datenschutzerklärung",
