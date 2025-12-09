@@ -1136,29 +1136,31 @@ function VerificationTab({
     try {
       if (application) {
         // Update existing application
+        // Note: Table uses snake_case columns
         await supabase
           .from('verification_applications')
           .update({
-            selfieWithIdUrl: selfieUrl,
-            idPhotoUrl: selfieUrl, // Use same URL for both fields (simplified)
+            selfie_with_id_url: selfieUrl,
+            id_photo_url: selfieUrl,
             notes,
             status: 'pending',
-            updatedAt: new Date().toISOString()
+            "updatedAt": new Date().toISOString()
           })
           .eq('id', application.id);
       } else {
         // Create new application
+        // Note: Table uses snake_case columns
         await supabase
           .from('verification_applications')
           .insert({
-            profileId: profile.id,
-            userId: user.id,
-            selfieWithIdUrl: selfieUrl,
-            idPhotoUrl: selfieUrl, // Use same URL for both fields (simplified)
+            profile_id: profile.id,
+            user_id: user.id,
+            selfie_with_id_url: selfieUrl,
+            id_photo_url: selfieUrl,
             notes,
             status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            "createdAt": new Date().toISOString(),
+            "updatedAt": new Date().toISOString()
           });
       }
       onUpdate();

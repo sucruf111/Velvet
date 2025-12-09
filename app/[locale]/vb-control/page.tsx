@@ -609,13 +609,13 @@ export default function VBControlPage() {
 
     const now = new Date().toISOString();
 
-    // Update verification application
+    // Update verification application (snake_case columns)
     const { error: appError } = await supabase
       .from('verification_applications')
       .update({
         status: 'approved',
-        reviewedAt: now,
-        reviewedBy: user?.id
+        reviewed_at: now,
+        reviewed_by: user?.id
       })
       .eq('id', appId);
 
@@ -651,13 +651,14 @@ export default function VBControlPage() {
 
     const now = new Date().toISOString();
 
+    // snake_case columns
     const { error } = await supabase
       .from('verification_applications')
       .update({
         status: 'rejected',
-        adminNotes: rejectNotes,
-        reviewedAt: now,
-        reviewedBy: user?.id
+        admin_notes: rejectNotes,
+        reviewed_at: now,
+        reviewed_by: user?.id
       })
       .eq('id', appId);
 
