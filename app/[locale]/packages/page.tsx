@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Check, Star, Zap, Shield, Clock, Users, TrendingUp, ArrowRight, Sparkles, Crown, Award } from 'lucide-react';
@@ -55,12 +55,10 @@ function FloatingParticle({ delay, size, left, top }: { delay: number; size: num
 export default function PackagesPage() {
   const t = useTranslations('packages');
   const router = useRouter();
-  const { user, canAdvertise, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'model' | 'agency'>('model');
   const [isVisible, setIsVisible] = useState(false);
   const [profileCount, setProfileCount] = useState<number | null>(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const hasRedirected = useRef(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -70,38 +68,6 @@ export default function PackagesPage() {
       .then(data => setProfileCount(data.activeProfiles))
       .catch(() => setProfileCount(0));
   }, []);
-
-  // Redirect unauthorized users - only on initial load
-  useEffect(() => {
-    // Only check once after auth is initialized
-    if (isAuthenticated !== undefined && !hasRedirected.current) {
-      // If not logged in, redirect to login
-      if (!isAuthenticated) {
-        hasRedirected.current = true;
-        router.push('/login?redirect=/packages');
-        return;
-      }
-      // If logged in but not authorized to advertise
-      if (isAuthenticated && canAdvertise === false) {
-        hasRedirected.current = true;
-        router.push('/dashboard');
-        return;
-      }
-      // Auth check complete, user is authorized
-      if (isAuthenticated && canAdvertise) {
-        setAuthChecked(true);
-      }
-    }
-  }, [isAuthenticated, canAdvertise, router]);
-
-  // Show loading while checking authorization
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-luxury-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   const displayedPackages = activeTab === 'model' ? getModelPackages() : getAgencyPackages();
 
