@@ -9,7 +9,7 @@ import {
   AlertTriangle, Search, Download, RefreshCw, DollarSign,
   Activity, Flag, Ban, Phone, Image as ImageIcon, MapPin,
   ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings,
-  ShieldCheck, X
+  ShieldCheck, X, Award
 } from 'lucide-react';
 import { Profile, Agency, VerificationApplication } from '@/lib/types';
 
@@ -480,6 +480,34 @@ export default function VBControlPage() {
         ...prev,
         premiumProfiles: prev.premiumProfiles + (currentValue ? -1 : 1)
       }));
+    }
+  };
+
+  const toggleVelvetChoice = async (profileId: string, currentValue: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ isVelvetChoice: !currentValue })
+      .eq('id', profileId);
+
+    if (!error) {
+      setProfiles(profiles.map(p =>
+        p.id === profileId ? { ...p, isVelvetChoice: !currentValue } : p
+      ));
+    }
+  };
+
+  const toggleTopModel = async (profileId: string, currentClicks: number) => {
+    // Set clicks to 2001 to make "Top", or 0 to remove "Top"
+    const newClicks = currentClicks > 2000 ? 0 : 2001;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ clicks: newClicks })
+      .eq('id', profileId);
+
+    if (!error) {
+      setProfiles(profiles.map(p =>
+        p.id === profileId ? { ...p, clicks: newClicks } : p
+      ));
     }
   };
 
@@ -1097,6 +1125,8 @@ export default function VBControlPage() {
                                       <span className="text-white font-medium">{profile.name}</span>
                                       {profile.isVerified && <CheckCircle size={14} className="text-green-500" />}
                                       {profile.isPremium && <Star size={14} className="text-luxury-gold" />}
+                                      {profile.isVelvetChoice && <Award size={14} className="text-pink-500" />}
+                                      {(profile.clicks || 0) > 2000 && <TrendingUp size={14} className="text-green-500" />}
                                     </div>
                                     <div className="text-neutral-500 text-xs">
                                       {profile.age}y • {formatCurrency(profile.priceStart)}/h • {profile.clicks || 0} clicks
@@ -1154,6 +1184,24 @@ export default function VBControlPage() {
                                     title={profile.isPremium ? 'Remove premium' : 'Make premium'}
                                   >
                                     <Star size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => toggleVelvetChoice(profile.id, profile.isVelvetChoice || false)}
+                                    className={`p-1.5 rounded hover:bg-neutral-700 transition-colors ${
+                                      profile.isVelvetChoice ? 'text-pink-500' : 'text-neutral-600'
+                                    }`}
+                                    title={profile.isVelvetChoice ? 'Remove Velvet Choice' : 'Make Velvet Choice'}
+                                  >
+                                    <Award size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => toggleTopModel(profile.id, profile.clicks || 0)}
+                                    className={`p-1.5 rounded hover:bg-neutral-700 transition-colors ${
+                                      (profile.clicks || 0) > 2000 ? 'text-green-500' : 'text-neutral-600'
+                                    }`}
+                                    title={(profile.clicks || 0) > 2000 ? 'Remove Top status' : 'Make Top Model'}
+                                  >
+                                    <TrendingUp size={16} />
                                   </button>
                                   <button
                                     onClick={() => window.open(`/profile/${profile.id}`, '_blank')}
