@@ -3,7 +3,6 @@ import { getProfiles, getAgencies } from '@/lib/supabase';
 import { District } from '@/lib/types';
 
 const baseUrl = 'https://velvet-berlin.com';
-const locales = ['de', 'en', 'ru'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [profiles, agencies] = await Promise.all([
