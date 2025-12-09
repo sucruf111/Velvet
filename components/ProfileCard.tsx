@@ -172,29 +172,29 @@ export function ProfileCard({ profile }: ProfileCardProps) {
               {profile.isVerified && <CheckCircle2 size={14} className="text-blue-400 fill-blue-400/10 flex-shrink-0" />}
             </div>
 
-            {/* Location & Visit Type Row */}
-            <div className="flex items-center gap-2 text-neutral-400 text-[11px] font-medium">
-              <div className="flex items-center gap-1">
-                <MapPin size={11} className="text-luxury-gold" />
-                <span className="uppercase tracking-wider">{profile.district}</span>
-              </div>
-
-              {/* Visit Type Icons */}
-              {profile.visitType && (
-                <div className="flex items-center gap-1.5 text-neutral-500 border-l border-neutral-700 pl-2">
-                  {hasIncall && (
-                    <div className="flex items-center gap-1" title={visitT('incall')}>
-                      <Home size={11} className="text-neutral-400" />
-                    </div>
-                  )}
-                  {hasOutcall && (
-                    <div className="flex items-center gap-1" title={visitT('outcall')}>
-                      <Car size={11} className="text-neutral-400" />
-                    </div>
-                  )}
-                </div>
-              )}
+            {/* Location Row */}
+            <div className="flex items-center gap-1 text-neutral-400 text-[11px] font-medium">
+              <MapPin size={11} className="text-luxury-gold" />
+              <span className="uppercase tracking-wider">{profile.district}</span>
             </div>
+
+            {/* Visit Type Badges */}
+            {profile.visitType && (
+              <div className="flex items-center gap-1.5 mt-1">
+                {hasIncall && (
+                  <div className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] text-neutral-300 font-medium">
+                    <Home size={9} className="text-luxury-gold" />
+                    <span>{visitT('incall')}</span>
+                  </div>
+                )}
+                {hasOutcall && (
+                  <div className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] text-neutral-300 font-medium">
+                    <Car size={9} className="text-luxury-gold" />
+                    <span>{visitT('outcall')}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Last Active - only when not available */}
             {!isAvailableNow && profile.lastActive && (
