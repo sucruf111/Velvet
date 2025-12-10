@@ -9,9 +9,10 @@ import {
   AlertTriangle, Search, Download, RefreshCw, DollarSign,
   Activity, Flag, Ban, Phone, Image as ImageIcon, MapPin,
   ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings,
-  ShieldCheck, X, Award, UserX, ZoomIn
+  ShieldCheck, X, Award, UserX, ZoomIn, Crown, Zap, Rocket
 } from 'lucide-react';
-import { Profile, Agency, VerificationApplication } from '@/lib/types';
+import { Profile, Agency, VerificationApplication, ModelTier, AgencyTier } from '@/lib/types';
+import { TIER_LIMITS } from '@/lib/packages';
 
 type Tab = 'overview' | 'profiles' | 'fraud' | 'agencies' | 'users' | 'revenue' | 'activity' | 'verifications';
 
@@ -290,7 +291,8 @@ export default function VBControlPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified' | 'premium' | 'disabled' | 'flagged'>('all');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'clicks' | 'fraud'>('date');
+  const [filterTier, setFilterTier] = useState<'all' | ModelTier>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'clicks' | 'fraud' | 'tier'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedProfiles, setSelectedProfiles] = useState<Set<string>>(new Set());
   const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
@@ -461,6 +463,11 @@ export default function VBControlPage() {
         break;
     }
 
+    // Tier filter
+    if (filterTier !== 'all') {
+      result = result.filter(p => (p.tier || 'free') === filterTier);
+    }
+
     // Sort
     result.sort((a, b) => {
       let comparison = 0;
@@ -477,12 +484,17 @@ export default function VBControlPage() {
         case 'fraud':
           comparison = b.fraudAnalysis.score - a.fraudAnalysis.score;
           break;
+        case 'tier':
+          // Sort order: elite > premium > free
+          const tierOrder: Record<ModelTier, number> = { elite: 3, premium: 2, free: 1 };
+          comparison = tierOrder[b.tier || 'free'] - tierOrder[a.tier || 'free'];
+          break;
       }
       return sortOrder === 'asc' ? -comparison : comparison;
     });
 
     return result;
-  }, [profilesWithFraud, searchQuery, filterStatus, sortBy, sortOrder]);
+  }, [profilesWithFraud, searchQuery, filterStatus, filterTier, sortBy, sortOrder]);
 
   // Actions
   const toggleVerified = async (profileId: string, currentValue: boolean) => {
@@ -680,6 +692,20 @@ export default function VBControlPage() {
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
   const [selectedVerification, setSelectedVerification] = useState<(VerificationApplication & { profile?: Profile }) | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Subscription/Tier Edit Modal state
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [editTier, setEditTier] = useState<ModelTier>('free');
+  const [editExpiresAt, setEditExpiresAt] = useState<string>('');
+  const [editNotes, setEditNotes] = useState<string>('');
+  const [savingTier, setSavingTier] = useState(false);
+
+  // Agency Tier Edit Modal state
+  const [editingAgency, setEditingAgency] = useState<Agency | null>(null);
+  const [editAgencyTier, setEditAgencyTier] = useState<AgencyTier>('none');
+  const [editAgencyLimit, setEditAgencyLimit] = useState<number>(0);
+  const [editAgencyExpiresAt, setEditAgencyExpiresAt] = useState<string>('');
+  const [savingAgencyTier, setSavingAgencyTier] = useState(false);
 
   const rejectVerification = async (appId: string) => {
     if (!rejectNotes.trim()) {
@@ -961,6 +987,366 @@ export default function VBControlPage() {
     );
   };
 
+  // Tier Edit Modal component
+  const TierEditModal = () => {
+    if (!editingProfile) return null;
+
+    const closeModal = () => {
+      setEditingProfile(null);
+      setEditTier('free');
+      setEditExpiresAt('');
+      setEditNotes('');
+      setSavingTier(false);
+    };
+
+    const saveTierChange = async () => {
+      if (!editingProfile) return;
+
+      setSavingTier(true);
+      try {
+        const response = await fetch('/api/admin/profile-tier', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profileId: editingProfile.id,
+            tier: editTier,
+            expiresAt: editExpiresAt || null,
+            notes: editNotes || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to update tier');
+        }
+
+        // Update local state
+        setProfiles(profiles.map(p =>
+          p.id === editingProfile.id
+            ? { ...p, tier: editTier, isPremium: editTier === 'premium' || editTier === 'elite' }
+            : p
+        ));
+
+        // Update stats if needed
+        const oldTier = editingProfile.tier || 'free';
+        if (oldTier !== editTier) {
+          setStats(prev => ({
+            ...prev,
+            premiumProfiles: prev.premiumProfiles +
+              ((editTier === 'premium' || editTier === 'elite') ? 1 : 0) -
+              ((oldTier === 'premium' || oldTier === 'elite') ? 1 : 0)
+          }));
+        }
+
+        closeModal();
+      } catch (error) {
+        console.error('Error saving tier:', error);
+        alert(error instanceof Error ? error.message : 'Failed to update tier');
+      } finally {
+        setSavingTier(false);
+      }
+    };
+
+    const extend30Days = () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      setEditExpiresAt(date.toISOString().split('T')[0]);
+    };
+
+    return (
+      <div
+        className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+        onClick={closeModal}
+      >
+        <div
+          className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-neutral-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CreditCard className="text-luxury-gold" size={24} />
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Edit Subscription</h3>
+                  <p className="text-sm text-neutral-400">{editingProfile.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-neutral-500 hover:text-white p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-5">
+            {/* Current Tier Display */}
+            <div className="p-4 bg-neutral-800/50 rounded-xl">
+              <p className="text-xs text-neutral-500 uppercase mb-2">Current Tier</p>
+              <TierBadge tier={editingProfile.tier || 'free'} />
+            </div>
+
+            {/* Tier Selection */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">
+                New Tier
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['free', 'premium', 'elite'] as ModelTier[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setEditTier(t)}
+                    className={`p-3 rounded-xl border transition-all ${
+                      editTier === t
+                        ? t === 'free'
+                          ? 'bg-neutral-700 border-neutral-500 text-white'
+                          : t === 'premium'
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                          : 'bg-purple-500/20 border-purple-500 text-purple-400'
+                        : 'bg-neutral-800/50 border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      {t === 'premium' && <Star size={16} className="fill-current" />}
+                      {t === 'elite' && <Crown size={16} className="fill-current" />}
+                      <span className="text-sm font-medium capitalize">{t}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Expiration Date */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">
+                Subscription Expires
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={editExpiresAt}
+                  onChange={(e) => setEditExpiresAt(e.target.value)}
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                />
+                <button
+                  onClick={extend30Days}
+                  className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-xs text-neutral-400 hover:text-white transition-colors"
+                >
+                  +30 days
+                </button>
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">Leave empty for no expiration</p>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">
+                Admin Notes (optional)
+              </label>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                rows={2}
+                placeholder="Reason for tier change..."
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none resize-none"
+              />
+            </div>
+
+            {/* Quick Actions */}
+            {(editingProfile.tier === 'premium' || editingProfile.tier === 'elite') && (
+              <div className="pt-2 border-t border-neutral-800">
+                <p className="text-xs text-neutral-500 uppercase mb-2">Quick Actions</p>
+                <button
+                  onClick={() => setEditTier('free')}
+                  className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs transition-colors"
+                >
+                  Downgrade to Free
+                </button>
+              </div>
+            )}
+
+            {/* Boost Management - Only for non-free tiers */}
+            {(editingProfile.tier === 'premium' || editingProfile.tier === 'elite') && (
+              <div className="pt-4 border-t border-neutral-800">
+                <p className="text-xs text-neutral-500 uppercase mb-3">Boost Management</p>
+                <div className="p-3 bg-neutral-800/50 rounded-xl mb-3">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-400">Boosts Remaining</span>
+                    <span className="text-white font-medium">
+                      {TIER_LIMITS[editingProfile.tier || 'free'].boostsPerMonth === Infinity
+                        ? '∞ (Unlimited)'
+                        : editingProfile.boostsRemaining || 0}
+                    </span>
+                  </div>
+                  {editingProfile.boostedUntil && new Date(editingProfile.boostedUntil) > new Date() && (
+                    <div className="flex justify-between items-center text-sm mt-2 pt-2 border-t border-neutral-700">
+                      <span className="text-neutral-400">Boosted Until</span>
+                      <span className="text-green-400 font-medium">
+                        {new Date(editingProfile.boostedUntil).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/admin/profile-boost', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ profileId: editingProfile.id, action: 'reset' })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setProfiles(profiles.map(p =>
+                            p.id === editingProfile.id
+                              ? { ...p, boostsRemaining: data.boostsRemaining }
+                              : p
+                          ));
+                          setEditingProfile({ ...editingProfile, boostsRemaining: data.boostsRemaining });
+                          alert(data.message);
+                        } else {
+                          alert(data.error);
+                        }
+                      } catch {
+                        alert('Failed to reset boosts');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-xs transition-colors"
+                  >
+                    Reset Boosts
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/admin/profile-boost', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ profileId: editingProfile.id, action: 'grant' })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setProfiles(profiles.map(p =>
+                            p.id === editingProfile.id
+                              ? { ...p, boostsRemaining: data.boostsRemaining }
+                              : p
+                          ));
+                          setEditingProfile({ ...editingProfile, boostsRemaining: data.boostsRemaining });
+                          alert(data.message);
+                        } else {
+                          alert(data.error);
+                        }
+                      } catch {
+                        alert('Failed to grant boost');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-xs transition-colors"
+                  >
+                    +1 Boost
+                  </button>
+                  {!(editingProfile.boostedUntil && new Date(editingProfile.boostedUntil) > new Date()) ? (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/admin/profile-boost', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ profileId: editingProfile.id, action: 'activate' })
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setProfiles(profiles.map(p =>
+                              p.id === editingProfile.id
+                                ? { ...p, boostedUntil: data.boostedUntil }
+                                : p
+                            ));
+                            setEditingProfile({ ...editingProfile, boostedUntil: data.boostedUntil });
+                            alert(data.message);
+                          } else {
+                            alert(data.error);
+                          }
+                        } catch {
+                          alert('Failed to activate boost');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-xs transition-colors"
+                    >
+                      Activate Boost (24h)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/admin/profile-boost', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ profileId: editingProfile.id, action: 'deactivate' })
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setProfiles(profiles.map(p =>
+                              p.id === editingProfile.id
+                                ? { ...p, boostedUntil: undefined }
+                                : p
+                            ));
+                            setEditingProfile({ ...editingProfile, boostedUntil: undefined });
+                            alert(data.message);
+                          } else {
+                            alert(data.error);
+                          }
+                        } catch {
+                          alert('Failed to deactivate boost');
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs transition-colors"
+                    >
+                      Deactivate Boost
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-neutral-800 bg-neutral-900/50">
+            <div className="flex gap-3">
+              <button
+                onClick={closeModal}
+                className="flex-1 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveTierChange}
+                disabled={savingTier || editTier === (editingProfile.tier || 'free')}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  savingTier || editTier === (editingProfile.tier || 'free')
+                    ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
+                    : 'bg-luxury-gold hover:bg-amber-500 text-black'
+                }`}
+              >
+                {savingTier ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to open tier edit modal
+  const openTierEditModal = (profile: Profile) => {
+    setEditingProfile(profile);
+    setEditTier(profile.tier || 'free');
+    setEditExpiresAt('');
+    setEditNotes('');
+  };
+
   // Risk badge component
   const FraudBadge = ({ analysis }: { analysis: FraudAnalysis }) => {
     const colors = {
@@ -978,6 +1364,280 @@ export default function VBControlPage() {
         {analysis.score} pts
       </div>
     );
+  };
+
+  // Tier badge component for displaying model/agency tiers
+  const TierBadge = ({ tier }: { tier: ModelTier }) => {
+    const tierConfig = {
+      free: {
+        label: 'Free',
+        classes: 'bg-neutral-700/50 text-neutral-400 border-neutral-600',
+        icon: null
+      },
+      premium: {
+        label: 'Premium',
+        classes: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        icon: <Star size={12} className="fill-current" />
+      },
+      elite: {
+        label: 'Elite',
+        classes: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        icon: <Crown size={12} className="fill-current" />
+      }
+    };
+
+    const config = tierConfig[tier] || tierConfig.free;
+
+    return (
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${config.classes}`}>
+        {config.icon}
+        {config.label}
+      </div>
+    );
+  };
+
+  // Agency tier badge component (will be used in Phase 4)
+  const AgencyTierBadge = ({ tier }: { tier: AgencyTier | undefined }) => {
+    const tierConfig = {
+      none: {
+        label: 'No Plan',
+        classes: 'bg-neutral-700/50 text-neutral-500 border-neutral-600',
+        icon: null
+      },
+      starter: {
+        label: 'Starter',
+        classes: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        icon: <Zap size={12} />
+      },
+      pro: {
+        label: 'Pro',
+        classes: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        icon: <Rocket size={12} />
+      }
+    };
+
+    const config = tierConfig[tier || 'none'];
+
+    return (
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${config.classes}`}>
+        {config.icon}
+        {config.label}
+      </div>
+    );
+  };
+
+  // Agency Tier Edit Modal component
+  const AgencyTierEditModal = () => {
+    if (!editingAgency) return null;
+
+    const closeModal = () => {
+      setEditingAgency(null);
+      setEditAgencyTier('none');
+      setEditAgencyLimit(0);
+      setEditAgencyExpiresAt('');
+      setSavingAgencyTier(false);
+    };
+
+    const saveAgencyTierChange = async () => {
+      if (!editingAgency) return;
+
+      setSavingAgencyTier(true);
+      try {
+        const response = await fetch('/api/admin/agency-tier', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agencyId: editingAgency.id,
+            tier: editAgencyTier,
+            modelLimit: editAgencyLimit,
+            expiresAt: editAgencyExpiresAt || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to update agency tier');
+        }
+
+        // Update local state
+        setAgencies(agencies.map(a =>
+          a.id === editingAgency.id
+            ? { ...a, subscriptionTier: editAgencyTier, modelLimit: editAgencyLimit }
+            : a
+        ));
+
+        closeModal();
+      } catch (error) {
+        console.error('Error saving agency tier:', error);
+        alert(error instanceof Error ? error.message : 'Failed to update agency tier');
+      } finally {
+        setSavingAgencyTier(false);
+      }
+    };
+
+    const extend30Days = () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      setEditAgencyExpiresAt(date.toISOString().split('T')[0]);
+    };
+
+    const tierLimits: Record<AgencyTier, number> = {
+      none: 0,
+      starter: 5,
+      pro: 15
+    };
+
+    return (
+      <div
+        className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+        onClick={closeModal}
+      >
+        <div
+          className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-neutral-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Building2 className="text-luxury-gold" size={24} />
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Edit Agency Plan</h3>
+                  <p className="text-sm text-neutral-400">{editingAgency.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-neutral-500 hover:text-white p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 space-y-5">
+            {/* Current Tier Display */}
+            <div className="p-4 bg-neutral-800/50 rounded-xl">
+              <p className="text-xs text-neutral-500 uppercase mb-2">Current Plan</p>
+              <AgencyTierBadge tier={editingAgency.subscriptionTier} />
+            </div>
+
+            {/* Tier Selection */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-2">
+                New Plan
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['none', 'starter', 'pro'] as AgencyTier[]).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      setEditAgencyTier(t);
+                      setEditAgencyLimit(tierLimits[t]);
+                    }}
+                    className={`p-3 rounded-xl border transition-all ${
+                      editAgencyTier === t
+                        ? t === 'none'
+                          ? 'bg-neutral-700 border-neutral-500 text-white'
+                          : t === 'starter'
+                          ? 'bg-orange-500/20 border-orange-500 text-orange-400'
+                          : 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                        : 'bg-neutral-800/50 border-neutral-700 text-neutral-400 hover:border-neutral-600'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      {t === 'starter' && <Zap size={16} />}
+                      {t === 'pro' && <Rocket size={16} />}
+                      <span className="text-sm font-medium capitalize">{t === 'none' ? 'No Plan' : t}</span>
+                      {t !== 'none' && (
+                        <span className="text-[10px] text-neutral-500">
+                          {tierLimits[t]} models
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Model Limit */}
+            {editAgencyTier !== 'none' && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  Model Limit
+                </label>
+                <input
+                  type="number"
+                  value={editAgencyLimit}
+                  onChange={(e) => setEditAgencyLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                  min="0"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                />
+                <p className="text-xs text-neutral-500 mt-1">
+                  Default: {tierLimits[editAgencyTier]} models for {editAgencyTier} plan
+                </p>
+              </div>
+            )}
+
+            {/* Expiration Date */}
+            {editAgencyTier !== 'none' && (
+              <div>
+                <label className="block text-sm font-medium text-neutral-400 mb-2">
+                  Plan Expires
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={editAgencyExpiresAt}
+                    onChange={(e) => setEditAgencyExpiresAt(e.target.value)}
+                    className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                  />
+                  <button
+                    onClick={extend30Days}
+                    className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-xs text-neutral-400 hover:text-white transition-colors"
+                  >
+                    +30 days
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-neutral-800 bg-neutral-900/50">
+            <div className="flex gap-3">
+              <button
+                onClick={closeModal}
+                className="flex-1 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveAgencyTierChange}
+                disabled={savingAgencyTier || editAgencyTier === (editingAgency.subscriptionTier || 'none')}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  savingAgencyTier || editAgencyTier === (editingAgency.subscriptionTier || 'none')
+                    ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
+                    : 'bg-luxury-gold hover:bg-amber-500 text-black'
+                }`}
+              >
+                {savingAgencyTier ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to open agency tier edit modal
+  const openAgencyTierModal = (agency: Agency) => {
+    setEditingAgency(agency);
+    setEditAgencyTier(agency.subscriptionTier || 'none');
+    setEditAgencyLimit(agency.modelLimit || 0);
+    setEditAgencyExpiresAt('');
   };
 
   // Show loading or redirect if not admin
@@ -1262,7 +1922,7 @@ export default function VBControlPage() {
                     />
                   </div>
 
-                  {/* Filter */}
+                  {/* Status Filter */}
                   <select
                     value={filterStatus}
                     onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}
@@ -1276,6 +1936,18 @@ export default function VBControlPage() {
                     <option value="flagged">Flagged (High Risk)</option>
                   </select>
 
+                  {/* Tier Filter */}
+                  <select
+                    value={filterTier}
+                    onChange={e => setFilterTier(e.target.value as typeof filterTier)}
+                    className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white text-sm focus:border-luxury-gold focus:outline-none"
+                  >
+                    <option value="all">All Tiers</option>
+                    <option value="free">Free</option>
+                    <option value="premium">Premium ⭐</option>
+                    <option value="elite">Elite 👑</option>
+                  </select>
+
                   {/* Sort */}
                   <select
                     value={sortBy}
@@ -1286,6 +1958,7 @@ export default function VBControlPage() {
                     <option value="name">Sort by Name</option>
                     <option value="clicks">Sort by Clicks</option>
                     <option value="fraud">Sort by Fraud Score</option>
+                    <option value="tier">Sort by Tier</option>
                   </select>
 
                   <button
@@ -1343,6 +2016,8 @@ export default function VBControlPage() {
                           </th>
                           <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Profile</th>
                           <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">District</th>
+                          <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Tier</th>
+                          <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Boosts</th>
                           <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Contact</th>
                           <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Fraud</th>
                           <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Status</th>
@@ -1395,6 +2070,41 @@ export default function VBControlPage() {
                                 </div>
                               </td>
                               <td className="p-4 text-neutral-400 text-sm">{profile.district}</td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => openTierEditModal(profile)}
+                                  className="hover:opacity-80 transition-opacity"
+                                  title="Edit tier"
+                                >
+                                  <TierBadge tier={profile.tier || 'free'} />
+                                </button>
+                              </td>
+                              <td className="p-4 text-center">
+                                {(() => {
+                                  const tier = (profile.tier || 'free') as ModelTier;
+                                  const limits = TIER_LIMITS[tier];
+                                  const isBoosted = profile.boostedUntil && new Date(profile.boostedUntil) > new Date();
+                                  const boostsRemaining = profile.boostsRemaining || 0;
+                                  const isUnlimited = limits.boostsPerMonth === Infinity;
+
+                                  if (tier === 'free') {
+                                    return <span className="text-neutral-600 text-xs">-</span>;
+                                  }
+
+                                  return (
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className={`text-xs ${isUnlimited ? 'text-purple-400' : 'text-neutral-400'}`}>
+                                        {isUnlimited ? '∞' : `${boostsRemaining}/${limits.boostsPerMonth}`}
+                                      </span>
+                                      {isBoosted && (
+                                        <span className="text-[10px] text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
+                                          Active
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2">
                                   {profile.phone && <Phone size={14} className="text-green-500" />}
@@ -1672,6 +2382,8 @@ export default function VBControlPage() {
                       <tr>
                         <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Agency</th>
                         <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">District</th>
+                        <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Tier</th>
+                        <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Models</th>
                         <th className="text-left p-4 text-xs font-medium text-neutral-500 uppercase">Contact</th>
                         <th className="text-center p-4 text-xs font-medium text-neutral-500 uppercase">Featured</th>
                         <th className="text-right p-4 text-xs font-medium text-neutral-500 uppercase">Actions</th>
@@ -1694,6 +2406,39 @@ export default function VBControlPage() {
                             </div>
                           </td>
                           <td className="p-4 text-neutral-400 text-sm">{agency.district}</td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => openAgencyTierModal(agency)}
+                              className="hover:opacity-80 transition-opacity"
+                              title="Edit tier"
+                            >
+                              <AgencyTierBadge tier={agency.subscriptionTier} />
+                            </button>
+                          </td>
+                          <td className="p-4 text-center">
+                            {(() => {
+                              const modelsCount = profiles.filter(p => p.agencyId === agency.id).length;
+                              const limit = agency.modelLimit || 0;
+                              const hasLimit = limit > 0;
+                              const isAtLimit = hasLimit && modelsCount >= limit;
+
+                              return (
+                                <div className="flex flex-col items-center">
+                                  <span className={`text-sm ${isAtLimit ? 'text-red-400' : 'text-neutral-400'}`}>
+                                    {modelsCount}{hasLimit ? `/${limit}` : ''}
+                                  </span>
+                                  {hasLimit && (
+                                    <div className="w-12 h-1 bg-neutral-700 rounded-full mt-1 overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full ${isAtLimit ? 'bg-red-500' : 'bg-green-500'}`}
+                                        style={{ width: `${Math.min((modelsCount / limit) * 100, 100)}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2 text-xs">
                               {agency.phone && <span className="text-green-400">Phone</span>}
@@ -1951,6 +2696,8 @@ export default function VBControlPage() {
       {/* Modals */}
       <VerificationModal />
       <ImageLightbox />
+      <TierEditModal />
+      <AgencyTierEditModal />
     </div>
   );
 }
