@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { applyWatermark } from '@/lib/watermark';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -95,9 +96,16 @@ export async function POST(request: NextRequest) {
       const filePath = path.join(userDir, filename);
 
       try {
-        // Convert File to Buffer and save
+        // Convert File to Buffer
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        let buffer: Buffer<ArrayBufferLike> = Buffer.from(arrayBuffer);
+
+        // Apply watermark to all images except GIFs (to preserve animation)
+        if (file.type !== 'image/gif') {
+          buffer = await applyWatermark(buffer);
+        }
+
+        // Save the (watermarked) image
         await writeFile(filePath, buffer);
 
         // Generate public URL (relative to public folder)
