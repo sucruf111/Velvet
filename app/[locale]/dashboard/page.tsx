@@ -102,7 +102,17 @@ export default function DashboardPage() {
           .eq('id', user.profileId)
           .maybeSingle();
         if (fetchError) throw fetchError;
-        setMyProfile(data);
+        // Transform snake_case to camelCase for tier fields
+        const transformedProfile = data ? {
+          ...data,
+          tier: data.tier || 'free',
+          boostsRemaining: data.boosts_remaining || 0,
+          boostedUntil: data.boosted_until,
+          videoUrls: data.video_urls || [],
+          primaryContact: data.primary_contact,
+          subscriptionExpiresAt: data.subscription_expires_at,
+        } : null;
+        setMyProfile(transformedProfile);
 
         // Update lastActive timestamp when model visits dashboard (makes them "Available Now")
         if (data) {
@@ -638,12 +648,18 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
               <span className="text-purple-400 text-xs bg-purple-500/20 px-2 py-0.5 rounded-full">Elite</span>
             </div>
             <div className="space-y-3">
-              {[
-                { source: 'Search Results', percent: 45, color: 'bg-luxury-gold' },
-                { source: 'Homepage', percent: 25, color: 'bg-purple-500' },
-                { source: 'Direct Link', percent: 20, color: 'bg-blue-500' },
-                { source: 'External', percent: 10, color: 'bg-green-500' },
-              ].map(item => (
+              {(() => {
+                // Calculate estimated source breakdown based on total views
+                const total = metrics.views || 1;
+                const searchPercent = Math.round((metrics.searches / total) * 100) || 45;
+                const directPercent = Math.round(100 - searchPercent - 25 - 10);
+                return [
+                  { source: 'Search Results', percent: Math.min(searchPercent, 60), color: 'bg-luxury-gold' },
+                  { source: 'Homepage', percent: 25, color: 'bg-purple-500' },
+                  { source: 'Direct Link', percent: Math.max(directPercent, 10), color: 'bg-blue-500' },
+                  { source: 'External', percent: 10, color: 'bg-green-500' },
+                ];
+              })().map(item => (
                 <div key={item.source} className="flex items-center gap-3">
                   <span className="text-neutral-400 text-sm w-32">{item.source}</span>
                   <div className="flex-1 h-2 bg-neutral-800 rounded-full overflow-hidden">
@@ -653,6 +669,7 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
                 </div>
               ))}
             </div>
+            <p className="text-neutral-600 text-xs mt-3">* Estimated based on your profile activity</p>
           </div>
 
           {/* Hourly Breakdown */}
@@ -682,6 +699,7 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
             <p className="text-neutral-500 text-xs mt-3 text-center">
               Peak activity: 20:00 - 22:00
             </p>
+            <p className="text-neutral-600 text-xs mt-2">* Estimated based on typical viewing patterns</p>
           </div>
         </div>
       ) : showStats ? (
@@ -1846,13 +1864,13 @@ function BillingTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
               </h4>
               {tier === 'premium' && <span className="text-xs text-amber-400">Current</span>}
             </div>
-            <p className="text-3xl font-bold text-white mb-1">29€<span className="text-sm text-neutral-500">/mo</span></p>
+            <p className="text-3xl font-bold text-white mb-1">99€<span className="text-sm text-neutral-500">/mo</span></p>
             <ul className="text-sm text-neutral-400 space-y-1 mb-4">
-              <li>• Up to 10 photos</li>
-              <li>• 1 video</li>
-              <li>• 2 boosts per month</li>
+              <li>• 5 photos + 1 video</li>
               <li>• Premium badge ⭐</li>
-              <li>• Statistics access</li>
+              <li>• 2 boosts per month</li>
+              <li>• Weekly schedule</li>
+              <li>• Full statistics</li>
             </ul>
             {tier !== 'premium' && (
               <Button variant={tier === 'elite' ? 'outline' : 'primary'} className="w-full" onClick={() => router.push('/packages')}>
@@ -1870,14 +1888,14 @@ function BillingTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
               </h4>
               {tier === 'elite' && <span className="text-xs text-purple-400">Current</span>}
             </div>
-            <p className="text-3xl font-bold text-white mb-1">59€<span className="text-sm text-neutral-500">/mo</span></p>
+            <p className="text-3xl font-bold text-white mb-1">149€<span className="text-sm text-neutral-500">/mo</span></p>
             <ul className="text-sm text-neutral-400 space-y-1 mb-4">
-              <li>• Unlimited photos</li>
-              <li>• 3 videos</li>
-              <li>• Unlimited boosts</li>
+              <li>• Unlimited photos + 3 videos</li>
               <li>• Elite badge 👑</li>
+              <li>• Unlimited boosts</li>
+              <li>• "Online Now" indicator</li>
               <li>• Advanced analytics</li>
-              <li>• Priority placement</li>
+              <li>• Featured on homepage</li>
             </ul>
             {tier !== 'elite' && (
               <Button className="w-full !bg-purple-600 hover:!bg-purple-700" onClick={() => router.push('/packages')}>

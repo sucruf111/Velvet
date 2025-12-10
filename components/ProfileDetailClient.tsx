@@ -450,20 +450,64 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
               </div>
 
               {/* Schedule Section */}
-              {profile.showSchedule && (
+              {profile.showSchedule && profile.availability && profile.availability.length > 0 && (
                 <div id="schedule" className="scroll-mt-40">
                   <h3 className="font-serif text-3xl text-white mb-8 flex items-center gap-3 border-b border-neutral-800 pb-4">
                     <Calendar size={24} className="text-luxury-gold" strokeWidth={1} /> {t('profile.schedule')}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
-                    {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((dayKey, idx) => (
-                      <div key={dayKey} className="bg-neutral-900/50 border border-neutral-800 p-3 rounded-sm text-center">
-                        <div className="text-luxury-gold text-xs font-bold uppercase tracking-widest mb-1">{t(`profile.days.${dayKey}`)}</div>
-                        <div className={`text-xs ${profile.availability[idx]?.toLowerCase().includes('off') ? 'text-neutral-600' : 'text-white'}`}>
-                          {profile.availability[idx] ? profile.availability[idx].split(': ')[1] : t('profile.on_request')}
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      // Group availability by day
+                      const dayMap: Record<string, string[]> = {
+                        Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
+                      };
+                      const timeSlotLabels: Record<string, string> = {
+                        'Morning (8-12)': '8-12',
+                        'Afternoon (12-18)': '12-18',
+                        'Evening (18-22)': '18-22',
+                        'Night (22-8)': '22-8'
+                      };
+
+                      profile.availability.forEach(slot => {
+                        const [day, ...timeParts] = slot.split('-');
+                        const timeSlot = timeParts.join('-');
+                        if (dayMap[day]) {
+                          const shortLabel = timeSlotLabels[timeSlot] || timeSlot;
+                          dayMap[day].push(shortLabel);
+                        }
+                      });
+
+                      const days = [
+                        { key: 'mon', full: 'Monday' },
+                        { key: 'tue', full: 'Tuesday' },
+                        { key: 'wed', full: 'Wednesday' },
+                        { key: 'thu', full: 'Thursday' },
+                        { key: 'fri', full: 'Friday' },
+                        { key: 'sat', full: 'Saturday' },
+                        { key: 'sun', full: 'Sunday' }
+                      ];
+
+                      return days.map(({ key, full }) => {
+                        const slots = dayMap[full];
+                        const hasSlots = slots.length > 0;
+                        return (
+                          <div key={key} className="bg-neutral-900/50 border border-neutral-800 p-3 rounded-sm text-center">
+                            <div className="text-luxury-gold text-xs font-bold uppercase tracking-widest mb-2">{t(`profile.days.${key}`)}</div>
+                            {hasSlots ? (
+                              <div className="space-y-1">
+                                {slots.map((slot, i) => (
+                                  <div key={i} className="text-xs text-white bg-neutral-800 px-2 py-1 rounded">
+                                    {slot}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-neutral-600">-</div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               )}
