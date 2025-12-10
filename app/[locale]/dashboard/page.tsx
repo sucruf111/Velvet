@@ -1893,7 +1893,7 @@ function BillingTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
               <li>• Unlimited photos + 3 videos</li>
               <li>• Elite badge 👑</li>
               <li>• Unlimited boosts</li>
-              <li>• "Online Now" indicator</li>
+              <li>• &ldquo;Online Now&rdquo; indicator</li>
               <li>• Advanced analytics</li>
               <li>• Featured on homepage</li>
             </ul>
