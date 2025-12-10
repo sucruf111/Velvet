@@ -140,6 +140,7 @@ export interface Profile {
   boostedUntil?: string; // ISO timestamp when boost expires
   videoUrls: string[];
   primaryContact?: 'phone' | 'whatsapp' | 'telegram'; // For free tier single contact
+  subscriptionExpiresAt?: string; // ISO timestamp when subscription expires
 }
 
 export const isProfileActive = (profile: Profile): boolean => {

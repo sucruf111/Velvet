@@ -385,7 +385,7 @@ export default function VBControlPage() {
         setStats({
           totalProfiles: profilesData.length,
           verifiedProfiles: profilesData.filter(p => p.isVerified).length,
-          premiumProfiles: profilesData.filter(p => p.isPremium).length,
+          premiumProfiles: profilesData.filter(p => p.tier === 'premium' || p.tier === 'elite').length,
           totalAgencies: agenciesData?.length || 0,
           totalClicks: profilesData.reduce((sum, p) => sum + (p.clicks || 0), 0),
           newThisWeek: profilesData.filter(p => new Date(p.createdAt) > weekAgo).length,
@@ -453,7 +453,7 @@ export default function VBControlPage() {
         result = result.filter(p => !p.isVerified);
         break;
       case 'premium':
-        result = result.filter(p => p.isPremium);
+        result = result.filter(p => p.tier === 'premium' || p.tier === 'elite');
         break;
       case 'disabled':
         result = result.filter(p => p.isDisabled);

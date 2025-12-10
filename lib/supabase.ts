@@ -23,6 +23,7 @@ function transformProfile(dbProfile: Record<string, unknown>): Profile {
     boostedUntil: dbProfile.boosted_until as string | undefined,
     videoUrls: (dbProfile.video_urls as string[]) || [],
     primaryContact: dbProfile.primary_contact as 'phone' | 'whatsapp' | 'telegram' | undefined,
+    subscriptionExpiresAt: dbProfile.subscription_expires_at as string | undefined,
   } as Profile;
 }
 

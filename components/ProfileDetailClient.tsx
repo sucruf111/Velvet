@@ -305,7 +305,8 @@ export function ProfileDetailClient({ profile, agency }: ProfileDetailClientProp
                 </div>
               )}
               {isTop && <Badge type="top" />}
-              {profile.isPremium && <Badge type="premium" />}
+              {profile.tier === 'elite' && <Badge type="elite" />}
+              {(profile.tier === 'premium' || (profile.isPremium && profile.tier !== 'elite')) && <Badge type="premium" />}
               {showNewBadge && <Badge type="new" />}
             </div>
 

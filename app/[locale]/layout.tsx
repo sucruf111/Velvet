@@ -7,6 +7,7 @@ import '../globals.css';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { AuthProvider } from '@/lib/auth-context';
+import { ToastProvider } from '@/components/Toast';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -67,11 +68,13 @@ export default async function LocaleLayout({
       <body className="min-h-screen flex flex-col">
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
-            <Header />
-            <main className="flex-grow pt-20">
-              {children}
-            </main>
-            <Footer />
+            <ToastProvider>
+              <Header />
+              <main className="flex-grow pt-20">
+                {children}
+              </main>
+              <Footer />
+            </ToastProvider>
           </AuthProvider>
         </NextIntlClientProvider>
       </body>

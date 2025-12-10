@@ -30,7 +30,7 @@ export function Footer() {
               <li><Link href="/search?district=Mitte" className="hover:text-white">Mitte</Link></li>
               <li><Link href="/search?district=Charlottenburg" className="hover:text-white">Charlottenburg</Link></li>
               <li><Link href="/search?isNew=true" className="hover:text-white">{homeT('new_title')}</Link></li>
-              <li><Link href="/search?isPremium=true" className="hover:text-white">{homeT('premium_title')}</Link></li>
+              <li><Link href="/search?tier=premium" className="hover:text-white">{homeT('premium_title')}</Link></li>
             </ul>
           </div>
 

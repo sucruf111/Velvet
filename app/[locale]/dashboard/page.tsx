@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Profile, District, Agency, isProfileBoosted } from '@/lib/types';
 import { Button } from '@/components/ui';
 import { ProfileCard } from '@/components/ProfileCard';
+import { useToast } from '@/components/Toast';
 import {
   BarChart3, Image as ImageIcon, CreditCard, Heart, LogOut,
   Save, Check, Eye, EyeOff, Trash2, AlertCircle, Upload,
@@ -18,7 +19,7 @@ import { VerificationApplication, ModelTier, AgencyTier, ServiceType } from '@/l
 import {
   getPhotoLimit, getVideoLimit, getServiceLimit, canBoost,
   canUseSchedule, canSeeStatistics, canSeeAdvancedStatistics,
-  getAgencyTierLimits
+  getAgencyTierLimits, TIER_LIMITS
 } from '@/lib/packages';
 
 type DashboardTab = 'overview' | 'profile' | 'schedule' | 'billing' | 'account' | 'verify';
@@ -341,7 +342,7 @@ export default function DashboardPage() {
               {activeTab === 'profile' && <ProfileEditor profile={myProfile} onUpdate={fetchUserData} />}
               {activeTab === 'schedule' && <ScheduleTab profile={myProfile} onUpdate={fetchUserData} />}
               {activeTab === 'verify' && <VerificationTab profile={myProfile} application={verificationApp} onUpdate={fetchUserData} />}
-              {activeTab === 'billing' && <BillingTab profile={myProfile} />}
+              {activeTab === 'billing' && <BillingTab profile={myProfile} onUpdate={fetchUserData} />}
               {activeTab === 'account' && <AccountTab profile={myProfile} onUpdate={fetchUserData} />}
             </>
           )}
@@ -373,9 +374,12 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
   const t = useTranslations('dashboard');
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [isOnline, setIsOnline] = useState(profile.isOnline || false);
   const [isBoostLoading, setIsBoostLoading] = useState(false);
   const [boostError, setBoostError] = useState<string | null>(null);
+  const [showBoostConfirm, setShowBoostConfirm] = useState(false);
+  const [boostTimeRemaining, setBoostTimeRemaining] = useState<string | null>(null);
 
   const tier = (profile.tier as ModelTier) || 'free';
   const isBoosted = isProfileBoosted(profile);
@@ -404,15 +408,41 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
       const data = await res.json();
       if (!res.ok) {
         setBoostError(data.error || 'Failed to activate boost');
+        showToast(data.error || 'Failed to activate boost', 'error');
       } else {
+        showToast('Boost activated! Your profile is now at the top of search results.', 'success');
         onUpdate();
       }
     } catch {
       setBoostError('Failed to activate boost');
+      showToast('Failed to activate boost', 'error');
     } finally {
       setIsBoostLoading(false);
     }
   };
+
+  // Live countdown timer for active boost
+  useEffect(() => {
+    if (!profile.boostedUntil) {
+      setBoostTimeRemaining(null);
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining = new Date(profile.boostedUntil!).getTime() - Date.now();
+      if (remaining <= 0) {
+        setBoostTimeRemaining(null);
+        return;
+      }
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      setBoostTimeRemaining(`${hours}h ${minutes}m remaining`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [profile.boostedUntil]);
 
   const metrics = {
     views: profile.clicks || 0,
@@ -505,9 +535,14 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
                 <Zap size={12} className="text-orange-400" /> Profile Boost
               </p>
               {isBoosted ? (
-                <p className="text-orange-400 font-semibold">
-                  🔥 Boosted until {new Date(profile.boostedUntil!).toLocaleString()}
-                </p>
+                <div>
+                  <p className="text-orange-400 font-semibold">
+                    🔥 {boostTimeRemaining || 'Boost Active'}
+                  </p>
+                  <p className="text-orange-300/70 text-xs mt-0.5">
+                    Expires: {new Date(profile.boostedUntil!).toLocaleString()}
+                  </p>
+                </div>
               ) : (
                 <p className="text-neutral-300">
                   Appear at the top of search results for 24 hours
@@ -518,7 +553,7 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
               </p>
             </div>
             <button
-              onClick={handleBoost}
+              onClick={() => setShowBoostConfirm(true)}
               disabled={isBoosted || isBoostLoading || (tier !== 'elite' && (profile.boostsRemaining || 0) <= 0)}
               className={`px-6 py-3 rounded-md font-bold text-sm transition-all flex items-center gap-2 ${
                 isBoosted
@@ -531,6 +566,41 @@ function OverviewTab({ profile, setActiveTab, onUpdate }: { profile: Profile; se
             </button>
           </div>
           {boostError && <p className="text-red-400 text-sm mt-2">{boostError}</p>}
+        </div>
+      )}
+
+      {/* Boost Confirmation Modal */}
+      {showBoostConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowBoostConfirm(false)}>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <Zap size={24} className="text-orange-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Activate Boost?</h3>
+            </div>
+            <p className="text-neutral-300 mb-2">
+              {tier === 'elite'
+                ? 'Your profile will appear at the top of search results for 24 hours.'
+                : `This will use 1 of your ${profile.boostsRemaining || 0} monthly boosts.`}
+            </p>
+            <p className="text-neutral-400 text-sm mb-6">
+              Your profile will be highlighted and appear at the top of search results for the next 24 hours, increasing your visibility significantly.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowBoostConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 !bg-gradient-to-r !from-orange-500 !to-red-500 hover:!from-orange-600 hover:!to-red-600"
+                onClick={() => { handleBoost(); setShowBoostConfirm(false); }}
+                disabled={isBoostLoading}
+              >
+                <Zap size={16} className="mr-1" />
+                {isBoostLoading ? 'Activating...' : 'Activate Boost'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -664,6 +734,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   const t = useTranslations('dashboard');
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -922,7 +993,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           name: formData.name,
@@ -942,9 +1013,17 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
         })
         .eq('id', profile.id);
 
+      if (error) {
+        showToast('Failed to save profile', 'error');
+        return;
+      }
+
       setSaveSuccess(true);
+      showToast('Profile saved successfully', 'success');
       onUpdate();
       setTimeout(() => setSaveSuccess(false), 3000);
+    } catch {
+      showToast('Failed to save profile', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1470,6 +1549,7 @@ function ProfileEditor({ profile, onUpdate }: { profile: Profile; onUpdate: () =
 function ScheduleTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const tier = (profile.tier as ModelTier) || 'free';
   const canSchedule = canUseSchedule(tier);
 
@@ -1489,11 +1569,18 @@ function ScheduleTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ availability, showSchedule })
         .eq('id', profile.id);
+      if (error) {
+        showToast('Failed to save schedule', 'error');
+        return;
+      }
+      showToast('Schedule saved successfully', 'success');
       onUpdate();
+    } catch {
+      showToast('Failed to save schedule', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1646,9 +1733,41 @@ function InputField({
 }
 
 // Billing Tab
-function BillingTab({ profile }: { profile: Profile }) {
+function BillingTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => void }) {
   const t = useTranslations('dashboard');
   const router = useRouter();
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const tier = (profile.tier as ModelTier) || 'free';
+  const limits = TIER_LIMITS[tier];
+  const expiresAt = profile.subscriptionExpiresAt ? new Date(profile.subscriptionExpiresAt) : null;
+  const isActive = tier !== 'free' && expiresAt && expiresAt > new Date();
+  const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
+  const handleCancelSubscription = async () => {
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel' })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCancelError(data.error || 'Failed to cancel subscription');
+      } else {
+        setShowCancelConfirm(false);
+        onUpdate();
+      }
+    } catch {
+      setCancelError('Failed to cancel subscription');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   if (!profile.isVerified) {
     return (
@@ -1661,11 +1780,154 @@ function BillingTab({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
-      <CreditCard className="mx-auto text-neutral-600 mb-4" size={48} />
-      <h3 className="text-xl font-serif text-white mb-2">{t('upgrade_visibility')}</h3>
-      <p className="text-neutral-400 mb-6">Get more visibility with our premium packages.</p>
-      <Button onClick={() => router.push('/packages')}>{t('view_packages')}</Button>
+    <div className="space-y-6">
+      {/* Current Subscription Status */}
+      <div className={`border rounded-lg p-6 ${isActive ? (tier === 'elite' ? 'bg-purple-900/10 border-purple-500/30' : 'bg-amber-900/10 border-amber-500/30') : 'bg-neutral-900 border-neutral-800'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {tier === 'elite' ? (
+              <Crown className="text-purple-400" size={24} />
+            ) : tier === 'premium' ? (
+              <Star className="text-amber-400" size={24} />
+            ) : (
+              <CreditCard className="text-neutral-600" size={24} />
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                {tier === 'elite' ? 'Elite Plan' : tier === 'premium' ? 'Premium Plan' : 'Free Plan'}
+              </h3>
+              {isActive && expiresAt && (
+                <p className="text-sm text-neutral-400">
+                  {daysLeft > 0 ? `${daysLeft} days remaining` : 'Expires today'} • {expiresAt.toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+          {isActive && (
+            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium">
+              Active
+            </span>
+          )}
+        </div>
+
+        {tier !== 'free' ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-neutral-800">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.photos === Infinity ? '∞' : limits.photos}</p>
+              <p className="text-xs text-neutral-500 uppercase">Photos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.videos}</p>
+              <p className="text-xs text-neutral-500 uppercase">Videos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.boostsPerMonth === Infinity ? '∞' : limits.boostsPerMonth}</p>
+              <p className="text-xs text-neutral-500 uppercase">Boosts/Month</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{tier === 'elite' ? '👑' : '⭐'}</p>
+              <p className="text-xs text-neutral-500 uppercase">Badge</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-neutral-400 text-sm">Upgrade to get more visibility, badges, and features.</p>
+        )}
+      </div>
+
+      {/* Upgrade Options */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">{tier === 'free' ? 'Choose a Plan' : 'Change Plan'}</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Premium */}
+          <div className={`border rounded-lg p-5 ${tier === 'premium' ? 'border-amber-500 bg-amber-500/5' : 'border-neutral-700 hover:border-neutral-600'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold flex items-center gap-2">
+                <Star size={16} className="text-amber-400" /> Premium
+              </h4>
+              {tier === 'premium' && <span className="text-xs text-amber-400">Current</span>}
+            </div>
+            <p className="text-3xl font-bold text-white mb-1">29€<span className="text-sm text-neutral-500">/mo</span></p>
+            <ul className="text-sm text-neutral-400 space-y-1 mb-4">
+              <li>• Up to 10 photos</li>
+              <li>• 1 video</li>
+              <li>• 2 boosts per month</li>
+              <li>• Premium badge ⭐</li>
+              <li>• Statistics access</li>
+            </ul>
+            {tier !== 'premium' && (
+              <Button variant={tier === 'elite' ? 'outline' : 'primary'} className="w-full" onClick={() => router.push('/packages')}>
+                {tier === 'free' ? 'Upgrade' : 'Downgrade'}
+              </Button>
+            )}
+          </div>
+
+          {/* Elite */}
+          <div className={`border rounded-lg p-5 ${tier === 'elite' ? 'border-purple-500 bg-purple-500/5' : 'border-neutral-700 hover:border-neutral-600'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold flex items-center gap-2">
+                <Crown size={16} className="text-purple-400" /> Elite
+                <span className="text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded">BEST</span>
+              </h4>
+              {tier === 'elite' && <span className="text-xs text-purple-400">Current</span>}
+            </div>
+            <p className="text-3xl font-bold text-white mb-1">59€<span className="text-sm text-neutral-500">/mo</span></p>
+            <ul className="text-sm text-neutral-400 space-y-1 mb-4">
+              <li>• Unlimited photos</li>
+              <li>• 3 videos</li>
+              <li>• Unlimited boosts</li>
+              <li>• Elite badge 👑</li>
+              <li>• Advanced analytics</li>
+              <li>• Priority placement</li>
+            </ul>
+            {tier !== 'elite' && (
+              <Button className="w-full !bg-purple-600 hover:!bg-purple-700" onClick={() => router.push('/packages')}>
+                Upgrade to Elite
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Cancel Subscription */}
+      {isActive && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-2">Cancel Subscription</h3>
+          <p className="text-neutral-400 text-sm mb-4">
+            If you cancel, you&apos;ll keep access until your current billing period ends on {expiresAt?.toLocaleDateString()}.
+          </p>
+          <Button variant="outline" className="!border-red-500/50 !text-red-400 hover:!bg-red-500/10" onClick={() => setShowCancelConfirm(true)}>
+            Cancel Subscription
+          </Button>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowCancelConfirm(false)}>
+          <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-6 max-w-md mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-3">Cancel Subscription?</h3>
+            <p className="text-neutral-300 mb-2">
+              Are you sure you want to cancel your {tier} subscription?
+            </p>
+            <p className="text-neutral-400 text-sm mb-6">
+              You&apos;ll keep access to {tier} features until {expiresAt?.toLocaleDateString()}, then your account will revert to the free plan.
+            </p>
+            {cancelError && <p className="text-red-400 text-sm mb-4">{cancelError}</p>}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCancelConfirm(false)}>
+                Keep Subscription
+              </Button>
+              <Button
+                className="flex-1 !bg-red-600 hover:!bg-red-700"
+                onClick={handleCancelSubscription}
+                disabled={isCancelling}
+              >
+                {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1676,6 +1938,7 @@ function AccountTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
   const router = useRouter();
   const { logout } = useAuth();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [isDisabled, setIsDisabled] = useState(profile.isDisabled || false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1683,14 +1946,25 @@ function AccountTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
   const toggleDisabled = async () => {
     setIsSaving(true);
     const newState = !isDisabled;
-    await supabase.from('profiles').update({ isDisabled: newState }).eq('id', profile.id);
+    const { error } = await supabase.from('profiles').update({ isDisabled: newState }).eq('id', profile.id);
+    if (error) {
+      showToast('Failed to update visibility', 'error');
+      setIsSaving(false);
+      return;
+    }
     setIsDisabled(newState);
+    showToast(newState ? 'Profile hidden from search' : 'Profile visible in search', 'success');
     onUpdate();
     setIsSaving(false);
   };
 
   const handleDelete = async () => {
-    await supabase.from('profiles').delete().eq('id', profile.id);
+    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+    if (error) {
+      showToast('Failed to delete profile', 'error');
+      return;
+    }
+    showToast('Profile deleted', 'info');
     await logout();
     router.push('/');
   };
@@ -2487,6 +2761,7 @@ function AgencyModelsTab({
   const t = useTranslations('dashboard');
   const router = useRouter();
   const supabase = createClient();
+  const { showToast } = useToast();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -2499,13 +2774,23 @@ function AgencyModelsTab({
   const hasActiveSubscription = tier !== 'none' && agency.subscriptionExpiresAt && new Date(agency.subscriptionExpiresAt) > new Date();
 
   const toggleModelStatus = async (profileId: string, currentStatus: boolean) => {
-    await supabase.from('profiles').update({ isDisabled: !currentStatus }).eq('id', profileId);
+    const { error } = await supabase.from('profiles').update({ isDisabled: !currentStatus }).eq('id', profileId);
+    if (error) {
+      showToast('Failed to update model status', 'error');
+      return;
+    }
+    showToast(currentStatus ? 'Model activated' : 'Model deactivated', 'success');
     onUpdate();
   };
 
   const handleDelete = async (profileId: string) => {
     // Soft delete - unlink from agency and disable
-    await supabase.from('profiles').update({ agencyId: null, isDisabled: true }).eq('id', profileId);
+    const { error } = await supabase.from('profiles').update({ agencyId: null, isDisabled: true }).eq('id', profileId);
+    if (error) {
+      showToast('Failed to remove model', 'error');
+      return;
+    }
+    showToast('Model removed from agency', 'success');
     setShowDeleteConfirm(null);
     onUpdate();
   };
