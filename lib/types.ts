@@ -85,12 +85,19 @@ export interface Agency {
   district: District;
   isFeatured?: boolean;
   reviews?: Review[];
+  // Subscription fields
+  subscriptionTier?: AgencyTier;
+  subscriptionExpiresAt?: string;
+  modelLimit?: number;
 }
 
 export type VisitType = 'incall' | 'outcall' | 'both';
 
 // Tier type (imported from packages.ts but also defined here for convenience)
 export type ModelTier = 'free' | 'premium' | 'elite';
+
+// Agency subscription tiers
+export type AgencyTier = 'none' | 'starter' | 'pro';
 
 export interface Profile {
   id: string;
@@ -110,6 +117,7 @@ export interface Profile {
   clicks: number;
   contactClicks: number;
   searchAppearances: number;
+  favoritesCount?: number;
   phone?: string;
   whatsapp?: string;
   telegram?: string;

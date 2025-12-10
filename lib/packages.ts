@@ -1,5 +1,6 @@
 // Tier Types
 export type ModelTier = 'free' | 'premium' | 'elite';
+export type AgencyTier = 'none' | 'starter' | 'pro';
 
 // Tier Limits Configuration
 export interface TierLimits {
@@ -65,6 +66,84 @@ export const TIER_LIMITS: Record<ModelTier, TierLimits> = {
     verificationPriority: true,
   },
 };
+
+// Agency Tier Limits - defines what features models under an agency get
+export interface AgencyTierLimits {
+  maxModels: number;
+  photos: number;
+  videos: number;
+  services: number;
+  schedule: boolean;
+  statistics: boolean;
+  advancedStatistics: boolean;
+  badge: 'premium' | 'elite' | null;
+  searchPriority: number;
+  homepage: 'carousel' | 'grid' | false;
+  boostsPerMonth: number;
+  onlineIndicator: boolean;
+}
+
+export const AGENCY_TIER_LIMITS: Record<AgencyTier, AgencyTierLimits> = {
+  none: {
+    maxModels: 0,
+    photos: 1,
+    videos: 0,
+    services: 3,
+    schedule: false,
+    statistics: false,
+    advancedStatistics: false,
+    badge: null,
+    searchPriority: 0,
+    homepage: false,
+    boostsPerMonth: 0,
+    onlineIndicator: false,
+  },
+  starter: {
+    maxModels: 5,
+    photos: 5,
+    videos: 1,
+    services: Infinity,
+    schedule: true,
+    statistics: true,
+    advancedStatistics: false,
+    badge: 'premium',
+    searchPriority: 1,
+    homepage: 'grid',
+    boostsPerMonth: 2,
+    onlineIndicator: false,
+  },
+  pro: {
+    maxModels: 15,
+    photos: Infinity,
+    videos: 3,
+    services: Infinity,
+    schedule: true,
+    statistics: true,
+    advancedStatistics: true,
+    badge: 'elite',
+    searchPriority: 2,
+    homepage: 'carousel',
+    boostsPerMonth: Infinity,
+    onlineIndicator: true,
+  },
+};
+
+// Helper functions for agency tier limits
+export function getAgencyTierLimits(tier: AgencyTier): AgencyTierLimits {
+  return AGENCY_TIER_LIMITS[tier] || AGENCY_TIER_LIMITS.none;
+}
+
+export function getAgencyMaxModels(tier: AgencyTier): number {
+  return getAgencyTierLimits(tier).maxModels;
+}
+
+export function getAgencyPhotoLimit(tier: AgencyTier): number {
+  return getAgencyTierLimits(tier).photos;
+}
+
+export function getAgencyVideoLimit(tier: AgencyTier): number {
+  return getAgencyTierLimits(tier).videos;
+}
 
 // Helper functions for tier limits
 export function getTierLimits(tier: ModelTier): TierLimits {

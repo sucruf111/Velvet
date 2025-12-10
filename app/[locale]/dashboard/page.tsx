@@ -14,10 +14,11 @@ import {
   Phone, MessageCircle, User, Euro, Sparkles, Building2, Users, Globe, Plus,
   ShieldCheck, Camera, Clock, X, Zap, Lock, Crown, Star, Calendar, Send, Video, Play
 } from 'lucide-react';
-import { VerificationApplication, ModelTier } from '@/lib/types';
+import { VerificationApplication, ModelTier, AgencyTier, ServiceType } from '@/lib/types';
 import {
   getPhotoLimit, getVideoLimit, getServiceLimit, canBoost,
-  canUseSchedule, canSeeStatistics, canSeeAdvancedStatistics
+  canUseSchedule, canSeeStatistics, canSeeAdvancedStatistics,
+  getAgencyTierLimits
 } from '@/lib/packages';
 
 type DashboardTab = 'overview' | 'profile' | 'schedule' | 'billing' | 'account' | 'verify';
@@ -237,6 +238,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Subscription Banner */}
+          {myAgency && <AgencySubscriptionBanner agency={myAgency} modelCount={agencyProfiles.length} />}
+
           {/* Tab Navigation */}
           <div className="flex gap-1 mb-8 bg-neutral-900/50 p-1 rounded-lg w-fit">
             <TabButton active={agencyTab === 'overview'} onClick={() => setAgencyTab('overview')} icon={<BarChart3 size={16} />} label={t('overview')} />
@@ -266,7 +270,7 @@ export default function DashboardPage() {
                 {agencyTab === 'overview' && <AgencyOverviewTab agency={myAgency} profiles={agencyProfiles} setAgencyTab={setAgencyTab} />}
                 {agencyTab === 'agency' && <AgencyProfileEditor agency={myAgency} onUpdate={fetchUserData} />}
                 {agencyTab === 'models' && <AgencyModelsTab agency={myAgency} profiles={agencyProfiles} onUpdate={fetchUserData} />}
-                {agencyTab === 'billing' && <AgencyBillingTab />}
+                {agencyTab === 'billing' && <AgencyBillingTab agency={myAgency} />}
               </>
             )}
           </div>
@@ -2123,9 +2127,13 @@ function AgencyOverviewTab({
   const t = useTranslations('dashboard');
 
   const totalClicks = profiles.reduce((sum, p) => sum + (p.clicks || 0), 0);
+  const totalContactClicks = profiles.reduce((sum, p) => sum + (p.contactClicks || 0), 0);
+  const totalFavorites = profiles.reduce((sum, p) => sum + (p.favoritesCount || 0), 0);
   const activeModels = profiles.filter(p => !p.isDisabled).length;
-  const premiumModels = profiles.filter(p => p.isPremium).length;
-  const verifiedModels = profiles.filter(p => p.isVerified).length;
+
+  // Get tier info
+  const tier = (agency.subscriptionTier || 'none') as AgencyTier;
+  const limits = getAgencyTierLimits(tier);
 
   return (
     <div className="space-y-6">
@@ -2147,11 +2155,18 @@ function AgencyOverviewTab({
             )}
           </div>
           <div className="flex-1">
-            <h2 className="font-serif text-2xl text-white mb-1">{agency.name}</h2>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="font-serif text-2xl text-white">{agency.name}</h2>
+              {tier !== 'none' && (
+                <span className={`text-xs px-2 py-0.5 rounded ${tier === 'pro' ? 'bg-luxury-gold/20 text-luxury-gold' : 'bg-neutral-700 text-neutral-300'}`}>
+                  {tier === 'pro' ? 'PRO' : 'STARTER'}
+                </span>
+              )}
+            </div>
             <p className="text-neutral-400 text-sm line-clamp-2">{agency.description}</p>
             <div className="flex items-center gap-4 mt-2 text-xs text-neutral-500">
               <span className="flex items-center gap-1">
-                <Users size={12} /> {profiles.length} models
+                <Users size={12} /> {profiles.length}/{limits.maxModels || '∞'} {t('models')}
               </span>
               {agency.website && (
                 <span className="flex items-center gap-1">
@@ -2169,9 +2184,9 @@ function AgencyOverviewTab({
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label={t('total_views')} value={totalClicks} emoji="👁️" />
+        <MetricCard label={t('contact_clicks')} value={totalContactClicks} emoji="📞" />
+        <MetricCard label={t('favorites')} value={totalFavorites} emoji="❤️" />
         <MetricCard label={t('active_models')} value={activeModels} emoji="✨" />
-        <MetricCard label={t('premium_models')} value={premiumModels} emoji="⭐" />
-        <MetricCard label={t('verified_models')} value={verifiedModels} emoji="✅" />
       </div>
 
       {/* Quick Actions */}
@@ -2179,10 +2194,10 @@ function AgencyOverviewTab({
         <QuickActionCard icon={<Building2 size={20} />} label={t('edit_agency')} onClick={() => setAgencyTab('agency')} />
         <QuickActionCard icon={<Users size={20} />} label={t('manage_models')} onClick={() => setAgencyTab('models')} />
         <QuickActionCard icon={<Plus size={20} />} label={t('add_model')} onClick={() => setAgencyTab('models')} />
-        <QuickActionCard icon={<CreditCard size={20} />} label={t('view_packages')} onClick={() => setAgencyTab('billing')} />
+        <QuickActionCard icon={<CreditCard size={20} />} label={t('billing')} onClick={() => setAgencyTab('billing')} />
       </div>
 
-      {/* Recent Models */}
+      {/* Recent Models with Metrics */}
       {profiles.length > 0 && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
@@ -2191,10 +2206,10 @@ function AgencyOverviewTab({
               {t('view_all')}
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {profiles.slice(0, 4).map(profile => (
               <div key={profile.id} className="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
-                <div className="aspect-square w-full mb-3 rounded-md overflow-hidden bg-neutral-800">
+                <div className="aspect-square w-full mb-3 rounded-md overflow-hidden bg-neutral-800 relative">
                   {profile.images?.[0] ? (
                     <img src={profile.images[0]} alt={profile.name} className="w-full h-full object-cover" />
                   ) : (
@@ -2202,9 +2217,24 @@ function AgencyOverviewTab({
                       <User size={24} className="text-neutral-600" />
                     </div>
                   )}
+                  {profile.isDisabled && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="text-red-400 text-xs font-bold">{t('disabled')}</span>
+                    </div>
+                  )}
                 </div>
                 <h4 className="text-white font-medium text-sm truncate">{profile.name}</h4>
-                <p className="text-neutral-500 text-xs">{profile.clicks || 0} views</p>
+                <div className="flex items-center gap-3 text-xs text-neutral-500 mt-1">
+                  <span className="flex items-center gap-1">
+                    <Eye size={10} /> {profile.clicks || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Phone size={10} /> {profile.contactClicks || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Heart size={10} /> {profile.favoritesCount || 0}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -2458,24 +2488,98 @@ function AgencyModelsTab({
   const router = useRouter();
   const supabase = createClient();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
+  // Capacity calculations
+  const tier = (agency.subscriptionTier || 'none') as AgencyTier;
+  const limits = getAgencyTierLimits(tier);
+  const maxModels = limits.maxModels;
+  const isAtLimit = profiles.length >= maxModels;
+  const hasActiveSubscription = tier !== 'none' && agency.subscriptionExpiresAt && new Date(agency.subscriptionExpiresAt) > new Date();
 
   const toggleModelStatus = async (profileId: string, currentStatus: boolean) => {
     await supabase.from('profiles').update({ isDisabled: !currentStatus }).eq('id', profileId);
     onUpdate();
   };
 
+  const handleDelete = async (profileId: string) => {
+    // Soft delete - unlink from agency and disable
+    await supabase.from('profiles').update({ agencyId: null, isDisabled: true }).eq('id', profileId);
+    setShowDeleteConfirm(null);
+    onUpdate();
+  };
+
+  const handleAddModel = () => {
+    if (!hasActiveSubscription) {
+      router.push('/packages');
+      return;
+    }
+    if (isAtLimit) {
+      router.push('/packages');
+      return;
+    }
+    setShowAddModal(true);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Capacity */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">{t('your_models')}</h2>
-          <p className="text-neutral-500 text-sm">{profiles.length} models in your agency</p>
+          <div className="flex items-center gap-3 mt-1">
+            <p className="text-neutral-500 text-sm">{profiles.length}/{maxModels || '∞'} {t('models')}</p>
+            {maxModels > 0 && (
+              <div className="w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${isAtLimit ? 'bg-red-500' : 'bg-luxury-gold'}`}
+                  style={{ width: `${Math.min((profiles.length / maxModels) * 100, 100)}%` }}
+                />
+              </div>
+            )}
+          </div>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
+        <Button
+          onClick={handleAddModel}
+          disabled={!hasActiveSubscription}
+          className="flex items-center gap-2"
+        >
           <Plus size={16} /> {t('add_model')}
         </Button>
       </div>
+
+      {/* Capacity Warning */}
+      {isAtLimit && hasActiveSubscription && (
+        <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="text-amber-400" size={20} />
+            <div>
+              <p className="text-white font-medium">{t('at_model_limit')}</p>
+              <p className="text-amber-200/70 text-sm">{t('upgrade_for_more_models')}</p>
+            </div>
+          </div>
+          <Button variant="outline" onClick={() => router.push('/packages')} className="text-sm">
+            {t('upgrade_plan')}
+          </Button>
+        </div>
+      )}
+
+      {/* No Subscription Warning */}
+      {!hasActiveSubscription && (
+        <div className="bg-red-900/20 border border-red-800/50 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Lock className="text-red-400" size={20} />
+            <div>
+              <p className="text-white font-medium">{t('subscription_required')}</p>
+              <p className="text-red-200/70 text-sm">{t('subscribe_to_manage_models')}</p>
+            </div>
+          </div>
+          <Button onClick={() => router.push('/packages')} className="text-sm">
+            {t('view_plans')}
+          </Button>
+        </div>
+      )}
 
       {/* Models Grid */}
       {profiles.length > 0 ? (
@@ -2484,7 +2588,7 @@ function AgencyModelsTab({
             <div
               key={profile.id}
               className={`bg-neutral-900 border rounded-lg overflow-hidden ${
-                profile.isDisabled ? 'border-red-900/50 opacity-60' : 'border-neutral-800'
+                profile.isDisabled ? 'border-red-900/50 opacity-75' : 'border-neutral-800'
               }`}
             >
               <div className="aspect-video bg-neutral-800 relative">
@@ -2496,11 +2600,16 @@ function AgencyModelsTab({
                   </div>
                 )}
                 <div className="absolute top-2 right-2 flex gap-1">
-                  {profile.isPremium && (
+                  {limits.badge === 'elite' && (
+                    <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">ELITE</span>
+                  )}
+                  {limits.badge === 'premium' && (
                     <span className="bg-luxury-gold text-black text-[10px] font-bold px-2 py-0.5 rounded">PREMIUM</span>
                   )}
                   {profile.isVerified && (
-                    <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded">VERIFIED</span>
+                    <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5">
+                      <ShieldCheck size={10} /> VERIFIED
+                    </span>
                   )}
                 </div>
                 {profile.isDisabled && (
@@ -2516,38 +2625,68 @@ function AgencyModelsTab({
                   <span className="text-luxury-gold font-bold">{profile.priceStart}€/h</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs text-neutral-500 mb-4">
-                  <span>{profile.age} years</span>
+                {/* Model Info */}
+                <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
+                  <span>{profile.age} {t('years')}</span>
                   <span>•</span>
                   <span>{profile.district}</span>
-                  <span>•</span>
-                  <span>{profile.clicks || 0} views</span>
                 </div>
 
+                {/* Metrics Row */}
+                <div className="flex items-center gap-4 text-xs text-neutral-400 mb-4 py-2 border-y border-neutral-800">
+                  <span className="flex items-center gap-1">
+                    <Eye size={12} className="text-neutral-500" />
+                    {profile.clicks || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Phone size={12} className="text-neutral-500" />
+                    {profile.contactClicks || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Heart size={12} className="text-neutral-500" />
+                    {profile.favoritesCount || 0}
+                  </span>
+                </div>
+
+                {/* Actions */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => router.push(`/profile/${profile.id}`)}
-                    className="flex-1 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm rounded-md flex items-center justify-center gap-1"
+                    onClick={() => setEditingProfile(profile)}
+                    className="flex-1 px-3 py-2 bg-luxury-gold hover:bg-luxury-gold/90 text-black text-sm rounded-md flex items-center justify-center gap-1 font-medium"
                   >
-                    <Eye size={14} /> {t('view')}
+                    <Sparkles size={14} /> {t('edit')}
+                  </button>
+                  <button
+                    onClick={() => router.push(`/profile/${profile.id}`)}
+                    className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm rounded-md flex items-center justify-center"
+                    title={t('view')}
+                  >
+                    <Eye size={14} />
                   </button>
                   <button
                     onClick={() => toggleModelStatus(profile.id, profile.isDisabled || false)}
-                    className={`flex-1 px-3 py-2 text-sm rounded-md flex items-center justify-center gap-1 ${
+                    className={`px-3 py-2 text-sm rounded-md flex items-center justify-center ${
                       profile.isDisabled
                         ? 'bg-green-600 hover:bg-green-500 text-white'
                         : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
                     }`}
+                    title={profile.isDisabled ? t('enable') : t('disable')}
                   >
                     {profile.isDisabled ? <Eye size={14} /> : <EyeOff size={14} />}
-                    {profile.isDisabled ? t('enable') : t('disable')}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(profile.id)}
+                    className="px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm rounded-md flex items-center justify-center"
+                    title={t('delete')}
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      ) : (
+      ) : hasActiveSubscription ? (
         <div className="text-center py-20 bg-neutral-900/30 border border-dashed border-neutral-800 rounded-lg">
           <Users size={48} className="mx-auto text-neutral-700 mb-4" />
           <h3 className="text-xl text-white font-serif mb-2">{t('no_models')}</h3>
@@ -2556,18 +2695,72 @@ function AgencyModelsTab({
             <Plus size={16} className="mr-2" /> {t('add_first_model')}
           </Button>
         </div>
+      ) : (
+        <div className="text-center py-20 bg-neutral-900/30 border border-dashed border-neutral-800 rounded-lg">
+          <Lock size={48} className="mx-auto text-neutral-700 mb-4" />
+          <h3 className="text-xl text-white font-serif mb-2">{t('subscribe_first')}</h3>
+          <p className="text-neutral-500 mb-6">{t('subscribe_to_add_models')}</p>
+          <Button onClick={() => router.push('/packages')}>
+            {t('view_plans')}
+          </Button>
+        </div>
       )}
 
       {/* Add Model Modal */}
       {showAddModal && (
         <AddModelModal
           agencyId={agency.id}
+          agencyTier={tier}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
             onUpdate();
           }}
         />
+      )}
+
+      {/* Edit Model Modal */}
+      {editingProfile && (
+        <AgencyModelEditor
+          profile={editingProfile}
+          agencyTier={tier}
+          onClose={() => setEditingProfile(null)}
+          onSave={() => {
+            setEditingProfile(null);
+            onUpdate();
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center">
+                <Trash2 className="text-red-400" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">{t('delete_model')}</h3>
+                <p className="text-neutral-400 text-sm">{t('delete_model_confirm')}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="flex-1 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-md font-medium"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={() => handleDelete(showDeleteConfirm)}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white rounded-md font-medium"
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -2576,10 +2769,12 @@ function AgencyModelsTab({
 // Add Model Modal
 function AddModelModal({
   agencyId,
+  agencyTier,
   onClose,
   onSuccess
 }: {
   agencyId: string;
+  agencyTier: AgencyTier;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -2591,11 +2786,16 @@ function AddModelModal({
   const [priceStart, setPriceStart] = useState(150);
   const [isCreating, setIsCreating] = useState(false);
 
+  const limits = getAgencyTierLimits(agencyTier);
+
   const handleCreate = async () => {
     if (!name.trim()) return;
 
     setIsCreating(true);
     try {
+      // Set tier based on agency tier (models inherit from agency)
+      const modelTier: ModelTier = agencyTier === 'pro' ? 'elite' : agencyTier === 'starter' ? 'premium' : 'free';
+
       await supabase.from('profiles').insert({
         name: name.trim(),
         age,
@@ -2606,13 +2806,19 @@ function AddModelModal({
         images: [],
         services: [],
         languages: ['Deutsch'],
-        isPremium: false,
+        isPremium: modelTier === 'premium' || modelTier === 'elite',
+        tier: modelTier,
         isNew: true,
         isVerified: false,
         isVelvetChoice: false,
         clicks: 0,
+        contactClicks: 0,
+        searchAppearances: 0,
+        favoritesCount: 0,
         reviews: [],
         availability: [],
+        videoUrls: [],
+        boostsRemaining: limits.boostsPerMonth === Infinity ? 999 : limits.boostsPerMonth,
         lastActive: new Date().toISOString(),
         createdAt: new Date().toISOString()
       });
@@ -2698,17 +2904,803 @@ function AddModelModal({
   );
 }
 
+// Agency Model Editor - Full profile editing modal for agencies
+function AgencyModelEditor({
+  profile,
+  agencyTier,
+  onClose,
+  onSave
+}: {
+  profile: Profile;
+  agencyTier: AgencyTier;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const t = useTranslations('dashboard');
+  const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const limits = getAgencyTierLimits(agencyTier);
+  const photoLimit = limits.photos;
+  const videoLimit = limits.videos;
+
+  type EditorTab = 'basic' | 'photos' | 'services' | 'contact' | 'schedule';
+  const [activeTab, setActiveTab] = useState<EditorTab>('basic');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: profile.name,
+    age: profile.age,
+    priceStart: profile.priceStart,
+    description: profile.description,
+    district: profile.district,
+    visitType: profile.visitType || 'both',
+    languages: profile.languages || [],
+    services: profile.services || [],
+    images: profile.images || [],
+    videoUrls: profile.videoUrls || [],
+    phone: profile.phone || '',
+    whatsapp: profile.whatsapp || '',
+    telegram: profile.telegram || '',
+    availability: profile.availability || [],
+    showSchedule: profile.showSchedule ?? true,
+    height: profile.height || 0,
+    dressSize: profile.dressSize || '',
+    shoeSize: profile.shoeSize || 0,
+    braSize: profile.braSize || ''
+  });
+
+  const updateField = <K extends keyof typeof formData>(key: K, value: typeof formData[K]) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = photoLimit === Infinity ? 99 : photoLimit - formData.images.length;
+    if (remainingSlots <= 0) return;
+
+    setIsUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      const filesToUpload = Array.from(files).slice(0, remainingSlots);
+      filesToUpload.forEach(file => uploadFormData.append('images', file));
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      const result = await response.json();
+      if (result.success && result.urls) {
+        updateField('images', [...formData.images, ...result.urls]);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    updateField('images', formData.images.filter((_, i) => i !== index));
+  };
+
+  const moveImage = (index: number, direction: 'up' | 'down') => {
+    const newImages = [...formData.images];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= newImages.length) return;
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    updateField('images', newImages);
+  };
+
+  const toggleService = (service: string) => {
+    const current = formData.services;
+    const serviceValue = service as ServiceType;
+    if (current.includes(serviceValue)) {
+      updateField('services', current.filter(s => s !== serviceValue));
+    } else {
+      updateField('services', [...current, serviceValue]);
+    }
+  };
+
+  const toggleLanguage = (lang: string) => {
+    if (formData.languages.includes(lang)) {
+      updateField('languages', formData.languages.filter(l => l !== lang));
+    } else {
+      updateField('languages', [...formData.languages, lang]);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await supabase.from('profiles').update({
+        name: formData.name,
+        age: formData.age,
+        priceStart: formData.priceStart,
+        description: formData.description,
+        district: formData.district,
+        visitType: formData.visitType,
+        languages: formData.languages,
+        services: formData.services,
+        images: formData.images,
+        videoUrls: formData.videoUrls.slice(0, videoLimit),
+        phone: formData.phone,
+        whatsapp: formData.whatsapp,
+        telegram: formData.telegram,
+        availability: formData.availability,
+        showSchedule: formData.showSchedule,
+        height: formData.height,
+        dressSize: formData.dressSize,
+        shoeSize: formData.shoeSize,
+        braSize: formData.braSize
+      }).eq('id', profile.id);
+
+      onSave();
+    } catch (error) {
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const tabClass = (tab: EditorTab) =>
+    `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+      activeTab === tab
+        ? 'bg-neutral-800 text-white border-b-2 border-luxury-gold'
+        : 'text-neutral-400 hover:text-white'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm overflow-y-auto">
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-4xl mx-auto bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-neutral-800 rounded-lg overflow-hidden">
+                {formData.images[0] ? (
+                  <img src={formData.images[0]} alt={formData.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User size={24} className="text-neutral-600" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-serif text-white">{t('edit_model')}: {profile.name}</h2>
+                <p className="text-neutral-500 text-sm flex items-center gap-2">
+                  {limits.badge === 'elite' && <span className="text-purple-400">Elite</span>}
+                  {limits.badge === 'premium' && <span className="text-luxury-gold">Premium</span>}
+                  {t('tier_features')}
+                </p>
+              </div>
+            </div>
+            <button onClick={onClose} className="text-neutral-400 hover:text-white p-2">
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-1 px-6 pt-4 border-b border-neutral-800">
+            <button className={tabClass('basic')} onClick={() => setActiveTab('basic')}>
+              <User size={14} className="inline mr-1" /> {t('basic_info')}
+            </button>
+            <button className={tabClass('photos')} onClick={() => setActiveTab('photos')}>
+              <ImageIcon size={14} className="inline mr-1" /> {t('photos')}
+              <span className="ml-1 text-xs text-neutral-500">({formData.images.length}/{photoLimit === Infinity ? '∞' : photoLimit})</span>
+            </button>
+            <button className={tabClass('services')} onClick={() => setActiveTab('services')}>
+              <Sparkles size={14} className="inline mr-1" /> {t('services')}
+            </button>
+            <button className={tabClass('contact')} onClick={() => setActiveTab('contact')}>
+              <Phone size={14} className="inline mr-1" /> {t('contact')}
+            </button>
+            {limits.schedule && (
+              <button className={tabClass('schedule')} onClick={() => setActiveTab('schedule')}>
+                <Calendar size={14} className="inline mr-1" /> {t('schedule')}
+              </button>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="p-6 min-h-[400px]">
+            {/* Basic Info Tab */}
+            {activeTab === 'basic' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('name')}</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={e => updateField('name', e.target.value)}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('age')}</label>
+                    <input
+                      type="number"
+                      value={formData.age}
+                      onChange={e => updateField('age', Number(e.target.value))}
+                      min={18}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('hourly_rate')} (€)</label>
+                    <input
+                      type="number"
+                      value={formData.priceStart}
+                      onChange={e => updateField('priceStart', Number(e.target.value))}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('district')}</label>
+                    <select
+                      value={formData.district}
+                      onChange={e => updateField('district', e.target.value as District)}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    >
+                      {Object.values(District).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('visit_type')}</label>
+                  <div className="flex gap-3">
+                    {(['incall', 'outcall', 'both'] as const).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => updateField('visitType', type)}
+                        className={`flex-1 py-3 rounded-md text-sm font-medium transition-colors ${
+                          formData.visitType === type
+                            ? 'bg-luxury-gold text-black'
+                            : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {t(`visit_${type}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('description')}</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={e => updateField('description', e.target.value)}
+                    rows={4}
+                    className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none resize-none"
+                    placeholder={t('description_placeholder')}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('languages')}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_LANGUAGES.map(lang => (
+                      <button
+                        key={lang}
+                        onClick={() => toggleLanguage(lang)}
+                        className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                          formData.languages.includes(lang)
+                            ? 'bg-luxury-gold text-black'
+                            : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {lang}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Physical attributes */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('height')} (cm)</label>
+                    <input
+                      type="number"
+                      value={formData.height || ''}
+                      onChange={e => updateField('height', Number(e.target.value))}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('dress_size')}</label>
+                    <input
+                      type="text"
+                      value={formData.dressSize}
+                      onChange={e => updateField('dressSize', e.target.value)}
+                      placeholder="S, M, L..."
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('shoe_size')}</label>
+                    <input
+                      type="number"
+                      value={formData.shoeSize || ''}
+                      onChange={e => updateField('shoeSize', Number(e.target.value))}
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2">{t('bra_size')}</label>
+                    <input
+                      type="text"
+                      value={formData.braSize}
+                      onChange={e => updateField('braSize', e.target.value)}
+                      placeholder="75B..."
+                      className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Photos Tab */}
+            {activeTab === 'photos' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-medium">{t('photos')}</h3>
+                    <p className="text-neutral-500 text-sm">
+                      {formData.images.length}/{photoLimit === Infinity ? '∞' : photoLimit} {t('photos_uploaded')}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || (photoLimit !== Infinity && formData.images.length >= photoLimit)}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Upload size={16} />
+                    {isUploading ? t('uploading') : t('upload_photos')}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+
+                {formData.images.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                    {formData.images.map((img, i) => (
+                      <div key={i} className="relative group aspect-square bg-neutral-800 rounded-lg overflow-hidden">
+                        <img src={img} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                        {i === 0 && (
+                          <span className="absolute top-2 left-2 bg-luxury-gold text-black text-[10px] font-bold px-2 py-0.5 rounded">
+                            MAIN
+                          </span>
+                        )}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          {i > 0 && (
+                            <button
+                              onClick={() => moveImage(i, 'up')}
+                              className="p-2 bg-neutral-900 rounded-md text-white hover:bg-neutral-800"
+                            >
+                              ←
+                            </button>
+                          )}
+                          <button
+                            onClick={() => removeImage(i)}
+                            className="p-2 bg-red-600 rounded-md text-white hover:bg-red-500"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                          {i < formData.images.length - 1 && (
+                            <button
+                              onClick={() => moveImage(i, 'down')}
+                              className="p-2 bg-neutral-900 rounded-md text-white hover:bg-neutral-800"
+                            >
+                              →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-neutral-700 rounded-lg p-12 text-center">
+                    <ImageIcon size={48} className="mx-auto text-neutral-600 mb-4" />
+                    <p className="text-neutral-400">{t('no_photos_yet')}</p>
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-4"
+                    >
+                      {t('upload_first_photo')}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Videos Section */}
+                {videoLimit > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-white font-medium mb-4 flex items-center gap-2">
+                      <Video size={18} /> {t('videos')} ({formData.videoUrls.length}/{videoLimit})
+                    </h3>
+                    <div className="space-y-3">
+                      {Array.from({ length: videoLimit }).map((_, i) => (
+                        <div key={i} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={formData.videoUrls[i] || ''}
+                            onChange={e => {
+                              const newUrls = [...formData.videoUrls];
+                              newUrls[i] = e.target.value;
+                              updateField('videoUrls', newUrls.filter(u => u));
+                            }}
+                            placeholder={`Video URL ${i + 1} (YouTube, etc.)`}
+                            className="flex-1 bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                          />
+                          {formData.videoUrls[i] && (
+                            <button
+                              onClick={() => {
+                                const newUrls = formData.videoUrls.filter((_, idx) => idx !== i);
+                                updateField('videoUrls', newUrls);
+                              }}
+                              className="px-3 bg-red-900/30 text-red-400 rounded-md hover:bg-red-900/50"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Services Tab */}
+            {activeTab === 'services' && (
+              <div className="space-y-6">
+                {Object.entries(SERVICE_CATEGORIES).map(([key, { label, services }]) => (
+                  <div key={key}>
+                    <h4 className="text-white font-medium mb-3">{label}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {services.map(service => (
+                        <button
+                          key={service}
+                          onClick={() => toggleService(service)}
+                          className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                            (formData.services as string[]).includes(service)
+                              ? 'bg-luxury-gold text-black'
+                              : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                          }`}
+                        >
+                          {service}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Contact Tab */}
+            {activeTab === 'contact' && (
+              <div className="space-y-6 max-w-md">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-2">
+                    <Phone size={14} /> {t('phone')}
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={e => updateField('phone', e.target.value)}
+                    placeholder="+49 123 456789"
+                    className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-2">
+                    <MessageCircle size={14} /> WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.whatsapp}
+                    onChange={e => updateField('whatsapp', e.target.value)}
+                    placeholder="+49 123 456789"
+                    className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-neutral-500 mb-2 flex items-center gap-2">
+                    <Send size={14} /> Telegram
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.telegram}
+                    onChange={e => updateField('telegram', e.target.value)}
+                    placeholder="@username"
+                    className="w-full bg-neutral-950 border border-neutral-700 text-white p-3 rounded-md focus:border-luxury-gold focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Schedule Tab */}
+            {activeTab === 'schedule' && limits.schedule && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-white font-medium">{t('weekly_schedule')}</h3>
+                    <p className="text-neutral-500 text-sm">{t('schedule_desc')}</p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showSchedule}
+                      onChange={e => updateField('showSchedule', e.target.checked)}
+                      className="w-5 h-5 rounded border-neutral-700 bg-neutral-950 text-luxury-gold focus:ring-luxury-gold"
+                    />
+                    <span className="text-neutral-300 text-sm">{t('show_schedule')}</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                    const isAvailable = formData.availability.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          if (isAvailable) {
+                            updateField('availability', formData.availability.filter(d => d !== day));
+                          } else {
+                            updateField('availability', [...formData.availability, day]);
+                          }
+                        }}
+                        className={`py-4 rounded-lg text-sm font-medium transition-colors ${
+                          isAvailable
+                            ? 'bg-luxury-gold text-black'
+                            : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-6 border-t border-neutral-800 flex items-center justify-between">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-md font-medium"
+            >
+              {t('cancel')}
+            </button>
+            <Button onClick={handleSave} disabled={isSaving} className="px-8 flex items-center gap-2">
+              {isSaving ? (
+                <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> {t('saving')}</>
+              ) : (
+                <><Save size={16} /> {t('save_changes')}</>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Agency Billing Tab
-function AgencyBillingTab() {
+function AgencyBillingTab({ agency }: { agency: Agency }) {
   const t = useTranslations('dashboard');
   const router = useRouter();
 
+  const tier = (agency.subscriptionTier || 'none') as AgencyTier;
+  const limits = getAgencyTierLimits(tier);
+  const expiresAt = agency.subscriptionExpiresAt ? new Date(agency.subscriptionExpiresAt) : null;
+  const isActive = tier !== 'none' && expiresAt && expiresAt > new Date();
+  const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-8 text-center">
-      <CreditCard className="mx-auto text-neutral-600 mb-4" size={48} />
-      <h3 className="text-xl font-serif text-white mb-2">{t('agency_packages')}</h3>
-      <p className="text-neutral-400 mb-6">Upgrade your agency visibility and get more leads for your models.</p>
-      <Button onClick={() => router.push('/packages')}>{t('view_packages')}</Button>
+    <div className="space-y-6">
+      {/* Current Subscription */}
+      <div className={`border rounded-lg p-6 ${isActive ? 'bg-luxury-gold/5 border-luxury-gold/30' : 'bg-neutral-900 border-neutral-800'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            {tier === 'pro' ? (
+              <Crown className="text-luxury-gold" size={24} />
+            ) : tier === 'starter' ? (
+              <Star className="text-luxury-gold" size={24} />
+            ) : (
+              <CreditCard className="text-neutral-600" size={24} />
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                {tier === 'pro' ? 'Agency Pro' : tier === 'starter' ? 'Agency Starter' : t('no_subscription')}
+              </h3>
+              {isActive && expiresAt && (
+                <p className="text-sm text-neutral-400">
+                  {daysLeft > 0 ? `${daysLeft} ${t('days_remaining')}` : t('expires_today')} • {expiresAt.toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
+          {isActive && (
+            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium">
+              {t('active')}
+            </span>
+          )}
+        </div>
+
+        {isActive ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-neutral-800">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.maxModels}</p>
+              <p className="text-xs text-neutral-500 uppercase">{t('max_models')}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.photos === Infinity ? '∞' : limits.photos}</p>
+              <p className="text-xs text-neutral-500 uppercase">{t('photos_per_model')}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.videos}</p>
+              <p className="text-xs text-neutral-500 uppercase">{t('videos_per_model')}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{limits.badge === 'elite' ? '👑' : limits.badge === 'premium' ? '⭐' : '—'}</p>
+              <p className="text-xs text-neutral-500 uppercase">{t('model_badge')}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-neutral-400 text-sm">{t('no_subscription_desc')}</p>
+        )}
+      </div>
+
+      {/* Upgrade Options */}
+      <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">{tier === 'none' ? t('get_started') : t('upgrade_plan')}</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Starter */}
+          <div className={`border rounded-lg p-5 ${tier === 'starter' ? 'border-luxury-gold bg-luxury-gold/5' : 'border-neutral-700 hover:border-neutral-600'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold">Agency Starter</h4>
+              {tier === 'starter' && <span className="text-xs text-luxury-gold">{t('current')}</span>}
+            </div>
+            <p className="text-3xl font-bold text-white mb-1">499€<span className="text-sm text-neutral-500">/mo</span></p>
+            <ul className="text-sm text-neutral-400 space-y-1 mb-4">
+              <li>• {t('up_to_models', { count: 5 })}</li>
+              <li>• {t('premium_badge_models')}</li>
+              <li>• {t('agency_dashboard')}</li>
+            </ul>
+            {tier !== 'starter' && (
+              <Button variant="outline" className="w-full" onClick={() => router.push('/packages')}>
+                {tier === 'none' ? t('get_started') : t('downgrade')}
+              </Button>
+            )}
+          </div>
+
+          {/* Pro */}
+          <div className={`border rounded-lg p-5 ${tier === 'pro' ? 'border-luxury-gold bg-luxury-gold/5' : 'border-neutral-700 hover:border-neutral-600'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-semibold flex items-center gap-2">
+                Agency Pro <span className="text-[10px] bg-luxury-gold text-black px-1.5 py-0.5 rounded">POPULAR</span>
+              </h4>
+              {tier === 'pro' && <span className="text-xs text-luxury-gold">{t('current')}</span>}
+            </div>
+            <p className="text-3xl font-bold text-white mb-1">899€<span className="text-sm text-neutral-500">/mo</span></p>
+            <ul className="text-sm text-neutral-400 space-y-1 mb-4">
+              <li>• {t('up_to_models', { count: 15 })}</li>
+              <li>• {t('elite_badge_models')}</li>
+              <li>• {t('advanced_analytics')}</li>
+              <li>• {t('priority_support')}</li>
+            </ul>
+            {tier !== 'pro' && (
+              <Button className="w-full" onClick={() => router.push('/packages')}>
+                {tier === 'none' ? t('get_started') : t('upgrade_now')}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Agency Subscription Banner
+function AgencySubscriptionBanner({ agency, modelCount }: { agency: Agency; modelCount: number }) {
+  const t = useTranslations('dashboard');
+  const router = useRouter();
+
+  const tier = (agency.subscriptionTier || 'none') as AgencyTier;
+  const limits = getAgencyTierLimits(tier);
+  const maxModels = limits.maxModels;
+  const expiresAt = agency.subscriptionExpiresAt ? new Date(agency.subscriptionExpiresAt) : null;
+  const isActive = tier !== 'none' && expiresAt && expiresAt > new Date();
+  const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+  const capacityPercent = maxModels > 0 ? Math.min((modelCount / maxModels) * 100, 100) : 0;
+  const isNearLimit = capacityPercent >= 80;
+  const isAtLimit = modelCount >= maxModels;
+
+  // No subscription - show CTA
+  if (tier === 'none' || !isActive) {
+    return (
+      <div className="mb-6 bg-gradient-to-r from-amber-900/20 to-orange-900/20 border border-amber-800/50 rounded-lg p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+            <Zap className="text-amber-400" size={20} />
+          </div>
+          <div>
+            <p className="text-white font-medium">{t('no_active_subscription')}</p>
+            <p className="text-amber-200/70 text-sm">{t('subscribe_to_add_models')}</p>
+          </div>
+        </div>
+        <Button onClick={() => router.push('/packages')} className="flex items-center gap-2">
+          <Crown size={16} /> {t('view_plans')}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mb-6 rounded-lg p-4 border ${isNearLimit ? 'bg-amber-900/10 border-amber-800/50' : 'bg-luxury-gold/5 border-luxury-gold/20'}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Plan Badge */}
+          <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 ${tier === 'pro' ? 'bg-luxury-gold/20 text-luxury-gold' : 'bg-neutral-800 text-neutral-300'}`}>
+            {tier === 'pro' ? <Crown size={14} /> : <Star size={14} />}
+            <span className="text-sm font-medium">{tier === 'pro' ? 'Pro' : 'Starter'}</span>
+          </div>
+
+          {/* Model Capacity */}
+          <div className="flex items-center gap-3">
+            <div className="w-32">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className={isAtLimit ? 'text-red-400' : 'text-neutral-400'}>{modelCount}/{maxModels} {t('models')}</span>
+              </div>
+              <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-luxury-gold'}`}
+                  style={{ width: `${capacityPercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Expiration */}
+          <div className="text-sm text-neutral-400 flex items-center gap-1">
+            <Calendar size={14} />
+            {daysLeft > 30 ? (
+              <span>{t('expires')} {expiresAt?.toLocaleDateString()}</span>
+            ) : daysLeft > 0 ? (
+              <span className={daysLeft <= 7 ? 'text-amber-400' : ''}>{daysLeft} {t('days_left')}</span>
+            ) : (
+              <span className="text-red-400">{t('expired')}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          {isAtLimit && (
+            <Button variant="outline" onClick={() => router.push('/packages')} className="text-xs px-3 py-1">
+              {t('upgrade_for_more')}
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
