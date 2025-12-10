@@ -85,7 +85,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: null });
     }
 
-    return NextResponse.json({ data: verApp });
+    // Transform snake_case to camelCase for frontend compatibility
+    const transformedData = verApp ? {
+      id: verApp.id,
+      profileId: verApp.profile_id,
+      userId: verApp.user_id,
+      status: verApp.status,
+      idPhotoUrl: verApp.id_photo_url,
+      selfieWithIdUrl: verApp.selfie_with_id_url,
+      notes: verApp.notes,
+      adminNotes: verApp.admin_notes,
+      createdAt: verApp.createdAt,
+      updatedAt: verApp.updatedAt,
+      reviewedAt: verApp.reviewed_at,
+      reviewedBy: verApp.reviewed_by,
+    } : null;
+
+    return NextResponse.json({ data: transformedData });
   } catch (error) {
     console.error('Verification status error:', error);
     // Return null data on error so the page doesn't break
