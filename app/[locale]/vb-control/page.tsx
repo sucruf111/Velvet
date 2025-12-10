@@ -9,7 +9,7 @@ import {
   AlertTriangle, Search, Download, RefreshCw, DollarSign,
   Activity, Flag, Ban, Phone, Image as ImageIcon, MapPin,
   ChevronDown, ChevronUp, ExternalLink, Star, CreditCard, Settings,
-  ShieldCheck, X, Award
+  ShieldCheck, X, Award, UserX, ZoomIn
 } from 'lucide-react';
 import { Profile, Agency, VerificationApplication } from '@/lib/types';
 
@@ -678,6 +678,8 @@ export default function VBControlPage() {
 
   const [rejectNotes, setRejectNotes] = useState<string>('');
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<(VerificationApplication & { profile?: Profile }) | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   const rejectVerification = async (appId: string) => {
     if (!rejectNotes.trim()) {
@@ -736,6 +738,227 @@ export default function VBControlPage() {
     a.href = url;
     a.download = `profiles-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+  };
+
+  // Lightbox component for full-size image viewing
+  const ImageLightbox = () => {
+    if (!lightboxImage) return null;
+
+    return (
+      <div
+        className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
+        onClick={() => setLightboxImage(null)}
+      >
+        <button
+          onClick={() => setLightboxImage(null)}
+          className="absolute top-4 right-4 text-white/70 hover:text-white p-2"
+        >
+          <X size={32} />
+        </button>
+        <img
+          src={lightboxImage}
+          alt="Full size"
+          className="max-w-[90vw] max-h-[90vh] object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    );
+  };
+
+  // Verification Detail Modal component
+  const VerificationModal = () => {
+    if (!selectedVerification) return null;
+
+    const app = selectedVerification;
+    const profile = app.profile;
+
+    const handleApprove = async () => {
+      await approveVerification(app.id, app.profileId);
+      setSelectedVerification(null);
+    };
+
+    const handleReject = async () => {
+      if (!rejectNotes.trim()) {
+        alert('Please provide a reason for rejection');
+        return;
+      }
+      setRejectingAppId(app.id);
+      await rejectVerification(app.id);
+      setSelectedVerification(null);
+      setRejectingAppId(null);
+      setRejectNotes('');
+    };
+
+    return (
+      <div
+        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        onClick={() => setSelectedVerification(null)}
+      >
+        <div
+          className="bg-neutral-900 border border-neutral-700 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="p-6 border-b border-neutral-800">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-4">
+                {profile ? (
+                  <>
+                    <div className="w-16 h-16 rounded-xl bg-neutral-800 overflow-hidden">
+                      {profile.images?.[0] && (
+                        <img src={profile.images[0]} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-white">{profile.name}</h2>
+                      <p className="text-neutral-400">{profile.age} years • {profile.district}</p>
+                      <p className="text-neutral-500 text-sm">Submitted: {formatDate(app.createdAt)}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="w-16 h-16 rounded-xl bg-red-900/30 flex items-center justify-center">
+                      <UserX size={24} className="text-red-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-red-400">Profile Deleted</h2>
+                      <p className="text-neutral-500 text-sm">Submitted: {formatDate(app.createdAt)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {profile && (
+                  <a
+                    href={`/profile/${profile.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg text-sm transition-colors"
+                  >
+                    <ExternalLink size={16} />
+                    Open Profile
+                  </a>
+                )}
+                <button
+                  onClick={() => setSelectedVerification(null)}
+                  className="p-2 text-neutral-400 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Image Comparison */}
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Profile Photo */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">Profile Photo</h3>
+                <div
+                  className="aspect-[3/4] bg-neutral-800 rounded-xl overflow-hidden cursor-pointer group relative"
+                  onClick={() => profile?.images?.[0] && setLightboxImage(profile.images[0])}
+                >
+                  {profile?.images?.[0] ? (
+                    <>
+                      <img src={profile.images[0]} alt="Profile" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <ZoomIn size={32} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                      <ImageIcon size={48} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Verification Selfie */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-neutral-400 uppercase tracking-wider">Verification Selfie</h3>
+                <div
+                  className="aspect-[3/4] bg-neutral-800 rounded-xl overflow-hidden cursor-pointer group relative"
+                  onClick={() => app.selfieWithIdUrl && setLightboxImage(app.selfieWithIdUrl)}
+                >
+                  {app.selfieWithIdUrl ? (
+                    <>
+                      <img src={app.selfieWithIdUrl} alt="Verification" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <ZoomIn size={32} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                      <ImageIcon size={48} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* User Notes */}
+            {app.notes && (
+              <div className="mt-6 p-4 bg-neutral-800/50 rounded-xl">
+                <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">User Notes</p>
+                <p className="text-neutral-300">{app.notes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="p-6 border-t border-neutral-800 bg-neutral-900/50">
+            {rejectingAppId === app.id ? (
+              <div className="space-y-4">
+                <textarea
+                  value={rejectNotes}
+                  onChange={e => setRejectNotes(e.target.value)}
+                  placeholder="Please provide a reason for rejection..."
+                  className="w-full bg-neutral-800 border border-neutral-600 rounded-xl px-4 py-3 text-white focus:border-red-500 focus:outline-none resize-none"
+                  rows={3}
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReject}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-medium transition-colors"
+                  >
+                    <X size={20} />
+                    Confirm Rejection
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRejectingAppId(null);
+                      setRejectNotes('');
+                    }}
+                    className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleApprove}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-medium transition-colors"
+                >
+                  <CheckCircle size={20} />
+                  Approve Verification
+                </button>
+                <button
+                  onClick={() => setRejectingAppId(app.id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl font-medium transition-colors border border-red-600/30"
+                >
+                  <X size={20} />
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Risk badge component
@@ -1580,122 +1803,65 @@ export default function VBControlPage() {
                       <p>No pending verification requests</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {verificationApps
                         .filter(a => a.status === 'pending')
                         .map(app => (
-                          <div key={app.id} className="bg-neutral-800/30 rounded-xl p-4 border border-neutral-700">
-                            <div className="flex flex-col lg:flex-row gap-6">
+                          <div
+                            key={app.id}
+                            className="bg-neutral-800/30 rounded-xl p-4 border border-neutral-700 hover:border-neutral-600 transition-colors"
+                          >
+                            <div className="flex items-center gap-4">
                               {/* Profile Info */}
-                              <div className="flex items-start gap-4 flex-1">
-                                <div className="w-16 h-16 rounded-lg bg-neutral-700 overflow-hidden flex-shrink-0">
-                                  {app.profile?.images?.[0] ? (
-                                    <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-neutral-500">
-                                      <ImageIcon size={24} />
-                                    </div>
+                              <div className="w-12 h-12 rounded-lg bg-neutral-700 overflow-hidden flex-shrink-0">
+                                {app.profile?.images?.[0] ? (
+                                  <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-neutral-500">
+                                    <ImageIcon size={20} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white font-medium">
+                                    {app.profile?.name || 'Unknown Profile'}
+                                  </span>
+                                  {app.notes && (
+                                    <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
+                                      Has note
+                                    </span>
                                   )}
                                 </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white font-medium text-lg">
-                                      {app.profile?.name || 'Unknown Profile'}
-                                    </span>
-                                  </div>
-                                  <div className="text-neutral-400 text-sm mt-1">
-                                    {app.profile?.age}y • {app.profile?.district}
-                                  </div>
-                                  <div className="text-neutral-500 text-xs mt-1">
-                                    Submitted: {formatDate(app.createdAt)}
-                                  </div>
-                                  {app.notes && (
-                                    <div className="mt-2 p-2 bg-neutral-900/50 rounded text-sm text-neutral-300">
-                                      <span className="text-neutral-500">Note: </span>{app.notes}
-                                    </div>
-                                  )}
+                                <div className="text-neutral-400 text-sm">
+                                  {app.profile?.age}y • {app.profile?.district} • {formatDate(app.createdAt)}
                                 </div>
                               </div>
 
-                              {/* Verification Photos */}
-                              <div className="flex gap-4">
-                                <div className="space-y-2">
-                                  <div className="text-xs text-neutral-500 uppercase">ID Photo</div>
-                                  <a
-                                    href={app.idPhotoUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-32 h-24 rounded-lg overflow-hidden border border-neutral-600 hover:border-luxury-gold transition-colors"
-                                  >
-                                    <img
-                                      src={app.idPhotoUrl}
-                                      alt="ID Photo"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </a>
-                                </div>
-                                <div className="space-y-2">
-                                  <div className="text-xs text-neutral-500 uppercase">Selfie with ID</div>
-                                  <a
-                                    href={app.selfieWithIdUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-32 h-24 rounded-lg overflow-hidden border border-neutral-600 hover:border-luxury-gold transition-colors"
-                                  >
-                                    <img
-                                      src={app.selfieWithIdUrl}
-                                      alt="Selfie"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </a>
-                                </div>
+                              {/* Verification Thumbnail */}
+                              <div className="w-16 h-12 rounded-lg overflow-hidden bg-neutral-700 flex-shrink-0">
+                                {app.selfieWithIdUrl && (
+                                  <img src={app.selfieWithIdUrl} alt="Verification" className="w-full h-full object-cover" />
+                                )}
                               </div>
 
                               {/* Actions */}
-                              <div className="flex lg:flex-col gap-2 lg:w-32">
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <button
+                                  onClick={() => setSelectedVerification(app)}
+                                  className="flex items-center gap-2 px-4 py-2 bg-luxury-gold/20 hover:bg-luxury-gold text-luxury-gold hover:text-black rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  <Eye size={16} />
+                                  Review
+                                </button>
                                 <button
                                   onClick={() => approveVerification(app.id, app.profileId)}
-                                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                  className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                  title="Quick Approve"
                                 >
                                   <CheckCircle size={16} />
-                                  Approve
                                 </button>
-                                {rejectingAppId === app.id ? (
-                                  <div className="flex-1 lg:flex-none space-y-2">
-                                    <textarea
-                                      value={rejectNotes}
-                                      onChange={e => setRejectNotes(e.target.value)}
-                                      placeholder="Reason for rejection..."
-                                      className="w-full bg-neutral-900 border border-neutral-600 rounded-lg px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none resize-none"
-                                      rows={2}
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => rejectVerification(app.id)}
-                                        className="flex-1 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs"
-                                      >
-                                        Confirm
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setRejectingAppId(null);
-                                          setRejectNotes('');
-                                        }}
-                                        className="px-2 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-xs"
-                                      >
-                                        <X size={14} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setRejectingAppId(app.id)}
-                                    className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg text-sm font-medium transition-colors border border-red-600/30"
-                                  >
-                                    <X size={16} />
-                                    Reject
-                                  </button>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -1729,16 +1895,27 @@ export default function VBControlPage() {
                             <tr key={app.id} className="hover:bg-neutral-800/30">
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded bg-neutral-800 overflow-hidden">
-                                    {app.profile?.images?.[0] && (
-                                      <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
-                                    )}
-                                  </div>
-                                  <span className="text-white text-sm">{app.profile?.name || 'Unknown'}</span>
+                                  {app.profile ? (
+                                    <>
+                                      <div className="w-8 h-8 rounded bg-neutral-800 overflow-hidden">
+                                        {app.profile.images?.[0] && (
+                                          <img src={app.profile.images[0]} alt="" className="w-full h-full object-cover" />
+                                        )}
+                                      </div>
+                                      <span className="text-white text-sm">{app.profile.name}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="w-8 h-8 rounded bg-red-900/30 flex items-center justify-center">
+                                        <UserX size={14} className="text-red-400" />
+                                      </div>
+                                      <span className="text-red-400 text-sm italic">Profile Deleted</span>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                               <td className="p-3">
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium capitalize ${
                                   app.status === 'approved'
                                     ? 'bg-green-500/20 text-green-400'
                                     : 'bg-red-500/20 text-red-400'
@@ -1770,6 +1947,10 @@ export default function VBControlPage() {
           </>
         )}
       </div>
+
+      {/* Modals */}
+      <VerificationModal />
+      <ImageLightbox />
     </div>
   );
 }
