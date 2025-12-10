@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest) {
     // Get the current agency
     const { data: agency, error: fetchError } = await supabaseAdmin
       .from('agencies')
-      .select('id, name, subscriptionTier')
+      .select('id, name, subscription_tier')
       .eq('id', agencyId)
       .single();
 
@@ -88,17 +88,17 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const oldTier = agency.subscriptionTier || 'none';
+    const oldTier = agency.subscription_tier || 'none';
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
-      subscriptionTier: tier as AgencyTier,
-      modelLimit: modelLimit || 0,
+      subscription_tier: tier as AgencyTier,
+      model_limit: modelLimit || 0,
     };
 
     // Set subscription expiry if provided
     if (expiresAt) {
-      updateData.subscriptionExpiresAt = expiresAt;
+      updateData.subscription_expires_at = expiresAt;
     }
 
     // Update the agency
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
 
     const { data: agency, error } = await supabaseAdmin
       .from('agencies')
-      .select('id, name, subscriptionTier, modelLimit, subscriptionExpiresAt')
+      .select('id, name, subscription_tier, model_limit, subscription_expires_at')
       .eq('id', agencyId)
       .single();
 
@@ -176,9 +176,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       agencyId: agency.id,
       name: agency.name,
-      tier: agency.subscriptionTier || 'none',
-      modelLimit: agency.modelLimit || 0,
-      subscriptionExpiresAt: agency.subscriptionExpiresAt
+      tier: agency.subscription_tier || 'none',
+      modelLimit: agency.model_limit || 0,
+      subscriptionExpiresAt: agency.subscription_expires_at
     });
 
   } catch (error) {
