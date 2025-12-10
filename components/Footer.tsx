@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { useAuth } from '@/lib/auth-context';
+import { APP_VERSION } from '@/lib/version';
 
 export function Footer() {
   const t = useTranslations('footer');
@@ -55,10 +56,13 @@ export function Footer() {
             <p className="text-neutral-600 text-xs text-center md:text-left">
               © {new Date().getFullYear()} Velvet Berlin. {t('copyright')}
             </p>
-            <div className="flex gap-4">
-              <div className="w-8 h-5 bg-neutral-800 rounded"></div>
-              <div className="w-8 h-5 bg-neutral-800 rounded"></div>
-              <div className="w-8 h-5 bg-neutral-800 rounded"></div>
+            <div className="flex items-center gap-4">
+              <span className="text-neutral-700 text-[10px]">v{APP_VERSION}</span>
+              <div className="flex gap-4">
+                <div className="w-8 h-5 bg-neutral-800 rounded"></div>
+                <div className="w-8 h-5 bg-neutral-800 rounded"></div>
+                <div className="w-8 h-5 bg-neutral-800 rounded"></div>
+              </div>
             </div>
           </div>
         </div>
