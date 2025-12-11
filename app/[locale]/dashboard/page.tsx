@@ -150,7 +150,13 @@ export default function DashboardPage() {
         if (fetchError) throw fetchError;
 
         if (agency) {
-          setMyAgency(agency);
+          // Map snake_case DB fields to camelCase interface
+          setMyAgency({
+            ...agency,
+            subscriptionTier: agency.subscription_tier || 'none',
+            subscriptionExpiresAt: agency.subscription_expires_at,
+            modelLimit: agency.model_limit
+          });
           // Fetch all profiles belonging to this agency
           const { data: profiles } = await supabase
             .from('profiles')
@@ -3992,9 +3998,13 @@ function AgencySubscriptionBanner({ agency, modelCount }: { agency: Agency; mode
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {/* Plan Badge */}
-          <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 ${tier === 'pro' ? 'bg-luxury-gold/20 text-luxury-gold' : 'bg-neutral-800 text-neutral-300'}`}>
-            {tier === 'pro' ? <Crown size={14} /> : <Star size={14} />}
-            <span className="text-sm font-medium">{tier === 'pro' ? 'Pro' : 'Starter'}</span>
+          <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 ${
+            tier === 'pro' ? 'bg-luxury-gold/20 text-luxury-gold' :
+            tier === 'free' ? 'bg-green-500/20 text-green-400' :
+            'bg-neutral-800 text-neutral-300'
+          }`}>
+            {tier === 'pro' ? <Crown size={14} /> : tier === 'free' ? <Users size={14} /> : <Star size={14} />}
+            <span className="text-sm font-medium">{tier === 'pro' ? 'Pro' : tier === 'free' ? 'Free' : 'Starter'}</span>
           </div>
 
           {/* Model Capacity */}
@@ -4005,7 +4015,7 @@ function AgencySubscriptionBanner({ agency, modelCount }: { agency: Agency; mode
               </div>
               <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-luxury-gold'}`}
+                  className={`h-full rounded-full transition-all ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : tier === 'free' ? 'bg-green-500' : 'bg-luxury-gold'}`}
                   style={{ width: `${capacityPercent}%` }}
                 />
               </div>
@@ -4015,7 +4025,9 @@ function AgencySubscriptionBanner({ agency, modelCount }: { agency: Agency; mode
           {/* Expiration */}
           <div className="text-sm text-neutral-400 flex items-center gap-1">
             <Calendar size={14} />
-            {daysLeft > 30 ? (
+            {tier === 'free' ? (
+              <span className="text-green-400">{t('unlimited')}</span>
+            ) : daysLeft > 30 ? (
               <span>{t('expires')} {expiresAt?.toLocaleDateString()}</span>
             ) : daysLeft > 0 ? (
               <span className={daysLeft <= 7 ? 'text-amber-400' : ''}>{daysLeft} {t('days_left')}</span>
