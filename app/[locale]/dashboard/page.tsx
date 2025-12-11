@@ -3038,11 +3038,15 @@ function AgencyModelsTab({
         <AddModelModal
           agencyId={agency.id}
           agencyTier={tier}
+          agencyPhone={agency.phone}
+          agencyWhatsapp={agency.whatsapp}
+          agencyTelegram={agency.telegram}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
             onUpdate();
           }}
+          showToast={showToast}
         />
       )}
 
@@ -3056,6 +3060,7 @@ function AgencyModelsTab({
             setEditingProfile(null);
             onUpdate();
           }}
+          showToast={showToast}
         />
       )}
 
@@ -3097,13 +3102,21 @@ function AgencyModelsTab({
 function AddModelModal({
   agencyId,
   agencyTier,
+  agencyPhone,
+  agencyWhatsapp,
+  agencyTelegram,
   onClose,
-  onSuccess
+  onSuccess,
+  showToast
 }: {
   agencyId: string;
   agencyTier: AgencyTier;
+  agencyPhone?: string;
+  agencyWhatsapp?: string;
+  agencyTelegram?: string;
   onClose: () => void;
   onSuccess: () => void;
+  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }) {
   const t = useTranslations('dashboard');
   const supabase = createClient();
@@ -3123,7 +3136,8 @@ function AddModelModal({
       // Set tier based on agency tier (models inherit from agency)
       const modelTier: ModelTier = agencyTier === 'pro' ? 'elite' : agencyTier === 'starter' ? 'premium' : 'free';
 
-      await supabase.from('profiles').insert({
+      const { error } = await supabase.from('profiles').insert({
+        id: crypto.randomUUID(),
         name: name.trim(),
         age,
         district,
@@ -3138,20 +3152,34 @@ function AddModelModal({
         isNew: true,
         isVerified: false,
         isVelvetChoice: false,
+        isDisabled: false,
         clicks: 0,
         contactClicks: 0,
         searchAppearances: 0,
-        favoritesCount: 0,
+        favorites_count: 0,
         reviews: [],
         availability: [],
-        videoUrls: [],
-        boostsRemaining: limits.boostsPerMonth === Infinity ? 999 : limits.boostsPerMonth,
+        video_urls: [],
+        boosts_remaining: limits.boostsPerMonth === Infinity ? 999 : limits.boostsPerMonth,
         lastActive: new Date().toISOString(),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        visitType: 'both',
+        showSchedule: false,
+        phone: agencyPhone || '',
+        whatsapp: agencyWhatsapp || '',
+        telegram: agencyTelegram || ''
       });
-      onSuccess();
+
+      if (error) {
+        console.error('Error creating profile:', error);
+        showToast(t('error_creating_model') || 'Failed to create model', 'error');
+      } else {
+        showToast(t('model_created') || 'Model created successfully', 'success');
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error creating profile:', error);
+      showToast(t('error_creating_model') || 'Failed to create model', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -3236,12 +3264,14 @@ function AgencyModelEditor({
   profile,
   agencyTier,
   onClose,
-  onSave
+  onSave,
+  showToast
 }: {
   profile: Profile;
   agencyTier: AgencyTier;
   onClose: () => void;
   onSave: () => void;
+  showToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }) {
   const t = useTranslations('dashboard');
   const supabase = createClient();
@@ -3344,7 +3374,7 @@ function AgencyModelEditor({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await supabase.from('profiles').update({
+      const { error } = await supabase.from('profiles').update({
         name: formData.name,
         age: formData.age,
         priceStart: formData.priceStart,
@@ -3354,7 +3384,7 @@ function AgencyModelEditor({
         languages: formData.languages,
         services: formData.services,
         images: formData.images,
-        videoUrls: formData.videoUrls.slice(0, videoLimit),
+        video_urls: formData.videoUrls.slice(0, videoLimit),
         phone: formData.phone,
         whatsapp: formData.whatsapp,
         telegram: formData.telegram,
@@ -3366,9 +3396,16 @@ function AgencyModelEditor({
         braSize: formData.braSize
       }).eq('id', profile.id);
 
-      onSave();
+      if (error) {
+        console.error('Save error:', error);
+        showToast(t('error_saving_model') || 'Failed to save changes', 'error');
+      } else {
+        showToast(t('model_saved') || 'Changes saved successfully', 'success');
+        onSave();
+      }
     } catch (error) {
       console.error('Save error:', error);
+      showToast(t('error_saving_model') || 'Failed to save changes', 'error');
     } finally {
       setIsSaving(false);
     }
