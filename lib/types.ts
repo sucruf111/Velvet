@@ -101,6 +101,7 @@ export type AgencyTier = 'none' | 'starter' | 'pro';
 
 export interface Profile {
   id: string;
+  userId?: string;
   name: string;
   agencyId?: string;
   age: number;
