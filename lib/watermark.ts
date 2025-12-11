@@ -59,10 +59,18 @@ function generateWatermarkSvg(width: number, height: number): string {
           font-family="Arial, Helvetica, sans-serif"
           font-size="${fontSize}"
           font-weight="bold"
-          style="text-shadow: 1px 1px 3px rgba(0,0,0,0.7);"
+          filter="url(#shadow)"
         >VELVETBERLIN</text>`;
     }
   }
 
-  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${textElements}</svg>`;
+  // SVG filter for drop shadow (text-shadow CSS doesn't work in SVG)
+  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="1" dy="1" stdDeviation="1.5" flood-color="black" flood-opacity="0.7"/>
+      </filter>
+    </defs>
+    ${textElements}
+  </svg>`;
 }
