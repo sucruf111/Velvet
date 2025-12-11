@@ -573,21 +573,38 @@ export default function VBControlPage() {
   };
 
   const deleteProfile = async (profileId: string) => {
-    if (!confirm('Are you sure you want to delete this profile? This cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete this profile and associated user account? This cannot be undone.')) {
       return;
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', profileId);
+    // Find the profile to get userId
+    const profile = profiles.find(p => p.id === profileId);
+    const userId = profile?.userId;
 
-    if (!error) {
-      setProfiles(profiles.filter(p => p.id !== profileId));
-      setStats(prev => ({
-        ...prev,
-        totalProfiles: prev.totalProfiles - 1
-      }));
+    try {
+      // Call API to properly delete from auth.users and all tables
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          profileId: profileId
+        })
+      });
+
+      if (response.ok) {
+        setProfiles(profiles.filter(p => p.id !== profileId));
+        setStats(prev => ({
+          ...prev,
+          totalProfiles: prev.totalProfiles - 1
+        }));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete profile');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete profile');
     }
   };
 
@@ -616,7 +633,27 @@ export default function VBControlPage() {
         setProfiles(profiles.map(p => ids.includes(p.id) ? { ...p, isDisabled: true } : p));
         break;
       case 'delete':
-        await supabase.from('profiles').delete().in('id', ids);
+        // Get userIds for proper auth deletion
+        const userIds = profiles
+          .filter(p => ids.includes(p.id) && p.userId)
+          .map(p => p.userId as string);
+
+        if (userIds.length > 0) {
+          try {
+            const response = await fetch('/api/admin/delete-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds })
+            });
+
+            if (!response.ok) {
+              const data = await response.json();
+              console.error('Bulk delete error:', data);
+            }
+          } catch (error) {
+            console.error('Bulk delete error:', error);
+          }
+        }
         setProfiles(profiles.filter(p => !ids.includes(p.id)));
         break;
     }
@@ -638,16 +675,33 @@ export default function VBControlPage() {
   };
 
   const deleteAgency = async (agencyId: string) => {
-    if (!confirm('Are you sure you want to delete this agency?')) return;
+    if (!confirm('Are you sure you want to delete this agency and associated user account? This cannot be undone.')) return;
 
-    const { error } = await supabase
-      .from('agencies')
-      .delete()
-      .eq('id', agencyId);
+    // Find the agency to get userId
+    const agency = agencies.find(a => a.id === agencyId);
+    const userId = agency?.userId;
 
-    if (!error) {
-      setAgencies(agencies.filter(a => a.id !== agencyId));
-      setStats(prev => ({ ...prev, totalAgencies: prev.totalAgencies - 1 }));
+    try {
+      // Call API to properly delete from auth.users and all tables
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          agencyId: agencyId
+        })
+      });
+
+      if (response.ok) {
+        setAgencies(agencies.filter(a => a.id !== agencyId));
+        setStats(prev => ({ ...prev, totalAgencies: prev.totalAgencies - 1 }));
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to delete agency');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete agency');
     }
   };
 

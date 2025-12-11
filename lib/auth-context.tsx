@@ -257,15 +257,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ? `phone_${phoneNumber.replace(/[^0-9]/g, '')}@velvet-phone.local`
       : data.email!;
 
+    // SECURITY FIX: Prevent users from self-assigning admin role during registration
+    // Admin role can only be assigned via database by authorized administrators
+    const safeRole = role === 'admin' ? 'customer' : role;
+
     const initialMetadata = {
       username,
-      role: role as 'customer' | 'model' | 'agency' | 'admin',
+      role: safeRole as 'customer' | 'model' | 'agency',
       favorites: [] as string[],
       // Store original phone number for login
       phone: phoneNumber || undefined,
       authMethod: data.phone ? 'phone' : 'email',
       // Store registration data for profile creation later
-      pendingProfile: role !== 'customer' ? {
+      pendingProfile: safeRole !== 'customer' ? {
         displayName: data.displayName,
         agencyName: data.agencyName,
         district: data.district,
@@ -310,9 +314,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(transformSupabaseUser(signUpResult.data.user));
 
     // Create profile/agency in background (non-blocking)
-    if (role === 'model' && data.displayName) {
+    if (safeRole === 'model' && data.displayName) {
       createModelProfile(signUpResult.data.user.id, data).catch(console.error);
-    } else if (role === 'agency' && data.agencyName) {
+    } else if (safeRole === 'agency' && data.agencyName) {
       createAgencyProfile(signUpResult.data.user.id, data).catch(console.error);
     }
   };

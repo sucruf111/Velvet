@@ -1977,14 +1977,31 @@ function AccountTab({ profile, onUpdate }: { profile: Profile; onUpdate: () => v
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
-    if (error) {
-      showToast('Failed to delete profile', 'error');
-      return;
+    try {
+      // Call the API to properly delete user from auth.users and all tables
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: profile.userId,
+          profileId: profile.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.error || 'Failed to delete account', 'error');
+        return;
+      }
+
+      showToast('Account deleted successfully', 'info');
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Delete error:', error);
+      showToast('Failed to delete account', 'error');
     }
-    showToast('Profile deleted', 'info');
-    await logout();
-    router.push('/');
   };
 
   return (

@@ -30,9 +30,9 @@ const planMapping: Record<string, { type: string; name: string; price: number; t
 };
 
 function verifySignature(data: Record<string, string>, receivedHash: string): boolean {
+  // SECURITY FIX: Make CCBILL_SALT mandatory - never accept unverified webhooks
   if (!ccbillSalt) {
-    console.warn('CCBILL_SALT not configured, skipping signature verification');
-    return true;
+    throw new Error('CCBILL_SALT is not configured - webhook signature verification is mandatory');
   }
 
   const sortedKeys = Object.keys(data).sort();

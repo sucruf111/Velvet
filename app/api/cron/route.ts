@@ -18,9 +18,12 @@ function getSupabaseAdmin() {
 }
 
 // Verify cron secret to prevent unauthorized access
+// SECURITY FIX: Make CRON_SECRET mandatory
 function verifyCronSecret(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true; // Skip verification if not configured
+  if (!cronSecret) {
+    throw new Error('CRON_SECRET is not configured - cron endpoint protection is mandatory');
+  }
 
   const authHeader = request.headers.get('authorization');
   return authHeader === `Bearer ${cronSecret}`;
