@@ -97,7 +97,7 @@ export type VisitType = 'incall' | 'outcall' | 'both';
 export type ModelTier = 'free' | 'premium' | 'elite';
 
 // Agency subscription tiers
-export type AgencyTier = 'none' | 'starter' | 'pro';
+export type AgencyTier = 'none' | 'free' | 'starter' | 'pro';
 
 export interface Profile {
   id: string;

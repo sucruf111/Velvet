@@ -2,6 +2,7 @@
   "nav": {
     "home": "Startseite",
     "escorts": "Escorts",
+    "agencies": "Agenturen",
     "advertise": "Werben",
     "login": "Login",
     "dashboard": "Dashboard",
@@ -243,6 +244,17 @@
     "website": "Webseite",
     "our_models": "Unsere Models",
     "no_models": "Derzeit sind keine Models für diese Agentur gelistet."
+  },
+  "agencies": {
+    "title": "Partner Agenturen",
+    "subtitle": "Entdecken Sie unsere verifizierten Partner-Agenturen in Berlin",
+    "all_agencies": "Alle Agenturen",
+    "filter_district": "Nach Bezirk filtern",
+    "no_agencies": "Keine Agenturen gefunden",
+    "view_all": "Alle Agenturen anzeigen",
+    "models_count": "{count} Models",
+    "featured": "Premium Partner",
+    "partner": "Partner"
   },
   "visit": {
     "title": "Service-Ort",
@@ -589,6 +601,10 @@
       "elite": {
         "highlights": ["Unbegrenzte Fotos + 3 Videos", "Elite-Badge 👑", "Höchste Suchposition"],
         "features": ["Alles aus Premium", "\"Online Jetzt\" Anzeige", "Unbegrenzte Boosts", "Featured Carousel auf Startseite", "Erweiterte Analytics", "Prioritäts-Verifizierung", "Priority Support (4h Antwort)"]
+      },
+      "agency_free": {
+        "highlights": ["Bis zu 3 Models", "Agentur-Profilseite", "Basis-Statistiken"],
+        "features": ["Agentur-Dashboard", "5 Fotos pro Model", "Alle Services auswählbar", "Grundlegende Model-Verwaltung"]
       },
       "agency_starter": {
         "highlights": ["Bis zu 5 Models", "Agentur-Profilseite", "Zentrale Verwaltung"],

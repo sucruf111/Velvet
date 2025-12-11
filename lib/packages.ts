@@ -1,6 +1,6 @@
 // Tier Types
 export type ModelTier = 'free' | 'premium' | 'elite';
-export type AgencyTier = 'none' | 'starter' | 'pro';
+export type AgencyTier = 'none' | 'free' | 'starter' | 'pro';
 
 // Tier Limits Configuration
 export interface TierLimits {
@@ -91,6 +91,20 @@ export const AGENCY_TIER_LIMITS: Record<AgencyTier, AgencyTierLimits> = {
     services: 3,
     schedule: false,
     statistics: false,
+    advancedStatistics: false,
+    badge: null,
+    searchPriority: 0,
+    homepage: false,
+    boostsPerMonth: 0,
+    onlineIndicator: false,
+  },
+  free: {
+    maxModels: 3,
+    photos: 5,
+    videos: 0,
+    services: Infinity,
+    schedule: false,
+    statistics: true,
     advancedStatistics: false,
     badge: null,
     searchPriority: 0,
@@ -271,12 +285,31 @@ export const MODEL_PACKAGES: Package[] = [
   },
 ];
 
-// Agency Packages (unchanged for now)
+// Agency Packages
 export const AGENCY_PACKAGES: Package[] = [
   {
+    id: 'agency-free',
+    name: 'Agentur Free',
+    tier: 'free',
+    type: 'agency',
+    price: 0,
+    durationDays: Infinity,
+    highlights: [
+      'Bis zu 3 Models',
+      'Agentur-Profilseite',
+      'Basis-Statistiken',
+    ],
+    features: [
+      'Agentur-Dashboard',
+      '5 Fotos pro Model',
+      'Alle Services auswählbar',
+      'Grundlegende Model-Verwaltung',
+    ],
+  },
+  {
     id: 'agency-starter',
-    name: 'Agentur Basis',
-    tier: 'free', // agencies don't use tier system the same way
+    name: 'Agentur Starter',
+    tier: 'premium',
     type: 'agency',
     price: 499,
     durationDays: 30,

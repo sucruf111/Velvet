@@ -2,6 +2,7 @@
   "nav": {
     "home": "Home",
     "escorts": "Escorts",
+    "agencies": "Agencies",
     "advertise": "Advertise",
     "login": "Login",
     "dashboard": "Dashboard",
@@ -243,6 +244,17 @@
     "website": "Website",
     "our_models": "Our Models",
     "no_models": "No models currently listed for this agency."
+  },
+  "agencies": {
+    "title": "Partner Agencies",
+    "subtitle": "Discover our verified partner agencies in Berlin",
+    "all_agencies": "All Agencies",
+    "filter_district": "Filter by district",
+    "no_agencies": "No agencies found",
+    "view_all": "View All Agencies",
+    "models_count": "{count} Models",
+    "featured": "Premium Partner",
+    "partner": "Partner"
   },
   "visit": {
     "title": "Service Location",
@@ -599,6 +611,10 @@
       "elite": {
         "highlights": ["Unlimited Photos + 3 Videos", "Elite Badge 👑", "Highest search position"],
         "features": ["Everything from Premium", "\"Online Now\" indicator", "Unlimited boosts", "Featured carousel on homepage", "Advanced analytics", "Priority verification", "Priority support (4h response)"]
+      },
+      "agency_free": {
+        "highlights": ["Up to 3 models", "Agency profile page", "Basic statistics"],
+        "features": ["Agency dashboard", "5 photos per model", "All services selectable", "Basic model management"]
       },
       "agency_starter": {
         "highlights": ["Up to 5 models", "Agency profile page", "Central management"],

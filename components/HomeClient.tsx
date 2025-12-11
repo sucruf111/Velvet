@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter, Link } from '@/i18n/routing';
-import { Profile, Agency, ServiceType } from '@/lib/types';
+import { Profile, Agency, ServiceType, AgencyTier } from '@/lib/types';
 import { ProfileCard } from './ProfileCard';
 import { AgencyCard } from './AgencyCard';
 import { LuxuryBackground } from './LuxuryBackground';
@@ -43,6 +43,22 @@ export function HomeClient({ eliteProfiles, premiumProfiles, freeProfiles, agenc
 
   const hasMorePremium = premiumProfiles.length > premiumVisible;
   const hasMoreFree = freeProfiles.length > freeVisible;
+
+  // Sort agencies by tier (paid first, then free, then none)
+  const sortedAgencies = useMemo(() => {
+    const tierPriority: Record<AgencyTier, number> = {
+      pro: 3,
+      starter: 2,
+      free: 1,
+      none: 0,
+    };
+    return [...agencies].sort((a, b) => {
+      const aTier = tierPriority[a.subscriptionTier || 'none'];
+      const bTier = tierPriority[b.subscriptionTier || 'none'];
+      if (aTier !== bTier) return bTier - aTier;
+      return a.name.localeCompare(b.name);
+    });
+  }, [agencies]);
 
   return (
     <div className="animate-fade-in bg-luxury-black min-h-screen">
@@ -223,7 +239,7 @@ export function HomeClient({ eliteProfiles, premiumProfiles, freeProfiles, agenc
       </div>
 
       {/* Agencies Section */}
-      {agencies.length > 0 && (
+      {sortedAgencies.length > 0 && (
         <section className="py-16 bg-neutral-900/30 border-y border-white/5 mb-16 relative overflow-hidden">
           <div className="absolute -left-20 top-0 w-96 h-96 bg-luxury-gold/5 rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute -right-20 bottom-0 w-96 h-96 bg-luxury-gold/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -236,11 +252,21 @@ export function HomeClient({ eliteProfiles, premiumProfiles, freeProfiles, agenc
             </div>
 
             <div className="flex flex-wrap justify-center gap-0.5 bg-white/5 border-y border-white/5 w-full">
-              {agencies.map(agency => (
+              {sortedAgencies.map(agency => (
                 <div key={agency.id} className="w-full sm:w-[calc(50%-2px)] lg:w-[calc(25%-2px)] 2xl:w-[calc(20%-2px)] min-[1920px]:w-[calc(16.666%-2px)]">
                   <AgencyCard agency={agency} />
                 </div>
               ))}
+            </div>
+
+            {/* View All Agencies Link */}
+            <div className="text-center mt-8">
+              <Link
+                href="/agencies"
+                className="inline-flex items-center gap-2 text-luxury-gold hover:text-white transition-colors text-sm font-medium uppercase tracking-wider group"
+              >
+                <span>{t('view_all')} →</span>
+              </Link>
             </div>
           </div>
         </section>

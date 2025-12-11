@@ -3831,8 +3831,18 @@ function AgencyBillingTab({ agency }: { agency: Agency }) {
   const tier = (agency.subscriptionTier || 'none') as AgencyTier;
   const limits = getAgencyTierLimits(tier);
   const expiresAt = agency.subscriptionExpiresAt ? new Date(agency.subscriptionExpiresAt) : null;
-  const isActive = tier !== 'none' && expiresAt && expiresAt > new Date();
+  // Free tier is always active (no expiration), paid tiers need valid expiration
+  const isActive = tier === 'free' || (tier !== 'none' && expiresAt && expiresAt > new Date());
   const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+
+  const getTierDisplayName = () => {
+    switch (tier) {
+      case 'pro': return 'Agency Pro';
+      case 'starter': return 'Agency Starter';
+      case 'free': return 'Agency Free';
+      default: return t('no_subscription');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -3844,22 +3854,24 @@ function AgencyBillingTab({ agency }: { agency: Agency }) {
               <Crown className="text-luxury-gold" size={24} />
             ) : tier === 'starter' ? (
               <Star className="text-luxury-gold" size={24} />
+            ) : tier === 'free' ? (
+              <Users className="text-green-400" size={24} />
             ) : (
               <CreditCard className="text-neutral-600" size={24} />
             )}
             <div>
-              <h3 className="text-lg font-semibold text-white">
-                {tier === 'pro' ? 'Agency Pro' : tier === 'starter' ? 'Agency Starter' : t('no_subscription')}
-              </h3>
-              {isActive && expiresAt && (
+              <h3 className="text-lg font-semibold text-white">{getTierDisplayName()}</h3>
+              {tier === 'free' ? (
+                <p className="text-sm text-green-400">Kostenlos • Unbegrenzte Laufzeit</p>
+              ) : isActive && expiresAt ? (
                 <p className="text-sm text-neutral-400">
                   {daysLeft > 0 ? `${daysLeft} ${t('days_remaining')}` : t('expires_today')} • {expiresAt.toLocaleDateString()}
                 </p>
-              )}
+              ) : null}
             </div>
           </div>
           {isActive && (
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium">
+            <span className={`px-3 py-1 text-sm rounded-full font-medium ${tier === 'free' ? 'bg-green-500/20 text-green-400' : 'bg-green-500/20 text-green-400'}`}>
               {t('active')}
             </span>
           )}
@@ -3948,7 +3960,8 @@ function AgencySubscriptionBanner({ agency, modelCount }: { agency: Agency; mode
   const limits = getAgencyTierLimits(tier);
   const maxModels = limits.maxModels;
   const expiresAt = agency.subscriptionExpiresAt ? new Date(agency.subscriptionExpiresAt) : null;
-  const isActive = tier !== 'none' && expiresAt && expiresAt > new Date();
+  // Free tier is always active (no expiration), paid tiers need valid expiration
+  const isActive = tier === 'free' || (tier !== 'none' && expiresAt && expiresAt > new Date());
   const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
   const capacityPercent = maxModels > 0 ? Math.min((modelCount / maxModels) * 100, 100) : 0;
   const isNearLimit = capacityPercent >= 80;

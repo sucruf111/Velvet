@@ -384,7 +384,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: sanitizeString(data.email),
         district: (data.district || 'Mitte') as District,
         isFeatured: false,
-        reviews: []
+        reviews: [],
+        // Auto-activate free plan for new agencies
+        subscription_tier: 'free',
+        model_limit: 3
       })
       .select()
       .single();

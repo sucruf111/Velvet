@@ -57,6 +57,9 @@ export function Header() {
             <Link href="/search" className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase">
               {t('escorts')}
             </Link>
+            <Link href="/agencies" className="text-neutral-300 hover:text-luxury-gold transition-colors text-xs font-bold tracking-widest uppercase">
+              {t('agencies')}
+            </Link>
 
             {/* Show Dashboard or Login based on auth state */}
             {isAuthenticated ? (
@@ -131,6 +134,9 @@ export function Header() {
           </div>
           <Link href="/search" className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
             {t('escorts')}
+          </Link>
+          <Link href="/agencies" className="text-xl font-serif text-white" onClick={() => setIsMenuOpen(false)}>
+            {t('agencies')}
           </Link>
 
           {/* Show Dashboard or Login based on auth state */}

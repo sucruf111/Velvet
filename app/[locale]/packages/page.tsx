@@ -69,6 +69,15 @@ export default function PackagesPage() {
       .catch(() => setProfileCount(0));
   }, []);
 
+  // Auto-detect user type based on role
+  useEffect(() => {
+    if (user?.role === 'agency') {
+      setActiveTab('agency');
+    } else if (user?.role === 'model') {
+      setActiveTab('model');
+    }
+  }, [user]);
+
   const displayedPackages = activeTab === 'model' ? getModelPackages() : getAgencyPackages();
 
   // Helper to get translation key for package tier
@@ -77,6 +86,7 @@ export default function PackagesPage() {
       'model-free': 'free',
       'model-premium': 'premium',
       'model-elite': 'elite',
+      'agency-free': 'agency_free',
       'agency-starter': 'agency_starter',
       'agency-pro': 'agency_pro',
     };
