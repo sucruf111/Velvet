@@ -3153,6 +3153,7 @@ function AddModelModal({
         isVerified: false,
         isVelvetChoice: false,
         isDisabled: false,
+        isOnline: true,
         clicks: 0,
         contactClicks: 0,
         searchAppearances: 0,
