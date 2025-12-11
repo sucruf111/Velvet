@@ -21,7 +21,7 @@
     "filter_massage": "Erotik Massage",
     "premium_title": "Empfohlene Anzeigen",
     "new_title": "Neu & Verifiziert",
-    "agencies_title": "Partner Agenturen",
+    "agencies_title": "Escort Agenturen",
     "view_all": "Verzeichnis durchsuchen",
     "seo_title": "Premium Escort Service in Berlin",
     "seo_intro": "Willkommen bei Velvet Berlin, Ihrem exklusiven Verzeichnis für Premium-Begleitservices in der deutschen Hauptstadt. Als Berlins führende Plattform für diskrete Erwachsenenunterhaltung verbinden wir anspruchsvolle Herren mit verifizierten Escorts, die höchste Ansprüche erfüllen.",
@@ -246,15 +246,15 @@
     "no_models": "Derzeit sind keine Models für diese Agentur gelistet."
   },
   "agencies": {
-    "title": "Partner Agenturen",
-    "subtitle": "Entdecken Sie unsere verifizierten Partner-Agenturen in Berlin",
+    "title": "Escort Agenturen",
+    "subtitle": "Entdecken Sie Escort-Agenturen in Berlin",
     "all_agencies": "Alle Agenturen",
     "filter_district": "Nach Bezirk filtern",
     "no_agencies": "Keine Agenturen gefunden",
     "view_all": "Alle Agenturen anzeigen",
     "models_count": "{count} Models",
-    "featured": "Premium Partner",
-    "partner": "Partner"
+    "featured": "Premium",
+    "partner": "Gelistet"
   },
   "visit": {
     "title": "Service-Ort",

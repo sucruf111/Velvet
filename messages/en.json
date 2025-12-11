@@ -21,7 +21,7 @@
     "filter_massage": "Sensual Massage",
     "premium_title": "Featured Listings",
     "new_title": "New & Verified",
-    "agencies_title": "Partner Agencies",
+    "agencies_title": "Escort Agencies",
     "view_all": "Browse Directory",
     "seo_title": "Premium Escort Service in Berlin",
     "seo_intro": "Welcome to Velvet Berlin, your exclusive directory for premium escort services in the German capital. As Berlin's leading platform for discreet adult entertainment, we connect discerning gentlemen with verified escorts who meet the highest standards.",
@@ -246,15 +246,15 @@
     "no_models": "No models currently listed for this agency."
   },
   "agencies": {
-    "title": "Partner Agencies",
-    "subtitle": "Discover our verified partner agencies in Berlin",
+    "title": "Escort Agencies",
+    "subtitle": "Discover escort agencies in Berlin",
     "all_agencies": "All Agencies",
     "filter_district": "Filter by district",
     "no_agencies": "No agencies found",
     "view_all": "View All Agencies",
     "models_count": "{count} Models",
-    "featured": "Premium Partner",
-    "partner": "Partner"
+    "featured": "Premium",
+    "partner": "Listed"
   },
   "visit": {
     "title": "Service Location",
