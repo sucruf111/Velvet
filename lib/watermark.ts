@@ -38,10 +38,10 @@ export async function applyWatermark(imageBuffer: Buffer<ArrayBufferLike>): Prom
  * @returns SVG string
  */
 function generateWatermarkSvg(width: number, height: number): string {
-  // Calculate font size proportional to image (min 16px, scales with smaller dimension)
-  const fontSize = Math.max(16, Math.min(width, height) / 25);
+  // Calculate font size proportional to image (min 20px, scales with smaller dimension)
+  const fontSize = Math.max(20, Math.min(width, height) / 20);
   // Space between watermark text repetitions
-  const spacing = fontSize * 8;
+  const spacing = fontSize * 6;
 
   let textElements = '';
 
@@ -49,28 +49,32 @@ function generateWatermarkSvg(width: number, height: number): string {
   // Start before 0,0 and extend past width,height to cover corners after rotation
   for (let y = -height; y < height * 2; y += spacing) {
     for (let x = -width; x < width * 2; x += spacing) {
+      // Shadow text (black, offset)
+      textElements += `
+        <text
+          x="${x + 2}"
+          y="${y + 2}"
+          transform="rotate(-30, ${x + 2}, ${y + 2})"
+          fill="black"
+          fill-opacity="0.6"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="${fontSize}"
+          font-weight="bold"
+        >VELVETBERLIN</text>`;
+      // Main text (white)
       textElements += `
         <text
           x="${x}"
           y="${y}"
           transform="rotate(-30, ${x}, ${y})"
           fill="white"
-          fill-opacity="0.5"
+          fill-opacity="0.7"
           font-family="Arial, Helvetica, sans-serif"
           font-size="${fontSize}"
           font-weight="bold"
-          filter="url(#shadow)"
         >VELVETBERLIN</text>`;
     }
   }
 
-  // SVG filter for drop shadow (text-shadow CSS doesn't work in SVG)
-  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="1" dy="1" stdDeviation="1.5" flood-color="black" flood-opacity="0.7"/>
-      </filter>
-    </defs>
-    ${textElements}
-  </svg>`;
+  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">${textElements}</svg>`;
 }
