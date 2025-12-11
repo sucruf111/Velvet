@@ -57,7 +57,7 @@ function generateWatermarkSvg(width: number, height: number): string {
           transform="rotate(-30, ${x + 2}, ${y + 2})"
           fill="black"
           fill-opacity="0.6"
-          font-family="Arial, Helvetica, sans-serif"
+          font-family="DejaVu Sans, Liberation Sans, FreeSans, sans-serif"
           font-size="${fontSize}"
           font-weight="bold"
         >VELVETBERLIN</text>`;
@@ -69,7 +69,7 @@ function generateWatermarkSvg(width: number, height: number): string {
           transform="rotate(-30, ${x}, ${y})"
           fill="white"
           fill-opacity="0.7"
-          font-family="Arial, Helvetica, sans-serif"
+          font-family="DejaVu Sans, Liberation Sans, FreeSans, sans-serif"
           font-size="${fontSize}"
           font-weight="bold"
         >VELVETBERLIN</text>`;
