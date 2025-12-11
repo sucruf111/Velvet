@@ -2812,7 +2812,8 @@ function AgencyModelsTab({
   const limits = getAgencyTierLimits(tier);
   const maxModels = limits.maxModels;
   const isAtLimit = profiles.length >= maxModels;
-  const hasActiveSubscription = tier !== 'none' && agency.subscriptionExpiresAt && new Date(agency.subscriptionExpiresAt) > new Date();
+  // Free tier is always active (no expiration), paid tiers need valid expiration
+  const hasActiveSubscription = tier === 'free' || (tier !== 'none' && agency.subscriptionExpiresAt && new Date(agency.subscriptionExpiresAt) > new Date());
 
   const toggleModelStatus = async (profileId: string, currentStatus: boolean) => {
     const { error } = await supabase.from('profiles').update({ isDisabled: !currentStatus }).eq('id', profileId);
