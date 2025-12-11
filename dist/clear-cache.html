@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Velvet Cache</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: #262626;
+            border-radius: 8px;
+            max-width: 500px;
+        }
+        h1 {
+            color: #d4af37;
+            margin-bottom: 1rem;
+        }
+        button {
+            background: #d4af37;
+            color: #000;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background: #e5c158;
+        }
+        .success {
+            color: #10b981;
+            margin-top: 1rem;
+            display: none;
+        }
+        .info {
+            background: #333;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Clear Velvet Cache</h1>
+        <p>This will remove all cached data from your browser and reset the application to a fresh state.</p>
+
+        <button onclick="clearCache()">Clear Cache & Reload</button>
+
+        <div class="success" id="success">
+            ✅ Cache cleared! Reloading...
+        </div>
+
+<div class="info">
+            <strong>What this does:</strong><br>
+            • Removes all cached profile data<br>
+            • Clears localStorage database<br>
+            • Logs you out completely<br>
+            • Resets to fresh state
+        </div>
+    </div>
+
+    <script>
+        function clearCache() {
+            // Clear ALL Velvet data including user session for security
+            localStorage.removeItem('velvet_db_profiles');
+            localStorage.removeItem('velvet_db_agencies');
+            localStorage.removeItem('velvet_user'); // Log out completely
+            localStorage.removeItem('velvet_visitor_id');
+            localStorage.removeItem('velvet_clicked_profiles');
+            localStorage.removeItem('velvet_passwords'); // Clear all passwords
+
+            // Show success message
+            document.getElementById('success').style.display = 'block';
+
+            // Reload after 1 second
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
