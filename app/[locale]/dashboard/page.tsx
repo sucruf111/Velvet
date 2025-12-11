@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/lib/auth-context';
 import { Profile, District, Agency, isProfileBoosted } from '@/lib/types';
-import { Button } from '@/components/ui';
+import { Button, Spinner, FullPageLoader, ErrorState, EmptyFavorites } from '@/components/ui';
 import { ProfileCard } from '@/components/ProfileCard';
 import { useToast } from '@/components/Toast';
 import {
@@ -180,11 +180,7 @@ export default function DashboardPage() {
 
   // Show loading while checking auth, redirect happens in useEffect
   if (!isAuthenticated || !user) {
-    return (
-      <div className="min-h-screen bg-luxury-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   // Customer Dashboard - Favorites
@@ -204,14 +200,15 @@ export default function DashboardPage() {
 
           {loading ? (
             <div className="flex justify-center py-20">
-              <div className="w-8 h-8 border-2 border-luxury-gold border-t-transparent rounded-full animate-spin" />
+              <Spinner size="md" />
             </div>
           ) : error ? (
-            <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
-              <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
-              <p className="text-red-300 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
-            </div>
+            <ErrorState
+              title={tCommon('error_loading_data')}
+              message={error}
+              onRetry={fetchUserData}
+              retryLabel={tCommon('retry')}
+            />
           ) : favoriteProfiles.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {favoriteProfiles.map(profile => (
@@ -219,12 +216,10 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-24 bg-neutral-900/30 border border-dashed border-neutral-800 rounded-sm">
-              <Heart size={48} className="mx-auto text-neutral-700 mb-4" />
-              <h3 className="text-xl text-white font-serif mb-2">{t('no_favorites')}</h3>
-              <p className="text-neutral-500 mb-6">{t('no_favorites_desc')}</p>
-              <Button onClick={() => router.push('/search')}>{t('browse_escorts')}</Button>
-            </div>
+            <EmptyFavorites
+              onAction={() => router.push('/search')}
+              actionLabel={t('browse_escorts')}
+            />
           )}
         </div>
       </div>
@@ -270,14 +265,15 @@ export default function DashboardPage() {
           <div className="min-h-[500px]">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20">
-                <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin mb-4" />
+                <Spinner size="lg" />
               </div>
             ) : error ? (
-              <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
-                <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
-                <p className="text-red-300 mb-4">{error}</p>
-                <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
-              </div>
+              <ErrorState
+                title={tCommon('error_loading_data')}
+                message={error}
+                onRetry={fetchUserData}
+                retryLabel={tCommon('retry')}
+              />
             ) : !myAgency ? (
               <div className="bg-amber-900/20 border border-amber-900/50 p-6 text-amber-200 rounded-lg">
                 <strong>{tCommon('no_agency_found')}:</strong> {tCommon('no_agency_found_desc')}
@@ -340,14 +336,15 @@ export default function DashboardPage() {
         <div className="min-h-[500px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-12 h-12 border-4 border-luxury-gold border-t-transparent rounded-full animate-spin mb-4" />
+              <Spinner size="lg" />
             </div>
           ) : error ? (
-            <div className="text-center py-20 bg-red-900/10 border border-red-900/30 rounded-lg">
-              <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
-              <p className="text-red-300 mb-4">{error}</p>
-              <Button variant="outline" onClick={fetchUserData}>{tCommon('retry')}</Button>
-            </div>
+            <ErrorState
+              title={tCommon('error_loading_data')}
+              message={error}
+              onRetry={fetchUserData}
+              retryLabel={tCommon('retry')}
+            />
           ) : !myProfile ? (
             <div className="bg-amber-900/20 border border-amber-900/50 p-6 text-amber-200 rounded-lg">
               <strong>{tCommon('no_profile_found')}:</strong> {tCommon('no_profile_found_desc')}
