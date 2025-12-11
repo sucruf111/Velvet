@@ -175,10 +175,6 @@ export function ProfileCard({ profile }: ProfileCardProps) {
           </span>
         </div>
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500 z-20"></div>
-        <div className="absolute bottom-0 left-0 w-full h-2/3 bg-gradient-to-t from-black via-black/60 to-transparent z-20"></div>
-
         {/* Price Tag */}
         <div className="absolute bottom-28 right-3 z-30 pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-sm flex items-baseline gap-0.5 shadow-lg group-hover:border-luxury-gold/30 transition-colors">
