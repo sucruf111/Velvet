@@ -351,6 +351,7 @@
     "age": "Age",
     "hourly_rate": "Hourly Rate (€)",
     "about": "About",
+    "description": "Description",
     "phone": "Phone",
     "whatsapp": "WhatsApp",
     "telegram": "Telegram",
