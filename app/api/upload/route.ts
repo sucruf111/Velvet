@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { applyWatermark } from '@/lib/watermark';
+
+// Create admin Supabase client for tracking watermarks
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase configuration');
+  }
+
+  return createClient(url, key);
+}
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -111,6 +124,21 @@ export async function POST(request: NextRequest) {
         // Generate public URL (relative to public folder)
         const publicUrl = `/uploads/profile-images/${user.id}/${filename}`;
         uploadedUrls.push(publicUrl);
+
+        // Track watermarked image to prevent duplicate watermarking
+        if (file.type !== 'image/gif') {
+          try {
+            const supabaseAdmin = getSupabaseAdmin();
+            await supabaseAdmin.from('watermarked_images').upsert({
+              image_url: publicUrl,
+              user_id: user.id,
+              watermarked_at: new Date().toISOString()
+            });
+          } catch (trackError) {
+            console.error('Failed to track watermarked image:', trackError);
+            // Don't fail the upload if tracking fails
+          }
+        }
       } catch (writeError) {
         console.error('Write error:', writeError);
         errors.push(`${file.name}: Failed to save file`);
@@ -173,6 +201,14 @@ export async function DELETE(request: NextRequest) {
         // Check if file exists and delete
         if (existsSync(filePath)) {
           await unlink(filePath);
+
+          // Remove from watermark tracking
+          try {
+            const supabaseAdmin = getSupabaseAdmin();
+            await supabaseAdmin.from('watermarked_images').delete().eq('image_url', url);
+          } catch (trackError) {
+            console.error('Failed to remove watermark tracking:', trackError);
+          }
         } else {
           errors.push(`File not found: ${url}`);
         }

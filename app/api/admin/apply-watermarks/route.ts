@@ -62,9 +62,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get already watermarked images to avoid duplicates
+    const { data: alreadyWatermarked } = await supabaseAdmin
+      .from('watermarked_images')
+      .select('image_url');
+
+    const watermarkedSet = new Set(
+      (alreadyWatermarked || []).map(w => w.image_url)
+    );
+
     const results = {
       processed: 0,
       skipped: 0,
+      alreadyWatermarked: 0,
       errors: [] as string[],
       details: [] as { profileName: string; images: number }[]
     };
@@ -86,6 +96,12 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
+        // Skip already watermarked images (prevents duplicate watermarks!)
+        if (watermarkedSet.has(imageUrl)) {
+          results.alreadyWatermarked++;
+          continue;
+        }
+
         const filePath = path.join(UPLOAD_DIR, imageUrl);
 
         if (!existsSync(filePath)) {
@@ -103,6 +119,13 @@ export async function POST(request: NextRequest) {
 
             // Write back to same location
             await writeFile(filePath, watermarkedBuffer);
+
+            // Track this image as watermarked to prevent future duplicates
+            await supabaseAdmin.from('watermarked_images').upsert({
+              image_url: imageUrl,
+              profile_id: profile.id,
+              watermarked_at: new Date().toISOString()
+            });
           }
 
           results.processed++;
@@ -121,15 +144,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[ADMIN] Watermarks applied by ${user.email}: ${results.processed} images, ${results.skipped} skipped, ${results.errors.length} errors`);
+    console.log(`[ADMIN] Watermarks applied by ${user.email}: ${results.processed} processed, ${results.alreadyWatermarked} already done, ${results.skipped} skipped, ${results.errors.length} errors`);
 
     return NextResponse.json({
       success: true,
       dryRun,
       ...results,
       message: dryRun
-        ? `Dry run: Would process ${results.processed} images`
-        : `Processed ${results.processed} images with watermarks`
+        ? `Dry run: Would process ${results.processed} images (${results.alreadyWatermarked} already watermarked)`
+        : `Processed ${results.processed} images with watermarks (${results.alreadyWatermarked} already watermarked, skipped)`
     });
 
   } catch (error) {
@@ -180,15 +203,27 @@ export async function GET() {
       );
     }
 
+    // Get already watermarked images
+    const { data: alreadyWatermarked } = await supabaseAdmin
+      .from('watermarked_images')
+      .select('image_url');
+
+    const watermarkedSet = new Set(
+      (alreadyWatermarked || []).map(w => w.image_url)
+    );
+
     let totalImages = 0;
     let localImages = 0;
     let externalImages = 0;
     let missingFiles = 0;
-    const profilesWithImages: { name: string; count: number }[] = [];
+    let alreadyWatermarkedCount = 0;
+    let needsWatermarking = 0;
+    const profilesWithImages: { name: string; count: number; needsWatermark: number }[] = [];
 
     for (const profile of profiles || []) {
       const images = profile.images as string[] || [];
       let profileLocalImages = 0;
+      let profileNeedsWatermark = 0;
 
       for (const imageUrl of images) {
         totalImages++;
@@ -200,6 +235,11 @@ export async function GET() {
           const filePath = path.join(UPLOAD_DIR, imageUrl);
           if (!existsSync(filePath)) {
             missingFiles++;
+          } else if (watermarkedSet.has(imageUrl)) {
+            alreadyWatermarkedCount++;
+          } else if (!imageUrl.toLowerCase().endsWith('.gif')) {
+            needsWatermarking++;
+            profileNeedsWatermark++;
           }
         } else {
           externalImages++;
@@ -209,7 +249,8 @@ export async function GET() {
       if (profileLocalImages > 0) {
         profilesWithImages.push({
           name: profile.name || profile.id,
-          count: profileLocalImages
+          count: profileLocalImages,
+          needsWatermark: profileNeedsWatermark
         });
       }
     }
@@ -219,8 +260,10 @@ export async function GET() {
       localImages,
       externalImages,
       missingFiles,
+      alreadyWatermarked: alreadyWatermarkedCount,
+      needsWatermarking,
       profilesWithImages,
-      message: `Found ${localImages} local images that can be watermarked`
+      message: `Found ${needsWatermarking} images needing watermarks (${alreadyWatermarkedCount} already done)`
     });
 
   } catch (error) {
