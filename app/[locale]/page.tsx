@@ -96,10 +96,13 @@ export default async function HomePage() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Velvet Berlin',
-    url: 'https://velvet-berlin.com',
+    url: 'https://velvet-berlin.com/de',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://velvet-berlin.com/search?q={search_term_string}',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://velvet-berlin.com/de/search?q={search_term_string}'
+      },
       'query-input': 'required name=search_term_string'
     }
   };
@@ -164,6 +167,10 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Server-rendered H1 for SEO - visible to crawlers immediately */}
+      <h1 className="sr-only">
+        Velvet Berlin - Premium Escort Service & Begleitservice in Berlin
+      </h1>
       <JsonLd data={organizationSchema} />
       <JsonLd data={websiteSchema} />
       <JsonLd data={faqSchema} />

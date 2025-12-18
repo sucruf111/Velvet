@@ -21,6 +21,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       locale: locale === 'de' ? 'de_DE' : locale === 'ru' ? 'ru_RU' : 'en_US',
       type: 'website',
     },
+    alternates: {
+      canonical: `https://velvet-berlin.com/${locale}/search`,
+      languages: {
+        'x-default': 'https://velvet-berlin.com/de/search',
+        'de': 'https://velvet-berlin.com/de/search',
+        'en': 'https://velvet-berlin.com/en/search',
+        'ru': 'https://velvet-berlin.com/ru/search',
+      },
+    },
   };
 }
 

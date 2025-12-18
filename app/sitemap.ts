@@ -1,6 +1,5 @@
 import { MetadataRoute } from 'next';
 import { getProfiles, getAgencies } from '@/lib/supabase';
-import { District } from '@/lib/types';
 
 const baseUrl = 'https://velvet-berlin.com';
 
@@ -17,9 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/about', priority: 0.6, changeFreq: 'monthly' as const },
     { path: '/packages', priority: 0.7, changeFreq: 'weekly' as const },
   ];
-
-  // Berlin districts for local SEO
-  const districts = Object.values(District);
 
   const sitemapEntries: MetadataRoute.Sitemap = [];
 
@@ -41,23 +37,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // District-specific search pages for local SEO (German only for main indexing)
-  for (const district of districts) {
-    sitemapEntries.push({
-      url: `${baseUrl}/de/search?district=${encodeURIComponent(district)}`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.8,
-      alternates: {
-        languages: {
-          'x-default': `${baseUrl}/de/search?district=${encodeURIComponent(district)}`,
-          de: `${baseUrl}/de/search?district=${encodeURIComponent(district)}`,
-          en: `${baseUrl}/en/search?district=${encodeURIComponent(district)}`,
-          ru: `${baseUrl}/ru/search?district=${encodeURIComponent(district)}`,
-        },
-      },
-    });
-  }
+  // Note: District-specific search URLs removed - they share canonical with /search
+  // and were causing "Crawled - currently not indexed" issues
 
   // Profile pages (only add once with alternates, use actual lastActive date)
   for (const profile of profiles) {

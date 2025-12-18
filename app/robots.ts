@@ -18,6 +18,18 @@ export default function robots(): MetadataRoute.Robots {
           '/payment-cancel/',
           '/_next/',
           '/static/',
+          // Disallow URLs without locale prefix (should use /de/, /en/, /ru/)
+          '/search',
+          '/profile/',
+          '/agency/',
+          '/about',
+          '/packages',
+          '/login',
+          '/register',
+          // Disallow search with query parameters (canonical is base search page)
+          '/*/search?*',
+          // Disallow favicon crawling
+          '/favicon.ico',
         ],
       },
       {
@@ -31,6 +43,16 @@ export default function robots(): MetadataRoute.Robots {
           '/checkout/',
           '/payment-success/',
           '/payment-cancel/',
+          // Disallow URLs without locale prefix
+          '/search',
+          '/profile/',
+          '/agency/',
+          '/about',
+          '/packages',
+          '/login',
+          '/register',
+          // Disallow search with query parameters
+          '/*/search?*',
         ],
       },
     ],
